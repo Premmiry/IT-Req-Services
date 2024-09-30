@@ -14,7 +14,7 @@ import Grid from '@mui/joy/Grid';
 import Input from '@mui/joy/Input';
 import Select, { SelectStaticProps, selectClasses } from '@mui/joy/Select';
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
-import Option from '@mui/joy/Option';
+import Option, { optionClasses } from '@mui/joy/Option';
 import Textarea from '@mui/joy/Textarea';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -23,7 +23,12 @@ import Paper from '@mui/material/Paper';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import TabsBottomNavExample from '../Tabs';
 import Stack from '@mui/joy/Stack';
-
+import Chip from '@mui/joy/Chip';
+import ListItemDecorator, {
+  listItemDecoratorClasses,
+} from '@mui/joy/ListItemDecorator';
+import ListDivider from '@mui/joy/ListDivider';
+import Check from '@mui/icons-material/Check';
 
 
 
@@ -41,11 +46,29 @@ function Manager_Approve() {
   const [value4, setValue4] = React.useState<string | null>('approve');
   const action: SelectStaticProps['action'] = React.useRef(null);
 
-  const handleApprovedChange = (_event: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element> | React.FocusEvent<Element, Element> | null, value: string | null) => {
-    if (value !== null) {
-      setSelectedApproved(value);
+  const [selectedgroup, setSelectedgroup] = React.useState<string[]>([]);
+
+  const group = {
+    Land: ['Cat', 'Dog', 'Tiger', 'Reindeer', 'Raccoon'],
+    Water: ['Dolphin', 'Flounder', 'Eel'],
+    Air: ['Falcon', 'Winged Horse', 'Owl'],
+  };
+
+  const colorsgroup = {
+    Land: 'neutral',
+    Water: 'primary',
+    Air: 'success',
+  } as const;
+
+  const handleChangegroup = (
+    event: React.SyntheticEvent | null,
+    newValue: string[] | null,
+  ) => {
+    if (newValue) {
+      setSelectedgroup(newValue);
     }
   };
+
   const handleTypeChange = (_event: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element> | React.FocusEvent<Element, Element> | null, value: string | null) => {
     if (value !== null) {
       setSelectedType(value);

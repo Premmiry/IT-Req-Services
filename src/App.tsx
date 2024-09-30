@@ -15,6 +15,8 @@ import TaskManagementMockup from './components/it-services/task-management';
 import Manager_Approve from './components/it-services/ITManage_Approve';
 import Openjob from './components/it-services/IT_OpenJob';
 import Closejob from './components/it-services/IT_CloseJob';
+import ITServicesComponent from './components/it-services/dashboard-component';
+import ITServicesDashboard from './components/it-services/it-services-dashboard';
 
 
 function App() {
@@ -37,6 +39,8 @@ function App() {
         <Route path="/DataGridUAT" element={<DataGridUAT />}  />
         <Route path="/it_services_open" element={<Openjob />}  />
         <Route path="/it_services_close" element={<Closejob />}  />
+        <Route path="/it_services_C" element={<ITServicesComponent />}  />
+        <Route path="/it_services_db" element={<ITServicesDashboard />}  />
       </Routes>
       <br />
       {/* <Footer /> */}
