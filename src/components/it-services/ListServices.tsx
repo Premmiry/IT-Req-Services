@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Box, Container, Typography, IconButton, Menu, MenuItem, Button, Chip } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams, useGridApiContext } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -30,91 +31,127 @@ const getStatusColor = (status: string) => {
     }
 };
 
+const getChipColor = (dept: string) => {
+    switch (dept) {
+        case 'แผนกพัฒนาโปรแกรม':
+            return '#ffdb9b'; // สีที่กำหนดสำหรับแผนกพัฒนาโปรแกรม
+        case 'แผนกซ่อมบำรุงคอมพิวเตอร์':
+            return '#b0fbf2'; // สีที่กำหนดสำหรับแผนกซ่อมบำรุงคอมพิวเตอร์
+        case 'แผนกควบคุมระบบปฏิบัติงาน':
+            return '#d1fbb0'; // สีที่กำหนดสำหรับแผนกควบคุมระบบปฏิบัติงาน
+        default:
+            return '#d8d8d8'; // สีเริ่มต้น
+    }
+};
+
 const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 100 },
     {
-      field: 'name',
-      headerName: 'Name',
-      width: 750,
-      editable: true,
-      renderCell: (params: GridRenderCellParams) => {
-          const navigate = useNavigate();
-          const [showIcon, setShowIcon] = useState(false);
-          const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-          const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
-          const open = Boolean(anchorEl);
-          const departments = ['แผนกพัฒนาโปรแกรม', 'แผนกซ่อมบำรุงคอมพิวเตอร์', 'แผนกควบคุมระบบปฏิบัติงาน'];
+        field: 'name',
+        headerName: 'Name',
+        flex: 1, // ให้คอลัมน์นี้ปรับขนาดตามเนื้อหาภายใน
+        editable: true,
+        renderCell: (params: GridRenderCellParams) => {
+            const navigate = useNavigate();
+            const [showIcon, setShowIcon] = useState(false);
+            const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+            const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+            const open = Boolean(anchorEl);
+            const departments = ['แผนกพัฒนาโปรแกรม', 'แผนกซ่อมบำรุงคอมพิวเตอร์', 'แผนกควบคุมระบบปฏิบัติงาน'];
 
-          const handleMouseEnter = () => {
-              setShowIcon(true);
-          };
+            const handleMouseEnter = () => {
+                setShowIcon(true);
+            };
 
-          const handleMouseLeave = () => {
-              setShowIcon(false);
-          };
+            const handleMouseLeave = () => {
+                setShowIcon(false);
+            };
 
-          const handleClickIcon = (event: React.MouseEvent<HTMLElement>) => {
-              setAnchorEl(event.currentTarget);
-          };
+            const handleClickIcon = (event: React.MouseEvent<HTMLElement>) => {
+                setAnchorEl(event.currentTarget);
+            };
 
-          const handleDepartmentSelect = (dept: string) => {
-              if (!selectedDepartments.includes(dept)) {
-                  setSelectedDepartments((prev) => [...prev, dept]);
-              }
-              setAnchorEl(null); // Close the menu
-          };
+            const handleDepartmentSelect = (dept: string) => {
+                if (!selectedDepartments.includes(dept)) {
+                    setSelectedDepartments((prev) => [...prev, dept]);
+                }
+                setAnchorEl(null); // ปิดเมนู
+            };
 
-          const handleClose = () => {
-              setAnchorEl(null);
-          };
+            const handleChipDelete = (dept: string) => {
+                // ลบแผนกออกจาก selectedDepartments
+                setSelectedDepartments((prev) => prev.filter((d) => d !== dept));
+            };
 
-          const handleNavigate = () => {
-              navigate(`/service/${params.row.id}`);
-          };
+            const handleClose = () => {
+                setAnchorEl(null);
+            };
 
-          return (
-              <Box
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}
-              >
-                  <Button color="primary" onClick={handleNavigate}>
-                      {params.value}
-                      {selectedDepartments.length > 0 && (
-                          <Chip
-                              label={selectedDepartments.join(', ')}
-                              size="small"
-                              color={getStatusColor(params.value as string)}
-                              sx={{ marginLeft: 1 }}
-                          />
-                      )}
-                  </Button>
-                  {showIcon && (
-                      <>
-                          <IconButton onClick={handleClickIcon}>
-                              <MoreVertIcon />
-                          </IconButton>
-                          <Menu
-                              anchorEl={anchorEl}
-                              open={open}
-                              onClose={handleClose}
-                          >
-                              {departments.map((dept) => (
-                                  <MenuItem
-                                      key={dept}
-                                      onClick={() => handleDepartmentSelect(dept)}
-                                      disabled={selectedDepartments.includes(dept)} // Disable if already selected
-                                  >
-                                      {dept}
-                                  </MenuItem>
-                              ))}
-                          </Menu>
-                      </>
-                  )}
-              </Box>
-          );
-      },
-  },
+            const handleNavigate = () => {
+                navigate(`/service/${params.row.id}`);
+            };
+
+            return (
+                <Box
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    sx={{ display: 'flex', alignItems: 'center', width: '100%' }} // ปรับให้เต็มความกว้าง
+                >
+                    {/* ส่วนแสดงชื่อ */}
+                    <Box>
+                        <Button color="primary" onClick={handleNavigate}>
+                            {params.value}
+                        </Button>
+                    </Box>
+            
+                    {/* ส่วนแสดง Chip ที่ถูกเลือก */}
+                    <Box sx={{ display: 'flex' }}>
+                        {selectedDepartments.length > 0 && selectedDepartments.map((dept, index) => (
+                            <Chip
+                                key={index}
+                                label={dept}
+                                size="small"
+                                onDelete={() => handleChipDelete(dept)}
+                                style={{
+                                    backgroundColor: getChipColor(dept),
+                                    color: 'black',
+                                    marginLeft: 2,
+                                }}
+                            />
+                        ))}
+                    </Box>
+            
+                    {/* ส่วนแสดงไอคอนที่ขวาสุด */}
+                    <Box sx={{ marginLeft: 'auto' }}> {/* ใช้ marginLeft: 'auto' เพื่อดันไอคอนไปทางขวา */}
+                        {showIcon && (
+                            <>
+                                <IconButton sx={{ boxShadow : 2 }} onClick={handleClickIcon}>
+                                    <LocalOfferIcon />
+                                </IconButton>
+                                <Menu
+                                    anchorEl={anchorEl}
+                                    open={open}
+                                    onClose={handleClose}
+                                >
+                                    {/* แสดงแผนกที่ยังไม่ได้เลือก */}
+                                    {departments
+                                        .filter((dept) => !selectedDepartments.includes(dept))
+                                        .map((dept) => (
+                                            <MenuItem
+                                                key={dept}
+                                                onClick={() => handleDepartmentSelect(dept)}
+                                            >
+                                                {dept}
+                                            </MenuItem>
+                                        ))}
+                                </Menu>
+                            </>
+                        )}
+                    </Box>
+                </Box>
+            );            
+        },
+    },
     {
         field: 'status',
         headerName: 'Status',
@@ -160,7 +197,7 @@ export default function ListServices() {
     };
 
     return (
-        <Container maxWidth={'lg'}>
+        <Container maxWidth={'xl'}>
             <Box sx={{ my: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h4" component="h1">
