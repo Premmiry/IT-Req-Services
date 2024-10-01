@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, IconButton, Menu, MenuItem, Button, Chip } from '@mui/material';
-import { DataGrid, GridColDef, GridRenderCellParams, useGridApiContext } from '@mui/x-data-grid';
+import { Box, Container, Typography, IconButton, Menu, MenuItem, Button, Chip, ListSubheader } from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import Avatar from '@mui/joy/Avatar';
+import AvatarGroup from '@mui/material/AvatarGroup';
+import ListItemDecorator from '@mui/joy/ListItemDecorator';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import Tooltip from '@mui/material/Tooltip';
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -43,6 +47,29 @@ const getChipColor = (dept: string) => {
             return '#d8d8d8'; // สีเริ่มต้น
     }
 };
+
+const options = [
+    { value: '1', label: 'พี่พล', position: 'หัวหน้าแผนก', dep: 'พัฒนาโปรแกรม', src: '/static/images/avatar/1.jpg' },
+    { value: '2', label: 'เปรม', position: 'เจ้าหน้าที่', dep: 'พัฒนาโปรแกรม', src: '/static/images/avatar/2.jpg' },
+    { value: '3', label: 'วิค', position: 'เจ้าหน้าที่', dep: 'พัฒนาโปรแกรม', src: '/static/images/avatar/3.jpg' },
+    { value: '4', label: 'ท็อป', position: 'เจ้าหน้าที่', dep: 'พัฒนาโปรแกรม', src: '/static/images/avatar/3.jpg' },
+    { value: '5', label: 'พี่จเด็ด', position: 'หัวหน้าแผนก', dep: 'ซ่อมบำรุงคอมพิวเตอร์', src: '/static/images/avatar/1.jpg' },
+    { value: '6', label: 'พี่เหน่ง', position: 'เจ้าหน้าที่', dep: 'ซ่อมบำรุงคอมพิวเตอร์', src: '/static/images/avatar/2.jpg' },
+    { value: '7', label: 'พี่แจ็ค', position: 'เจ้าหน้าที่', dep: 'ซ่อมบำรุงคอมพิวเตอร์', src: '/static/images/avatar/3.jpg' },
+    { value: '8', label: 'พี่ต้า', position: 'เจ้าหน้าที่', dep: 'ซ่อมบำรุงคอมพิวเตอร์', src: '/static/images/avatar/3.jpg' },
+    { value: '9', label: 'เอิร์ท', position: 'เจ้าหน้าที่', dep: 'ซ่อมบำรุงคอมพิวเตอร์', src: '/static/images/avatar/3.jpg' },
+    { value: '10', label: 'ปูน', position: 'เจ้าหน้าที่', dep: 'ซ่อมบำรุงคอมพิวเตอร์', src: '/static/images/avatar/3.jpg' },
+    { value: '11', label: 'พี่นิด', position: 'หัวหน้าแผนก', dep: 'ควมคุมระบบคอมพิวเตอร์', src: '/static/images/avatar/3.jpg' },
+    { value: '12', label: 'พี่ตา', position: 'เจ้าหน้าที่', dep: 'ควมคุมระบบคอมพิวเตอร์', src: '/static/images/avatar/3.jpg' },
+];
+
+const groupedOptions = options.reduce((acc, curr) => {
+    if (!acc[curr.dep]) {
+        acc[curr.dep] = [];
+    }
+    acc[curr.dep].push(curr);
+    return acc;
+}, {} as { [dep: string]: typeof options });
 
 const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 100 },
@@ -103,7 +130,7 @@ const columns: GridColDef[] = [
                             {params.value}
                         </Button>
                     </Box>
-            
+
                     {/* ส่วนแสดง Chip ที่ถูกเลือก */}
                     <Box sx={{ display: 'flex' }}>
                         {selectedDepartments.length > 0 && selectedDepartments.map((dept, index) => (
@@ -120,12 +147,12 @@ const columns: GridColDef[] = [
                             />
                         ))}
                     </Box>
-            
+
                     {/* ส่วนแสดงไอคอนที่ขวาสุด */}
                     <Box sx={{ marginLeft: 'auto' }}> {/* ใช้ marginLeft: 'auto' เพื่อดันไอคอนไปทางขวา */}
                         {showIcon && (
                             <>
-                                <IconButton sx={{ boxShadow : 2 }} onClick={handleClickIcon}>
+                                <IconButton sx={{ boxShadow: 2 }} onClick={handleClickIcon}>
                                     <LocalOfferIcon />
                                 </IconButton>
                                 <Menu
@@ -149,7 +176,7 @@ const columns: GridColDef[] = [
                         )}
                     </Box>
                 </Box>
-            );            
+            );
         },
     },
     {
@@ -169,9 +196,86 @@ const columns: GridColDef[] = [
     {
         field: 'assignee',
         headerName: 'Assigned',
-        width: 150,
+        width: 100,
         editable: true,
-    }
+        renderCell: (params: any) => {
+            const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+            const [selectedAssignees, setSelectedAssignees] = React.useState<typeof options>([]);
+            const open = Boolean(anchorEl);
+
+            const handleClickRow = (event: React.MouseEvent<HTMLElement>) => {
+                setAnchorEl(event.currentTarget);
+            };
+
+            const handleClose = () => {
+                setAnchorEl(null);
+            };
+
+            const handleAssigneeSelect = (option: typeof options[0]) => {
+                setSelectedAssignees((prev) => [...prev, option]);
+                handleClose(); // ปิดเมนูเมื่อเลือกเจ้าหน้าที่
+            };
+
+            const handleAssigneeRemove = (optionToRemove: typeof options[0]) => {
+                setSelectedAssignees((prev) => prev.filter((option) => option.value !== optionToRemove.value));
+            };
+
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }} onClick={handleClickRow}>
+                    {/* แสดง AvatarGroup หรือ PlaceHolder */}
+                    {selectedAssignees.length > 0 ? (
+                        <AvatarGroup max={4} spacing="small">
+                            {selectedAssignees.map((assignee) => (
+                                <Tooltip key={assignee.value} title={`${assignee.label} - ${assignee.position}`} arrow>
+                                    <Avatar
+                                        src={assignee.src}
+                                        sx={{ width: 32, height: 32 }}
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // ป้องกันไม่ให้เมนูเปิดเมื่อคลิกที่ Avatar
+                                            handleAssigneeRemove(assignee);
+                                        }}
+                                    />
+                                </Tooltip>
+                            ))}
+                        </AvatarGroup>
+                    ) : (
+                        // Placeholder แสดงข้อความเมื่อยังไม่มีการเลือกพนักงาน
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '100%',
+                                height: '100%' // ปรับความสูงเพื่อให้กลาง
+                            }}
+                        >
+                            <PersonAddAlt1Icon />
+                        </Box>
+                    )}
+
+                    {/* เมนูพนักงานแบ่งตามแผนก */}
+                    <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
+                        {Object.entries(groupedOptions).map(([dep, employees]) => (
+                            <React.Fragment key={dep}>
+                                <ListSubheader>{dep}</ListSubheader> {/* หัวข้อแผนก */}
+                                {employees
+                                    .filter((employee) => !selectedAssignees.some((assignee) => assignee.value === employee.value)) // กรองพนักงานที่ถูกเลือกแล้ว
+                                    .map((employee) => (
+                                        <MenuItem key={employee.value} onClick={() => handleAssigneeSelect(employee)}>
+                                            <ListItemDecorator>
+                                                <Avatar size="sm" src={employee.src} />
+                                            </ListItemDecorator>
+                                            {employee.label} - {employee.position}
+                                        </MenuItem>
+                                    ))}
+                            </React.Fragment>
+                        ))}
+                    </Menu>
+                </div>
+            );
+        },
+    },
 ];
 
 const rows = [
