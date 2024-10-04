@@ -4,6 +4,7 @@ import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
+import { SelectWithApi } from '../Select/select-statusapprove';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Paper, Grid } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
@@ -44,8 +45,17 @@ export default function RequestForm() {
         }
     };
 
+    const handleTypeAChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const typeId = e.target.value ? parseInt(e.target.value, 10) : null; // Parse the value to an integer or set to null
+        setSelectedTypeId(typeId);
+        if (typeId === null) {
+            setSelectedTopicId(null);
+        }
+    };
+
     const handleTopicChange = (topicId: number | null) => {
         setSelectedTopicId(topicId);
+        setTitle('');
     };
 
     const handleProgramChange = (program: ProgramOption | null) => {
@@ -98,33 +108,11 @@ export default function RequestForm() {
             title_req: title,
             detail_req: details,
             id_program: selectedProgram ? selectedProgram.key : null,
-            uploadedFiles:uploadedFiles
+            uploadedFiles: uploadedFiles
         };
 
         formData.append('req_data', JSON.stringify(requestData));
         console.log(requestData);
-
-        // uploadedFiles.forEach((file) => {
-        //     formData.append('files', file);
-        // });
-
-        // try {
-        //     const response = await fetch('http://your-fastapi-server/req_master', {
-        //         method: 'POST',
-        //         body: formData,
-        //     });
-
-        //     if (!response.ok) {
-        //         throw new Error('Failed to submit request');
-        //     }
-
-        //     const result = await response.json();
-        //     console.log('Response:', result);
-        //     alert(`Request submitted successfully! Request ID: ${result.req_id}`);
-        // } catch (error) {
-        //     console.error('Error submitting request:', error);
-        //     alert('Error submitting request');
-        // }
     };
 
     const navigate = useNavigate();
@@ -170,6 +158,9 @@ export default function RequestForm() {
                             <Fileupload onFilesChange={handleFilesChange} />
                         </Grid>
                     </Grid>
+                    <Box sx={{ pl: 2, mt: 2 }}>
+                        <SelectWithApi type="m" value={selectedTypeId?.toString() || ''} onChange={handleTypeAChange} />
+                    </Box>
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>

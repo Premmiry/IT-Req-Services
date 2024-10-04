@@ -60,3 +60,11 @@ export const TitleInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
 export const DetailsTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
   <InputComponent {...props} id={props.id || "details"} label={props.label || "รายละเอียด"} placeholder={props.placeholder || "ใส่รายละเอียด Request ที่นี่…"} type="textarea" />
 );
+
+export const ManagerInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
+  <InputComponent {...props} id={props.id || "m_name"} label={props.label || "ชื่อผู้จัดการส่วน"} placeholder={props.placeholder || "ชื่อ-นามสกุล..."} />
+);
+
+export const DirectorInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
+  <InputComponent {...props} id={props.id || "d_name"} label={props.label || "ชื่อผู้อำนวยการฝ่าย"} placeholder={props.placeholder || "ชื่อ-นามสกุล..."} />
+);
