@@ -6,10 +6,12 @@ import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Paper, Grid } from '@mui/material';
-import CancelIcon from '@mui/icons-material/Cancel';
 import SaveIcon from '@mui/icons-material/Save';
 import Fileupload from '../FileUpload/file-upload';
 import { NameInput, PhoneInput, TitleInput, DetailsTextarea } from '../Input/input-requestform';
+import { useNavigate } from 'react-router-dom';
+import ReplyIcon from '@mui/icons-material/Reply';
+
 
 interface ProgramOption {
     key: number;
@@ -56,82 +58,106 @@ export default function RequestForm() {
     };
 
     const handleSubmit = async () => {
-        const requestData = {
-            selectedDepartment,  // ส่งค่าแผนกที่เลือก
-            selectedTypeId,  // ส่งค่าประเภทที่เลือก
-            selectedTopicId,  // ส่งค่าหัวเรื่องที่เลือก
-            selectedProgram,  // ส่งค่าโปรแกรมที่เลือก
-            name,  // ส่งค่าชื่อ
-            phone,  // ส่งค่าเบอร์โทร
-            title,  // ส่งค่าเรื่อง
-            details,  // ส่งค่ารายละเอียด
-            uploadedFiles  // ส่งค่าไฟล์ที่ถูกแนบ
-        };
-        console.log('Request Data:', requestData);
-
+    const formData = new FormData();
+    const requestData = {
+        rs_code: generateRsCode(), // ฟังก์ชันสำหรับสร้าง rs_code
+        date_req: new Date().toISOString(),
+        department_req_id: selectedDepartment.id_department,
+        user: currentUser.username, // สมมติว่ามีข้อมูลผู้ใช้ปัจจุบัน
+        position: currentUser.position,
+        name_req: name,
+        phone: phone,
+        type_id: selectedTypeId,
+        topic_id: selectedTopicId,
+        title_req: title,
+        detail_req: details,
+        level_urgent: selectedUrgentLevel, // ถ้ามี
+        id_program: selectedProgram ? selectedProgram.id_program : null
     };
 
+    formData.append('req_data', JSON.stringify(requestData));
+    
+    uploadedFiles.forEach((file, index) => {
+        formData.append(`files`, file);
+    });
+
+    try {
+        const response = await fetch('http://your-fastapi-server/req_master', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit request');
+        }
+
+        const result = await response.json();
+        console.log('Response:', result);
+        alert(`Request submitted successfully! Request ID: ${result.req_id}`);
+    } catch (error) {
+        console.error('Error submitting request:', error);
+        alert('Error submitting request');
+    }
+};
+
+
+
+    const navigate = useNavigate();
+
     const handleCancel = () => {
-        setSelectedDepartment(null); // รีเซ็ตการเลือกแผนก
-        setSelectedTypeId(null);
-        setSelectedTopicId(null);
-        setSelectedProgram(null);
-        setName('');
-        setPhone('');
-        setTitle('');
-        setDetails('');
-        setUploadedFiles([]);
+        navigate('/');
     };
 
     return (
         <React.Fragment>
-        <CssBaseline />
-        <Container maxWidth="lg">
-            <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
-                <Box sx={{ padding: 2 }}>
-                    <h2>Request Form</h2>
-                </Box>
-                <hr />
-                <Grid container spacing={2}>
-                    <Grid item xs={4}>
-                        <Box sx={{ pl: 2, mt: 4 }}>
-                            <SelectDepartment onDepartmentChange={handleDepartmentChange} />
-                        </Box>
-                        <NameInput value={name} onChange={(e) => setName(e.target.value)} />
-                        <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
-                        <Box sx={{ pl: 2, mt: 2 }}>
-                            <SelectTypeRequest onSelectType={handleTypeChange} />
-                        </Box>
-                    </Grid>
-                    <Grid item xs={8}>
-                        <Box sx={{ pl: 2, mt: 4 }}>
-                            <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} />
-                        </Box>
-
-                        {selectedTopicId === 2 ? (
-                            <Box sx={{ pl: 2, mt: 2 }}>
-                                <SelectProgram onProgramChange={handleProgramChange} />
-                            </Box>
-                        ) : (
-                            <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
-                        )}
-                        
-                        <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
-                        <Fileupload onFilesChange={handleFilesChange} />
-                    </Grid>
-                </Grid>
-                <Grid item xs={12}>
-                    <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <Button color="danger" startDecorator={<CancelIcon />} onClick={handleCancel}>
-                            Cancel
-                        </Button>
-                        <Button sx={{ ml: 2 }} color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
-                            Save
-                        </Button>
+            <CssBaseline />
+            <Container maxWidth="lg">
+                <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
+                    <Box sx={{ padding: 2 }}>
+                        <h2>Request Form</h2>
                     </Box>
-                </Grid>
-            </Paper>
-        </Container>
-    </React.Fragment>
+                    <hr />
+                    <Grid container spacing={2}>
+                        <Grid item xs={4}>
+                            <Box sx={{ pl: 2, mt: 4 }}>
+                                <SelectDepartment onDepartmentChange={handleDepartmentChange} />
+                            </Box>
+                            <NameInput value={name} onChange={(e) => setName(e.target.value)} />
+                            <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
+                            <Box sx={{ pl: 2, mt: 2 }}>
+                                <SelectTypeRequest onSelectType={handleTypeChange} />
+                            </Box>
+                        </Grid>
+                        <Grid item xs={8}>
+                            <Box sx={{ pl: 2, mt: 4 }}>
+                                <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} />
+                            </Box>
+
+                            {selectedTopicId === 2 ? (
+                                <Box sx={{ pl: 2, mt: 2 }}>
+                                    <SelectProgram onProgramChange={handleProgramChange} />
+                                </Box>
+                            ) : (
+                                <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
+                            )}
+
+                            <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
+                            <Fileupload onFilesChange={handleFilesChange} />
+                        </Grid>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+
+                            <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
+                                บันทึก
+                            </Button>
+                            <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
+                                ย้อนกลับ
+                            </Button>
+                        </Box>
+                    </Grid>
+                </Paper>
+            </Container>
+        </React.Fragment>
     );
 }

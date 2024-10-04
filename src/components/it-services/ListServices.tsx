@@ -297,7 +297,7 @@ export default function ListServices() {
     const navigate = useNavigate();
 
     const handleRequest = () => {
-        navigate('/it-services');
+        navigate('/request');
     };
 
     return (
