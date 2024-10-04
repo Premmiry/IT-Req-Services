@@ -1,8 +1,5 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Content from './components/Content';
-import Footer from './components/Footer';
 import Services from './components/it-services/ITServices';
 import ITHardware from './components/ITHardware';
 import ITDevelopment from './components/ITDevelopment';
@@ -11,13 +8,12 @@ import ListServices from './components/it-services/ListServices';
 import ServiceDetails from './components/it-services/ServiceDetails';
 import ITAdminForm from './components/it-services/ITAdminForm';
 import ManagerApprovePage from './components/it-services/ManagerApprove';
-import TaskManagementMockup from './components/it-services/task-management';
 import Manager_Approve from './components/it-services/ITManage_Approve';
 import Openjob from './components/it-services/IT_OpenJob';
 import Closejob from './components/it-services/IT_CloseJob';
 import ITServicesComponent from './components/it-services/dashboard-component';
 import ITServicesDashboard from './components/it-services/it-services-dashboard';
-
+import RequestForm from './components/component-all/Paper/RequestForm';
 
 function App() {
   return (
@@ -41,6 +37,7 @@ function App() {
         <Route path="/it_services_close" element={<Closejob />}  />
         <Route path="/it_services_C" element={<ITServicesComponent />}  />
         <Route path="/it_services_db" element={<ITServicesDashboard />}  />
+        <Route path="/request" element={<RequestForm />}  />
       </Routes>
       <br />
       {/* <Footer /> */}
