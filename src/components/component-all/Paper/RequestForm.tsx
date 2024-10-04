@@ -12,7 +12,6 @@ import { NameInput, PhoneInput, TitleInput, DetailsTextarea } from '../Input/inp
 import { useNavigate } from 'react-router-dom';
 import ReplyIcon from '@mui/icons-material/Reply';
 
-
 interface ProgramOption {
     key: number;
     label: string;
@@ -24,15 +23,15 @@ interface DepartmentOption {
 }
 
 export default function RequestForm() {
-    const [selectedDepartment, setSelectedDepartment] = useState<DepartmentOption | null>(null); // State สำหรับแผนก
-    const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null); // State สำหรับประเภท
-    const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);  // State สำหรับหัวข้อ
-    const [selectedProgram, setSelectedProgram] = useState<ProgramOption | null>(null); // State สำหรับโปรแกรม
-    const [name, setName] = useState<string>(''); // State สำหรับชื่อ
-    const [phone, setPhone] = useState<string>(''); // State สำหรับเบอร์โทร
-    const [title, setTitle] = useState<string>(''); // State สำหรับเรื่อง
-    const [details, setDetails] = useState<string>(''); // State สำหรับรายละเอียด
-    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]); // State สำหรับแนบไฟล์
+    const [selectedDepartment, setSelectedDepartment] = useState<DepartmentOption | null>(null);
+    const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
+    const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
+    const [selectedProgram, setSelectedProgram] = useState<ProgramOption | null>(null);
+    const [name, setName] = useState<string>('');
+    const [phone, setPhone] = useState<string>('');
+    const [title, setTitle] = useState<string>('');
+    const [details, setDetails] = useState<string>('');
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
     const handleDepartmentChange = (department: DepartmentOption | null) => {
         setSelectedDepartment(department);
@@ -57,50 +56,76 @@ export default function RequestForm() {
         setUploadedFiles(files);
     };
 
-    const handleSubmit = async () => {
-    const formData = new FormData();
-    const requestData = {
-        rs_code: generateRsCode(), // ฟังก์ชันสำหรับสร้าง rs_code
-        date_req: new Date().toISOString(),
-        department_req_id: selectedDepartment.id_department,
-        user: currentUser.username, // สมมติว่ามีข้อมูลผู้ใช้ปัจจุบัน
-        position: currentUser.position,
-        name_req: name,
-        phone: phone,
-        type_id: selectedTypeId,
-        topic_id: selectedTopicId,
-        title_req: title,
-        detail_req: details,
-        level_urgent: selectedUrgentLevel, // ถ้ามี
-        id_program: selectedProgram ? selectedProgram.id_program : null
+    const generateRsCode = (selectedTypeId: number | null): string => {
+        const date = new Date();
+        const year = String(date.getFullYear()).substring(2);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateCode = `${year}${month}${day}`;
+
+        switch (selectedTypeId) {
+            case 1:
+                return `IT${dateCode}`;
+            case 2:
+                return `IS${dateCode}`;
+            case 3:
+                return `DEV${dateCode}`;
+            default:
+                return `UNK${dateCode}`;
+        }
     };
 
-    formData.append('req_data', JSON.stringify(requestData));
-    
-    uploadedFiles.forEach((file, index) => {
-        formData.append(`files`, file);
+    // Example of retrieving current user info
+    const currentUser = () => ({
+        username: 'sitp014',
+        position: 's',
     });
 
-    try {
-        const response = await fetch('http://your-fastapi-server/req_master', {
-            method: 'POST',
-            body: formData,
-        });
+    const handleSubmit = async () => {
+        const formData = new FormData();
+        const { username, position } = currentUser(); // Retrieve current user information
 
-        if (!response.ok) {
-            throw new Error('Failed to submit request');
-        }
+        const requestData = {
+            rs_code: generateRsCode(selectedTypeId),
+            date_req: new Date().toISOString(),
+            department_req_id: selectedDepartment ? selectedDepartment.key : null,
+            user: username,
+            position: position,
+            name_req: name,
+            phone: phone,
+            type_id: selectedTypeId,
+            topic_id: selectedTopicId,
+            title_req: title,
+            detail_req: details,
+            id_program: selectedProgram ? selectedProgram.key : null,
+            uploadedFiles:uploadedFiles
+        };
 
-        const result = await response.json();
-        console.log('Response:', result);
-        alert(`Request submitted successfully! Request ID: ${result.req_id}`);
-    } catch (error) {
-        console.error('Error submitting request:', error);
-        alert('Error submitting request');
-    }
-};
+        formData.append('req_data', JSON.stringify(requestData));
+        console.log(requestData);
 
+        // uploadedFiles.forEach((file) => {
+        //     formData.append('files', file);
+        // });
 
+        // try {
+        //     const response = await fetch('http://your-fastapi-server/req_master', {
+        //         method: 'POST',
+        //         body: formData,
+        //     });
+
+        //     if (!response.ok) {
+        //         throw new Error('Failed to submit request');
+        //     }
+
+        //     const result = await response.json();
+        //     console.log('Response:', result);
+        //     alert(`Request submitted successfully! Request ID: ${result.req_id}`);
+        // } catch (error) {
+        //     console.error('Error submitting request:', error);
+        //     alert('Error submitting request');
+        // }
+    };
 
     const navigate = useNavigate();
 
@@ -147,7 +172,6 @@ export default function RequestForm() {
                     </Grid>
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-
                             <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
                                 บันทึก
                             </Button>
