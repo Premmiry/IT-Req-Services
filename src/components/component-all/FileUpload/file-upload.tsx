@@ -4,6 +4,13 @@ import { Button, List, ListItem } from '@mui/joy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SvgIcon from '@mui/joy/SvgIcon';
 
+export interface FileInfo {
+    lastModified: number; // หรือ Date
+    name: string;
+    size: number;
+    type: string;
+}
+
 interface FileuploadProps {
     onFilesChange: (files: File[]) => void; // Prop to pass files back to RequestForm
 }
@@ -27,7 +34,7 @@ export default function Fileupload({ onFilesChange }: FileuploadProps) {
     };
 
     return (
-        <Box sx={{ pl: 2, mt: 2 }}>
+        <Box sx={{ mt: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', border: '1px dashed', borderColor: 'lightblue', borderRadius: 'sm', padding: 2, marginTop: 2 }}>
                 <FormLabel>แนบไฟล์</FormLabel>
                 <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>

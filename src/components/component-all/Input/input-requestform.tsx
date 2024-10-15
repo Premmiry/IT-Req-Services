@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Input, Textarea, FormLabel } from '@mui/joy';
+import { Box , FormLabel } from '@mui/material';
+import { Textarea , Input } from '@mui/joy';
 
 interface InputProps {
   label?: string;
@@ -18,7 +19,7 @@ const InputComponent: React.FC<InputProps> = ({
   onChange, 
   type = 'text' 
 }) => (
-  <Box sx={{ pl: 2, mt: 2 }}>
+  <Box sx={{ mt: 2 }}>
     <FormLabel>{label}</FormLabel>
     {type === 'text' ? (
       <Input

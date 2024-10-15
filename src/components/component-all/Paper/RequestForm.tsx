@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Box, Button, Alert, Stack, AspectRatio, IconButton, Typography, LinearProgress } from '@mui/joy';
+import { Box, Button, Alert, AspectRatio, IconButton, Typography, LinearProgress } from '@mui/joy';
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
-import { SelectWithApi } from '../Select/select-statusapprove';
+// import { SelectWithApi } from '../Select/select-statusapprove';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Paper, Grid } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import ReplyIcon from '@mui/icons-material/Reply';
 import Check from '@mui/icons-material/Check';
 import Close from '@mui/icons-material/Close';
+import { FileInfo } from '../FileUpload/file-upload';
 
 interface ProgramOption {
     key: number;
@@ -36,7 +37,8 @@ export default function RequestForm() {
     const [details, setDetails] = useState<string>('');
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [successAlert, setSuccessAlert] = useState<boolean>(false);
-
+    const initialFiles: FileInfo[] = [];
+    
     const handleDepartmentChange = (department: DepartmentOption | null) => {
         setSelectedDepartment(department);
     };
@@ -48,13 +50,13 @@ export default function RequestForm() {
         }
     };
 
-    const handleTypeAChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const typeId = e.target.value ? parseInt(e.target.value, 10) : null; // Parse the value to an integer or set to null
-        setSelectedTypeId(typeId);
-        if (typeId === null) {
-            setSelectedTopicId(null);
-        }
-    };
+    // const handleTypeAChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     const typeId = e.target.value ? parseInt(e.target.value, 10) : null; // Parse the value to an integer or set to null
+    //     setSelectedTypeId(typeId);
+    //     if (typeId === null) {
+    //         setSelectedTopicId(null);
+    //     }
+    // };
 
     const handleTopicChange = (topicId: number | null) => {
         setSelectedTopicId(topicId);
@@ -65,8 +67,14 @@ export default function RequestForm() {
         setSelectedProgram(program);
     };
 
-    const handleFilesChange = (files: File[]) => {
-        setUploadedFiles(files);
+    
+    const handleFilesChange = (files: FileInfo[]) => {
+        // แปลง FileInfo[] เป็น File[]
+        const fileArray: File[] = files.map(fileInfo => new File([/* ข้อมูลไฟล์ */], fileInfo.name, {
+            type: fileInfo.type,
+            lastModified: fileInfo.lastModified,
+        }));
+        setUploadedFiles(fileArray);
     };
 
     const generateRsCode = (selectedTypeId: number | null): string => {
@@ -106,7 +114,7 @@ export default function RequestForm() {
 
             // Append all form fields to formData
             formData.append('rs_code', generateRsCode(selectedTypeId));
-            formData.append('department_req_id', selectedDepartment ? selectedDepartment.key.toString() : '');
+            formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
             formData.append('user_req', username);
             formData.append('position', position);
             formData.append('name_req', name);
@@ -201,7 +209,7 @@ export default function RequestForm() {
                                     }}
                                 >
                                     <div>
-                                        <Check fontSize="xl2" />
+                                        <Check />
                                     </div>
                                 </AspectRatio>
                             }
@@ -248,23 +256,23 @@ export default function RequestForm() {
 
                     <Grid container spacing={2}>
                         <Grid item xs={4}>
-                            <Box sx={{ pl: 2, mt: 4 }}>
-                                <SelectDepartment onDepartmentChange={handleDepartmentChange} />
+                            <Box sx={{ mt: 4 }}>
+                                <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={null} />
                             </Box>
                             <NameInput value={name} onChange={(e) => setName(e.target.value)} />
                             <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
-                            <Box sx={{ pl: 2, mt: 2 }}>
-                                <SelectTypeRequest onSelectType={handleTypeChange} />
+                            <Box sx={{ mt: 2 }}>
+                                <SelectTypeRequest onSelectType={handleTypeChange} initialValue={null} />
                             </Box>
                         </Grid>
                         <Grid item xs={8}>
-                            <Box sx={{ pl: 2, mt: 4 }}>
-                                <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} />
+                            <Box sx={{ mt: 4 }}>
+                                <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} initialValue={null} />
                             </Box>
 
                             {selectedTopicId === 2 ? (
-                                <Box sx={{ pl: 2, mt: 2 }}>
-                                    <SelectProgram onProgramChange={handleProgramChange} />
+                                <Box sx={{ mt: 2 }}>
+                                    <SelectProgram onProgramChange={handleProgramChange} initialValue={null} />
                                 </Box>
                             ) : (
                                 <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -274,9 +282,9 @@ export default function RequestForm() {
                             <Fileupload onFilesChange={handleFilesChange} />
                         </Grid>
                     </Grid>
-                    <Box sx={{ pl: 2, mt: 2 }}>
+                    {/* <Box sx={{ pl: 2, mt: 2 }}>
                         <SelectWithApi type="m" value={selectedTypeId?.toString() || ''} onChange={handleTypeAChange} />
-                    </Box>
+                    </Box> */}
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>

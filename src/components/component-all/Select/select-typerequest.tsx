@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
-import { FormLabel } from '@mui/material';
+import { FormLabel, Box } from '@mui/material';
 
 interface TypesReq {
     type_id: number;
@@ -13,11 +13,13 @@ interface TypesReqOption {
 }
 
 interface SelectTypeRequestProps {
-    onSelectType: (typeId: number | null) => void;  // ส่ง typeId หรือ null
+    onSelectType: (typeId: number | null) => void;
+    initialValue: number | null;
 }
 
-export default function SelectTypeRequest({ onSelectType }: SelectTypeRequestProps) {
+export default function SelectTypeRequest({ onSelectType, initialValue }: SelectTypeRequestProps) {
     const [typesreq, setTypesReq] = useState<TypesReqOption[]>([]);
+    const [selectedType, setSelectedType] = useState<TypesReqOption | null>(null); // เพิ่ม state สำหรับเก็บค่าที่เลือก
 
     useEffect(() => {
         const fetchTypesReq = async () => {
@@ -37,22 +39,34 @@ export default function SelectTypeRequest({ onSelectType }: SelectTypeRequestPro
         fetchTypesReq();
     }, []);
 
+    useEffect(() => {
+        // อัปเดต selectedType เมื่อ initialValue เปลี่ยนไป
+        if (initialValue !== null && typesreq.length > 0) {
+            const initialType = typesreq.find(type => type.key === initialValue) || null;
+            setSelectedType(initialType);
+        }
+    }, [initialValue, typesreq]);
+
     const handleTypeChange = (_event: any, value: TypesReqOption | null) => {
-        onSelectType(value ? value.key : null);  // ส่งค่า null เมื่อเคลียร์
+        setSelectedType(value);  // อัปเดต selectedType เมื่อมีการเลือกใหม่
+        onSelectType(value ? value.key : null);  // ส่งค่า null เมื่อไม่มีการเลือก
     };
 
     return (
         <React.Fragment>
+            <Box sx={{ mt:2 }}>
             <FormLabel>ประเภท Request</FormLabel>
             <Autocomplete
-                placeholder="เลือกประเภทRequest..."
+                placeholder="เลือกประเภท Request..."
                 options={typesreq}
+                value={selectedType} // ใช้ selectedType ที่เก็บใน state
                 variant="outlined"
                 color="primary"
                 getOptionLabel={(option: TypesReqOption) => option.label}
-                isOptionEqualToValue={(option: TypesReqOption, value: TypesReqOption) => option.key === value.key}
+                isOptionEqualToValue={(option: TypesReqOption, value: TypesReqOption) => option.key === value?.key}
                 onChange={handleTypeChange}  // ส่งการเปลี่ยนค่าไปยัง RequestForm
             />
+            </Box>
         </React.Fragment>
     );
 }

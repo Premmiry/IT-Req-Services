@@ -13,11 +13,13 @@ interface DepartmentOption {
 }
 
 interface SelectDepartmentProps {
-  onDepartmentChange: (department: DepartmentOption | null) => void; // ฟังก์ชัน prop สำหรับส่งค่ากลับไปยัง RequestForm
+  onDepartmentChange: (department: DepartmentOption | null) => void;
+  initialValue: DepartmentOption | null;
 }
 
-export default function SelectDepartment({ onDepartmentChange }: SelectDepartmentProps) {
+export default function SelectDepartment({ onDepartmentChange, initialValue }: SelectDepartmentProps) {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<DepartmentOption | null>(initialValue);
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -29,13 +31,21 @@ export default function SelectDepartment({ onDepartmentChange }: SelectDepartmen
           label: dept.name_department
         }));
         setDepartments(departmentOptions);
+
+        // อัปเดต label ของ initialValue ถ้ามีค่า
+        if (initialValue) {
+          const initialDept = departmentOptions.find(dept => dept.key === initialValue.key);
+          if (initialDept) {
+            setSelectedDepartment(initialDept);
+          }
+        }
       } catch (error) {
         console.error('Error fetching departments:', error);
       }
     };
 
     fetchDepartments();
-  }, []);
+  }, [initialValue]);
 
   return (
     <React.Fragment>
@@ -43,11 +53,15 @@ export default function SelectDepartment({ onDepartmentChange }: SelectDepartmen
       <Autocomplete
         placeholder="เลือกแผนก..."
         options={departments}
+        value={selectedDepartment}
         variant="outlined"
         color="primary"
         getOptionLabel={(option: DepartmentOption) => option.label}
         isOptionEqualToValue={(option: DepartmentOption, value: DepartmentOption) => option.key === value.key}
-        onChange={(_event, value) => onDepartmentChange(value)} // เมื่อเลือกค่าใหม่ ส่งค่ากลับไปยัง RequestForm
+        onChange={(_event, value) => {
+          setSelectedDepartment(value);
+          onDepartmentChange(value);
+        }}
       />
     </React.Fragment>
   );
