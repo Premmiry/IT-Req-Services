@@ -8,27 +8,32 @@ import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
-import Fileupload from '../FileUpload/file-upload';
+import FileUpload from '../FileUpload/file-upload';
 import { NameInput, PhoneInput, TitleInput, DetailsTextarea } from '../Input/input-requestform';
 import { useNavigate, useParams } from 'react-router-dom';
+
+
+// เพิ่ม interface สำหรับ ExistingFileInfo
+interface ExistingFileInfo {
+    file_path: string;
+    file_name?: string;
+}
 
 export default function RequestFormEdit() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [uploadedFiles, setUploadedFiles] = useState<(File | ExistingFileInfo)[]>([]);
 
-    const [formData, setFormData] = useState({
-        selectedDepartment: null,
-        selectedTypeId: null,
-        selectedTopicId: null,
-        selectedProgram: null,
-        rs_code: '',
-        name: '',
-        phone: '',
-        title: '',
-        details: '',
-        uploadedFiles: [],
-    });
-
+    // เก็บสถานะของฟิลด์ต่าง ๆ
+    const [selectedDepartment, setSelectedDepartment] = useState(null);
+    const [selectedTypeId, setSelectedTypeId] = useState(null);
+    const [selectedTopicId, setSelectedTopicId] = useState(null);
+    const [selectedProgram, setSelectedProgram] = useState(null);
+    const [rsCode, setRsCode] = useState('');
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [title, setTitle] = useState('');
+    const [details, setDetails] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -37,31 +42,39 @@ export default function RequestFormEdit() {
             setIsLoading(true);
             try {
                 const response = await fetch(`http://localhost:1234/it-requests?req_id=${id}`);
-                if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
-
-                const { message, data } = await response.json();
-                console.log("ข้อมูลที่ได้จาก API:", data);
+                const { data } = await response.json();
+                console.log("Received data from API:", data);
 
                 if (data && data.length > 0) {
                     const requestData = data[0];
-                    setFormData({
-                        selectedDepartment: { key: requestData.id_department, label: '' }, // ต้องการการแปลงจาก id_department ไปยัง DepartmentOption
-                        selectedTypeId: requestData.type_id || null,
-                        selectedTopicId: requestData.topic_id || null,
-                        selectedProgram: requestData.id_program && requestData.program_name
+                    setSelectedDepartment({ key: requestData.id_department, label: '' });
+                    setSelectedTypeId(requestData.type_id || null);
+                    setSelectedTopicId(requestData.topic_id || null);
+                    setSelectedProgram(
+                        requestData.id_program && requestData.program_name
                             ? { key: requestData.id_program, label: requestData.program_name }
-                            : null,
-                        rs_code: requestData.rs_code || '',
-                        name: requestData.name_req || '',
-                        phone: requestData.phone || '',
-                        title: requestData.title_req || '',
-                        details: requestData.detail_req || '',
-                        uploadedFiles: requestData.files ? JSON.parse(requestData.files) : [],
-                    });
-                }
+                            : null
+                    );
+                    setRsCode(requestData.rs_code || '');
+                    setName(requestData.name_req || '');
+                    setPhone(requestData.phone || '');
+                    setTitle(requestData.title_req || '');
+                    setDetails(requestData.detail_req || '');
 
+                    // ปรับการ parse ข้อมูลไฟล์
+                    let parsedFiles: ExistingFileInfo[] = [];
+                    try {
+                        parsedFiles = JSON.parse(requestData.files);
+                        if (!Array.isArray(parsedFiles)) {
+                            parsedFiles = [];
+                        }
+                    } catch (error) {
+                        console.error('Error parsing files:', error);
+                    }
+                    setUploadedFiles(parsedFiles);
+                }
             } catch (error) {
-                console.error('เกิดข้อผิดพลาด:', error.message);
+                console.error('Error:', error.message);
                 setError(error.message);
             } finally {
                 setIsLoading(false);
@@ -71,12 +84,9 @@ export default function RequestFormEdit() {
         fetchRequestData();
     }, [id]);
 
-
-
-
     const handleSubmit = async () => {
-        if (!formData.selectedDepartment || !formData.name || !formData.phone || !formData.selectedTypeId) {
-            setError('Please fill in all required fields.');
+        if (!selectedDepartment || !name || !phone || !selectedTypeId) {
+            setError('กรุณากรอกข้อมูลให้ครบถ้วน');
             return;
         }
 
@@ -87,30 +97,45 @@ export default function RequestFormEdit() {
             const form = new FormData();
             const { username, position } = currentUser();
 
-            form.append('rs_code', formData.rs_code);
-            form.append('id_department', formData.selectedDepartment?.key.toString() || '');
+            form.append('rs_code', rsCode);
+            form.append('id_department', selectedDepartment?.key.toString() || '');
             form.append('user_req', username);
             form.append('position', position);
-            form.append('name_req', formData.name);
-            form.append('phone', formData.phone);
-            form.append('type_id', formData.selectedTypeId?.toString() || '');
-            form.append('topic_id', formData.selectedTopicId?.toString() || '');
-            form.append('title_req', formData.title);
-            form.append('detail_req', formData.details);
-            form.append('id_program', formData.selectedProgram?.key.toString() || '');
+            form.append('name_req', name);
+            form.append('phone', phone);
+            form.append('type_id', selectedTypeId?.toString() || '');
+            form.append('topic_id', selectedTopicId?.toString() || '');
+            form.append('title_req', title);
+            form.append('detail_req', details);
+            form.append('id_program', selectedProgram?.key.toString() || '');
 
-            formData.uploadedFiles.forEach(file => {
-                form.append('files', file);
+            // จัดการไฟล์ที่อัปโหลด
+            uploadedFiles.forEach((file) => {
+                if (file instanceof File) {
+                    // ตรวจสอบว่าไฟล์ไม่เป็น null ก่อน
+                    if (file.name) {
+                        form.append('files', file);
+                    } else {
+                        console.error('File name is null or undefined');
+                    }
+                } else {
+                    // ตรวจสอบว่า file.file_path มีค่าก่อนทำการ split
+                    if (file.file_path) {
+                        form.append('existing_files[]', file.file_path);
+                    } else {
+                        console.error('file_path is null or undefined');
+                    }
+                }
             });
 
-            const response = await fetch(`http://127.0.0.1:1234/it-requests/${id}`, {
-                method: 'POST',
+            // ส่งข้อมูลไปยัง API
+            const response = await fetch(`http://localhost:1234/it-requests/${id}`, {
+                method: 'PUT',
                 body: form,
             });
 
             if (!response.ok) {
-                const errorBody = await response.text();
-                throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const result = await response.json();
@@ -118,27 +143,27 @@ export default function RequestFormEdit() {
             navigate('/');
 
         } catch (error) {
-            if (error instanceof Error) {
-                console.error('Error submitting IT request:', error.message);
-                setError(error.message);
-            } else {
-                console.error('An unexpected error occurred');
-            }
+            console.error('Error updating IT request:', error.message);
+            setError(error.message);
+        } finally {
+            setIsLoading(false);
         }
     };
+
 
     const handleCancel = () => {
         navigate('/');
     };
 
-    const handleInputChange = (key : any, value : any) => {
-        setFormData(prevData => ({ ...prevData, [key]: value }));
-    };
+
+
+
 
     return (
         <React.Fragment>
             <CssBaseline />
             <Container maxWidth="lg">
+                <CssBaseline />
                 <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
                     <Grid container spacing={2}>
                         <Grid item xs={6}>
@@ -150,7 +175,7 @@ export default function RequestFormEdit() {
                             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                                 <FormLabel>
                                     <h5>Request No.</h5>
-                                    <Input sx={{ width: 135, justifyItems: 'center' }} value={formData.rs_code} readOnly />
+                                    <Input sx={{ width: 135, justifyItems: 'center' }} value={rsCode} readOnly />
                                 </FormLabel>
                             </Box>
                         </Grid>
@@ -160,53 +185,47 @@ export default function RequestFormEdit() {
                     <Grid container spacing={2}>
                         <Grid item xs={4}>
                             <SelectDepartment
-                                onDepartmentChange={(value) => handleInputChange('selectedDepartment', value)}
-                                initialValue={formData.selectedDepartment || null} // ตรวจสอบให้แน่ใจว่ามีค่าเป็น DepartmentOption
+                                onDepartmentChange={setSelectedDepartment}
+                                initialValue={selectedDepartment || null}
                             />
-
-                            <NameInput value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} />
-                            <PhoneInput value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} />
+                            <NameInput value={name} onChange={(e) => setName(e.target.value)} />
+                            <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
                             <SelectTypeRequest
-                                onSelectType={(value) => handleInputChange('selectedTypeId', value)}
-                                initialValue={formData.selectedTypeId}
+                                onSelectType={setSelectedTypeId}
+                                initialValue={selectedTypeId}
                             />
                         </Grid>
                         <Grid item xs={8}>
                             <SelectTopic
-                                selectedTypeId={formData.selectedTypeId}
-                                onSelectTopic={(value) => handleInputChange('selectedTopicId', value)}
-                                initialValue={formData.selectedTopicId}
+                                selectedTypeId={selectedTypeId}
+                                onSelectTopic={setSelectedTopicId}
+                                initialValue={selectedTopicId}
                             />
-                            {formData.selectedTopicId === 2 ? (
-                                <Box>
-                                    <SelectProgram
-                                        onProgramChange={(value) => handleInputChange('selectedProgram', value)}
-                                        initialValue={formData.selectedProgram}
-                                    />
-                                </Box>
+                            {selectedTopicId === 2 ? (
+                                <SelectProgram
+                                    onProgramChange={setSelectedProgram}
+                                    initialValue={selectedProgram}
+                                />
                             ) : (
                                 <TitleInput
-                                    value={formData.title}
-                                    onChange={(e) => handleInputChange('title', e.target.value)}
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
                                 />
                             )}
+                            <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
 
-                            <DetailsTextarea value={formData.details} onChange={(e) => handleInputChange('details', e.target.value)} />
+                            <FileUpload
+                                onFilesChange={(newFiles) => setUploadedFiles(newFiles)}
+                                reqId={id}
+                                initialFiles={uploadedFiles}
+                            />
 
-                            <Box>
-                                <Fileupload
-                                    onFilesChange={(files) => handleInputChange('uploadedFiles', files)}
-                                    initialFiles={formData.uploadedFiles || []} // ตรวจสอบให้แน่ใจว่าค่าเป็น array
-                                />
 
-                            </Box>
                         </Grid>
                     </Grid>
-
-
                     <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                         <Button
-                            startIcon={<SaveIcon />}
+                            startDecorator={<SaveIcon />}
                             color="success"
                             loading={isLoading}
                             onClick={handleSubmit}
@@ -214,15 +233,20 @@ export default function RequestFormEdit() {
                             Update
                         </Button>
                         <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
-                                ย้อนกลับ
-                            </Button>
+                            ย้อนกลับ
+                        </Button>
                     </Box>
+                    {error && <p style={{ color: 'red' }}>{error}</p>}
                 </Paper>
             </Container>
         </React.Fragment>
     );
 }
 
-function currentUser(): { username: any; position: any; } {
-    throw new Error('Function not implemented.');
+// ฟังก์ชันจำลองสำหรับดึงข้อมูลผู้ใช้ปัจจุบัน
+function currentUser() {
+    return {
+        username: 'JohnDoe',
+        position: 'Software Engineer',
+    };
 }

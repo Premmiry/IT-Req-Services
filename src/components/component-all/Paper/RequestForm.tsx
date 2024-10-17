@@ -37,10 +37,12 @@ export default function RequestForm() {
     const [details, setDetails] = useState<string>('');
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [successAlert, setSuccessAlert] = useState<boolean>(false);
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const initialFiles: FileInfo[] = [];
     
     const handleDepartmentChange = (department: DepartmentOption | null) => {
         setSelectedDepartment(department);
+        setErrors({ ...errors, department: '' });
     };
 
     const handleTypeChange = (typeId: number | null) => {
@@ -48,6 +50,7 @@ export default function RequestForm() {
         if (typeId === null) {
             setSelectedTopicId(null);
         }
+        setErrors({ ...errors, typeId: '' });
     };
 
     // const handleTypeAChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -61,20 +64,22 @@ export default function RequestForm() {
     const handleTopicChange = (topicId: number | null) => {
         setSelectedTopicId(topicId);
         setTitle('');
+        setErrors({ ...errors, topicId: '' });
     };
 
     const handleProgramChange = (program: ProgramOption | null) => {
         setSelectedProgram(program);
+        setErrors({ ...errors, program: '' });
     };
 
     
     const handleFilesChange = (files: FileInfo[]) => {
-        // แปลง FileInfo[] เป็น File[]
-        const fileArray: File[] = files.map(fileInfo => new File([/* ข้อมูลไฟล์ */], fileInfo.name, {
+        const fileArray: File[] = files.map(fileInfo => new File([], fileInfo.name, {
             type: fileInfo.type,
             lastModified: fileInfo.lastModified,
         }));
         setUploadedFiles(fileArray);
+        setErrors({ ...errors, files: '' });
     };
 
     const generateRsCode = (selectedTypeId: number | null): string => {
@@ -106,13 +111,28 @@ export default function RequestForm() {
         position: 's',
     });
 
+    const validateForm = () => {
+        const newErrors: { [key: string]: string } = {};
+
+        if (!selectedDepartment) newErrors.department = 'กรุณาเลือกแผนก';
+        if (!selectedTypeId) newErrors.typeId = 'กรุณาเลือกประเภทคำร้อง';
+        if (!name) newErrors.name = 'กรุณากรอกชื่อ';
+        if (!phone) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์';
+        
+        if (!details) newErrors.details = 'กรุณากรอกรายละเอียด';
+        if (uploadedFiles.length === 0) newErrors.files = 'กรุณาอัพโหลดไฟล์';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const handleSubmit = async () => {
+        if (!validateForm()) return;
+
         try {
             const formData = new FormData();
             const { username, position } = currentUser();
 
-            // Append all form fields to formData
             formData.append('rs_code', generateRsCode(selectedTypeId));
             formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
             formData.append('user_req', username);
@@ -125,7 +145,6 @@ export default function RequestForm() {
             formData.append('detail_req', details);
             formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
 
-            // Append files
             uploadedFiles.forEach((file) => {
                 formData.append('files', file);
             });
@@ -144,19 +163,15 @@ export default function RequestForm() {
             const result = await response.json();
             console.log('IT request created successfully:', result);
 
-            // Show success alert and clear the form
             setSuccessAlert(true);
-            clearForm(); // Clear form fields
+            clearForm();
 
-            // Navigate to the main page after a short delay
             setTimeout(() => {
-                setSuccessAlert(false); // Auto-hide after 2 seconds
+                setSuccessAlert(false);
                 navigate('/');
-            }, 2000); // 2 seconds delay before navigating
+            }, 2000);
         } catch (error) {
             console.error('Error submitting IT request:', error);
-
-            // Handle errors here, e.g., show an error message to the user
         }
     };
 
@@ -170,6 +185,7 @@ export default function RequestForm() {
         setTitle('');
         setDetails('');
         setUploadedFiles([]);
+        setErrors({});
     };
 
     const handleCancel = () => {
@@ -258,28 +274,38 @@ export default function RequestForm() {
                         <Grid item xs={4}>
                             <Box sx={{ mt: 4 }}>
                                 <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={null} />
+                                {errors.department && <Typography color="danger">{errors.department}</Typography>}
                             </Box>
                             <NameInput value={name} onChange={(e) => setName(e.target.value)} />
+                            {errors.name && <Typography color="danger">{errors.name}</Typography>}
                             <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
+                            {errors.phone && <Typography color="danger">{errors.phone}</Typography>}
                             <Box sx={{ mt: 2 }}>
                                 <SelectTypeRequest onSelectType={handleTypeChange} initialValue={null} />
+                                {errors.typeId && <Typography color="danger">{errors.typeId}</Typography>}
                             </Box>
                         </Grid>
                         <Grid item xs={8}>
                             <Box sx={{ mt: 4 }}>
                                 <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} initialValue={null} />
+                                {errors.topicId && <Typography color="danger">{errors.topicId}</Typography>}
                             </Box>
 
                             {selectedTopicId === 2 ? (
                                 <Box sx={{ mt: 2 }}>
                                     <SelectProgram onProgramChange={handleProgramChange} initialValue={null} />
+                                    {/* {errors.program && <Typography color="danger">{errors.program}</Typography>} */}
                                 </Box>
                             ) : (
                                 <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
+                                
                             )}
+                            {/* {errors.title && <Typography color="danger">{errors.title}</Typography>} */}
 
                             <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
+                            {errors.details && <Typography color="danger">{errors.details}</Typography>}
                             <Fileupload onFilesChange={handleFilesChange} />
+                            {errors.files && <Typography color="danger">{errors.files}</Typography>}
                         </Grid>
                     </Grid>
                     {/* <Box sx={{ pl: 2, mt: 2 }}>
