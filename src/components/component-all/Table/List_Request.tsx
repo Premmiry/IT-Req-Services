@@ -51,7 +51,7 @@ export default function List_Request() {
     const fetchRequests = async () => {
         try {
             // ดึงข้อมูลจาก API และแปลงผลลัพธ์เป็น JSON
-            const response = await fetch('http://localhost:1234/it-requests');
+            const response = await fetch('http://10.200.240.2:1234/it-requests');
             
             // ตรวจสอบว่า request สำเร็จหรือไม่
             if (!response.ok) {

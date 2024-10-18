@@ -8,7 +8,7 @@ import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
-import FileUpload from '../FileUpload/file-upload';
+import FileUpload from '../FileUpload/file-upload-update';
 import { NameInput, PhoneInput, TitleInput, DetailsTextarea } from '../Input/input-requestform';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -41,7 +41,7 @@ export default function RequestFormEdit() {
         const fetchRequestData = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`http://localhost:1234/it-requests?req_id=${id}`);
+                const response = await fetch(`http://10.200.240.2:1234/it-requests?req_id=${id}`);
                 const { data } = await response.json();
                 console.log("Received data from API:", data);
 
@@ -129,7 +129,7 @@ export default function RequestFormEdit() {
             });
 
             // ส่งข้อมูลไปยัง API
-            const response = await fetch(`http://localhost:1234/it-requests/${id}`, {
+            const response = await fetch(`http://10.200.240.2:1234/it-requests/${id}`, {
                 method: 'PUT',
                 body: form,
             });
