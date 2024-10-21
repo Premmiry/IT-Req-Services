@@ -130,7 +130,7 @@ export default function RequestForm() {
                 formData.append('files', file);
             });
 
-            const response = await fetch('http://127.0.0.1:1234/it-requests', {
+            const response = await fetch('http://10.200.240.2:1234/it-requests', {
                 method: 'POST',
                 body: formData,
             });

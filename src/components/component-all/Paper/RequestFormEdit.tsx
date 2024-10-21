@@ -36,7 +36,7 @@ export default function RequestFormEdit() {
         const fetchRequestData = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`http://localhost:1234/it-requests?req_id=${id}`);
+                const response = await fetch(`http://10.200.240.2:1234/it-requests?req_id=${id}`);
                 if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
 
                 const { message, data } = await response.json();
@@ -103,7 +103,7 @@ export default function RequestFormEdit() {
                 form.append('files', file);
             });
 
-            const response = await fetch(`http://127.0.0.1:1234/it-requests/${id}`, {
+            const response = await fetch(`http://10.200.240.2:1234/it-requests/${id}`, {
                 method: 'POST',
                 body: form,
             });

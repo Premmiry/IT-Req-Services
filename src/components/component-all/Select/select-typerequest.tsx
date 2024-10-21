@@ -24,7 +24,7 @@ export default function SelectTypeRequest({ onSelectType, initialValue }: Select
     useEffect(() => {
         const fetchTypesReq = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:1234/treqs');
+                const response = await fetch('http://10.200.240.2:1234/treqs');
                 const data: TypesReq[] = await response.json();
                 const typesreqOptions: TypesReqOption[] = data.map(typer => ({
                     key: typer.type_id,

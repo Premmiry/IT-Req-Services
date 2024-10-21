@@ -24,7 +24,7 @@ export default function SelectProgram({ onProgramChange, initialValue }: SelectP
     useEffect(() => {
         const fetchPrograms = async () => {
             try {
-                const response = await fetch(`http://127.0.0.1:1234/programs`);
+                const response = await fetch(`http://10.200.240.2:1234/programs`);
                 const data: Program[] = await response.json();
                 const programOptions: ProgramOption[] = data.map(program => ({
                     key: program.id_program,
