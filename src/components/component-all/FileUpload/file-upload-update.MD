@@ -7,14 +7,12 @@ import SvgIcon from '@mui/joy/SvgIcon';
 interface ExistingFileInfo {
     file_path: string;
     file_name: string;
-    file_old_name: string;
-    file_new_name: string;
 }
 
 interface FileuploadProps {
     onFilesChange: (files: (File | ExistingFileInfo)[]) => void;
-    reqId?: string | number;
-    initialFiles?: (File | ExistingFileInfo)[];
+    reqId: string | number;
+    initialFiles?: ExistingFileInfo[];
 }
 
 export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: FileuploadProps) {
@@ -22,20 +20,14 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
 
     useEffect(() => {
         const fetchExistingFiles = async () => {
-            if (!reqId) return;
             try {
-                const response = await fetch(`http://127.0.0.1:1234/it-requests/images?req_id=${reqId}`);
+                const response = await fetch(`http://10.200.240.2:1234/it-requests/images?req_id=${reqId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch existing files');
                 }
                 const data = await response.json();
-                if (data.length === 0) {
-                    setFiles([]);
-                    onFilesChange([]);
-                } else {
-                    setFiles([...initialFiles, ...data]);
-                    onFilesChange([...initialFiles, ...data]);
-                }
+                setFiles([...initialFiles, ...data]);
+                onFilesChange([...initialFiles, ...data]);
             } catch (error) {
                 console.error('Error fetching existing files:', error);
             }
@@ -44,10 +36,10 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
         if (initialFiles.length > 0) {
             setFiles(initialFiles);
             onFilesChange(initialFiles);
-        } else if (reqId) {
+        } else {
             fetchExistingFiles();
         }
-    }, [reqId, initialFiles]);
+    }, [reqId, onFilesChange, initialFiles]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFiles = event.target.files;
@@ -69,8 +61,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
             return { fileName: file.name, filePath: '' };
         } else {
             const filePath = file.file_path || 'Unknown file path';
-            console.log(file.file_path)
-            return { fileName: file.file_old_name || filePath.split('/').pop() || 'ไม่มีไฟล์', filePath };
+            return { fileName: file.file_name || filePath.split('/').pop() || 'Unknown file', filePath };
         }
     };
 
@@ -86,56 +77,43 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                         color="primary"
                         startDecorator={
                             <SvgIcon>
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth={1.5}
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
-                                    />
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                                 </svg>
                             </SvgIcon>
                         }
                     >
                         Upload a file
-                        <input
-                            type="file"
-                            multiple
-                            hidden
-                            onChange={handleFileUpload}
-                        />
+                        <input type="file" multiple hidden onChange={handleFileUpload} />
                     </Button>
                 </Box>
+                {initialFiles.length > 0 && (
+                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                        * หมายเหตุ: เมื่ออัพโหลดไฟล์ใหม่จะแทนที่ไฟล์เดิมจะหายไป
+                    </Typography>
+                )}
             </Box>
             <List>
                 {files.length === 0 ? (
                     <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
-                        ไม่มีไฟล์แนบ
+                        
                     </Typography>
                 ) : (
-                    files.some(file => 'file_path' in file && file.file_path === null) ? (
-                        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
-                            ไม่มีไฟล์แนบ
-                        </Typography>
-                    ) : (
-                        files.map((file, index) => {
-                            const { fileName, filePath } = getFileName(file);
-                            return (
-                                <ListItem
-                                    sx={{
-                                        border: '1px dashed',
-                                        borderColor: 'lightblue',
-                                        borderRadius: 'sm',
-                                        margin: 1,
-                                        padding: 1,
-                                    }}
-                                    key={index}
-                                    endAction={
+                    files.map((file, index) => {
+                        const { fileName, filePath } = getFileName(file);
+                        const displayName = `ไฟล์แนบ ${index + 1}`; // ตั้งชื่อที่แสดงเอง
+                        return (
+                            <ListItem
+                                sx={{
+                                    border: '1px dashed',
+                                    borderColor: 'lightblue',
+                                    borderRadius: 'sm',
+                                    margin: 1,
+                                    padding: 1,
+                                }}
+                                key={index}
+                                endAction={
+                                    initialFiles.length === 0 ? (
                                         <IconButton
                                             edge="end"
                                             aria-label="delete"
@@ -144,21 +122,21 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                                         >
                                             <DeleteIcon />
                                         </IconButton>
-                                    }
-                                >
+                                    ) : null
+                                }
+                            >
+                                <Typography variant="body2" color="primary">
                                     {file instanceof File ? (
-                                        <Typography variant="body2" color="primary">
-                                            {fileName}
-                                        </Typography>
+                                        fileName
                                     ) : (
-                                        <a href={`http://127.0.0.1:1234/${filePath}`} target="_blank" rel="noopener noreferrer">
-                                            {fileName}
+                                        <a href={`http://10.200.240.2:1234/${file.file_path}`} target="_blank" rel="noopener noreferrer">
+                                            {displayName} {/* ใช้ชื่อที่แสดงที่กำหนดเอง */}
                                         </a>
                                     )}
-                                </ListItem>
-                            );
-                        })
-                    )
+                                </Typography>
+                            </ListItem>
+                        );
+                    })
                 )}
             </List>
         </Box>

@@ -32,7 +32,8 @@ export const SelectWithApi: React.FC<{
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch(`http://10.200.240.2:1234/status_a`);
+                // const response = await fetch(`http://10.200.240.2:1234/status_a`);
+                const response = await fetch(`http://127.0.0.1:1234/status_a`);
                 const data = await response.json();
     
                 // กรองข้อมูลตาม type ที่ได้รับจาก prop

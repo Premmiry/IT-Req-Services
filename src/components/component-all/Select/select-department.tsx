@@ -24,7 +24,8 @@ export default function SelectDepartment({ onDepartmentChange, initialValue }: S
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await fetch('http://10.200.240.2:1234/departments');
+        // const response = await fetch('http://10.200.240.2:1234/departments');
+        const response = await fetch('http://127.0.0.1:1234/departments');
         const data: Department[] = await response.json();
         const departmentOptions: DepartmentOption[] = data.map(dept => ({
           key: dept.id_department,

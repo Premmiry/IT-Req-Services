@@ -15,7 +15,7 @@ import ITServicesComponent from './components/it-services/dashboard-component';
 import ITServicesDashboard from './components/it-services/it-services-dashboard';
 import RequestForm from './components/component-all/Paper/RequestForm';
 import RequesrList from './components/component-all/Paper/RequestList';
-import RequestFormEdit from './components/component-all/Paper/RequestFormEdit';
+
 
 function App() {
   return (
@@ -40,7 +40,7 @@ function App() {
         <Route path="/it_services_C" element={<ITServicesComponent />}  />
         <Route path="/it_services_db" element={<ITServicesDashboard />}  />
         <Route path="/request" element={<RequestForm />}  />
-        <Route path="/edit-request/:id" element={<RequestFormEdit />} />
+        <Route path="/edit-request/:id" element={<RequestForm />} />
       </Routes>
       <br />
       {/* <Footer /> */}

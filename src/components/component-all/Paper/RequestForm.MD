@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Box, Button, Alert, AspectRatio, IconButton, Typography, LinearProgress } from '@mui/joy';
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
+// import { SelectWithApi } from '../Select/select-statusapprove';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Paper, Grid } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import Fileupload from '../FileUpload/file-upload';
 import { NameInput, PhoneInput, TitleInput, DetailsTextarea } from '../Input/input-requestform';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ReplyIcon from '@mui/icons-material/Reply';
 import Check from '@mui/icons-material/Check';
 import Close from '@mui/icons-material/Close';
+import { FileInfo } from '../FileUpload/file-upload';
 
 interface ProgramOption {
     key: number;
@@ -24,17 +26,7 @@ interface DepartmentOption {
     label: string;
 }
 
-interface ExistingFileInfo {
-    file_path: string;
-    file_name: string;
-    file_old_name: string;
-    file_new_name: string;
-}
-
 export default function RequestForm() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [isEditMode, setIsEditMode] = useState(!!id);
     const [selectedDepartment, setSelectedDepartment] = useState<DepartmentOption | null>(null);
     const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
     const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
@@ -43,64 +35,11 @@ export default function RequestForm() {
     const [phone, setPhone] = useState<string>('');
     const [title, setTitle] = useState<string>('');
     const [details, setDetails] = useState<string>('');
-    const [uploadedFiles, setUploadedFiles] = useState<(File | ExistingFileInfo)[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [successAlert, setSuccessAlert] = useState<boolean>(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    const [rsCode, setRsCode] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (isEditMode) {
-            const fetchRequestData = async () => {
-                setIsLoading(true);
-                try {
-                    // const response = await fetch(`http://10.200.240.2:1234/it-requests?req_id=${id}`);
-                    const response = await fetch(`http://127.0.0.1:1234/it-requests?req_id=${id}`);
-                    if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
-
-                    const { data } = await response.json();
-                    console.log("ข้อมูลที่ได้จาก API:", data);
-
-                    if (data && data.length > 0) {
-                        const requestData = data[0];
-                        setSelectedDepartment({ key: requestData.id_department, label: '' });
-                        setSelectedTypeId(requestData.type_id || null);
-                        setSelectedTopicId(requestData.topic_id || null);
-                        setSelectedProgram(
-                            requestData.id_program && requestData.program_name
-                                ? { key: requestData.id_program, label: requestData.program_name }
-                                : null
-                        );
-                        setRsCode(requestData.rs_code || '');
-                        setName(requestData.name_req || '');
-                        setPhone(requestData.phone || '');
-                        setTitle(requestData.title_req || '');
-                        setDetails(requestData.detail_req || '');
-
-                        let parsedFiles: ExistingFileInfo[] = [];
-                        try {
-                            parsedFiles = JSON.parse(requestData.files);
-                            if (!Array.isArray(parsedFiles)) {
-                                parsedFiles = [];
-                            }
-                        } catch (error) {
-                            console.error('Error parsing files:', error);
-                        }
-                        setUploadedFiles(parsedFiles);
-                    }
-                } catch (error) {
-                    console.error('Error:', (error as Error).message);
-                    setError((error as Error).message);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-
-            fetchRequestData();
-        }
-    }, [id, isEditMode]);
-
+    const initialFiles: FileInfo[] = [];
+    
     const handleDepartmentChange = (department: DepartmentOption | null) => {
         setSelectedDepartment(department);
         setErrors({ ...errors, department: '' });
@@ -114,6 +53,14 @@ export default function RequestForm() {
         setErrors({ ...errors, typeId: '' });
     };
 
+    // const handleTypeAChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     const typeId = e.target.value ? parseInt(e.target.value, 10) : null; // Parse the value to an integer or set to null
+    //     setSelectedTypeId(typeId);
+    //     if (typeId === null) {
+    //         setSelectedTopicId(null);
+    //     }
+    // };
+
     const handleTopicChange = (topicId: number | null) => {
         setSelectedTopicId(topicId);
         setTitle('');
@@ -125,8 +72,13 @@ export default function RequestForm() {
         setErrors({ ...errors, program: '' });
     };
 
-    const handleFilesChange = (files: (File | ExistingFileInfo)[]) => {
-        setUploadedFiles(files);
+    
+    const handleFilesChange = (files: FileInfo[]) => {
+        const fileArray: File[] = files.map(fileInfo => new File([], fileInfo.name, {
+            type: fileInfo.type,
+            lastModified: fileInfo.lastModified,
+        }));
+        setUploadedFiles(fileArray);
         setErrors({ ...errors, files: '' });
     };
 
@@ -135,6 +87,9 @@ export default function RequestForm() {
         const year = String(date.getFullYear()).substring(2);
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
+        // const hours = String(date.getHours()).padStart(2, '0');
+        // const minutes = String(date.getMinutes()).padStart(2, '0');
+        // const seconds = String(date.getSeconds()).padStart(2, '0');
         const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
         const dateCode = `${year}${month}${day}${milliseconds}`;
 
@@ -150,6 +105,7 @@ export default function RequestForm() {
         }
     };
 
+    // Example of retrieving current user info
     const currentUser = () => ({
         username: 'sitp014',
         position: 's',
@@ -162,87 +118,62 @@ export default function RequestForm() {
         if (!selectedTypeId) newErrors.typeId = 'กรุณาเลือกประเภทคำร้อง';
         if (!name) newErrors.name = 'กรุณากรอกชื่อ';
         if (!phone) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์';
+        
         if (!details) newErrors.details = 'กรุณากรอกรายละเอียด';
+        if (uploadedFiles.length === 0) newErrors.files = 'กรุณาอัพโหลดไฟล์';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    // ในส่วนของ handleSubmit ให้แก้ไขเป็น:
-// ในส่วนของ handleSubmit ให้แก้ไขเป็น:
-const handleSubmit = async () => {
-    if (!validateForm()) return;
+    const handleSubmit = async () => {
+        if (!validateForm()) return;
 
-    try {
-        const formData = new FormData();
-        const { username, position } = currentUser();
+        try {
+            const formData = new FormData();
+            const { username, position } = currentUser();
 
-        formData.append('rs_code', isEditMode ? rsCode : generateRsCode(selectedTypeId));
-        formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
-        formData.append('user_req', username);
-        formData.append('position', position);
-        formData.append('name_req', name);
-        formData.append('phone', phone);
-        formData.append('type_id', selectedTypeId ? selectedTypeId.toString() : '');
-        formData.append('topic_id', selectedTopicId ? selectedTopicId.toString() : '');
-        formData.append('title_req', title);
-        formData.append('detail_req', details);
-        formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
-
-        // แก้ไขการจัดการไฟล์
-        if (uploadedFiles.length > 0) {
-            const existingFiles: ExistingFileInfo[] = []; // กำหนดประเภทของตัวแปร existingFiles
+            formData.append('rs_code', generateRsCode(selectedTypeId));
+            formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
+            formData.append('user_req', username);
+            formData.append('position', position);
+            formData.append('name_req', name);
+            formData.append('phone', phone);
+            formData.append('type_id', selectedTypeId ? selectedTypeId.toString() : '');
+            formData.append('topic_id', selectedTopicId ? selectedTopicId.toString() : '');
+            formData.append('title_req', title);
+            formData.append('detail_req', details);
+            formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
 
             uploadedFiles.forEach((file) => {
-                if (file instanceof File) {
-                    formData.append('new_files', file);
-                } else {
-                    // เพิ่มข้อมูลไฟล์เดิมเข้าไปในรายการ
-                    existingFiles.push({
-                        file_path: file.file_path,
-                        file_name: file.file_name,
-                        file_old_name: file.file_old_name,
-                        file_new_name: file.file_new_name
-                    });
-                }
+                formData.append('files', file);
             });
 
-            // เพิ่มรายการของไฟล์เดิมเข้าไปใน formData
-            if (existingFiles.length > 0) {
-                formData.append('existing_files', JSON.stringify(existingFiles));
-            }
-        }
-
-        console.log('Form Data:', formData);
-
-        const response = await fetch(
-            isEditMode ? `http://127.0.0.1:1234/it-requests/${id}` : 'http://127.0.0.1:1234/it-requests',
-            {
-                method: isEditMode ? 'PUT' : 'POST',
+            const response = await fetch('http://10.200.240.2:1234/it-requests', {
+                method: 'POST',
                 body: formData,
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error('Error response body:', errorBody);
+                throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
             }
-        );
 
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error('Error response body:', errorBody);
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+            const result = await response.json();
+            console.log('IT request created successfully:', result);
+
+            setSuccessAlert(true);
+            clearForm();
+
+            setTimeout(() => {
+                setSuccessAlert(false);
+                navigate('/');
+            }, 2000);
+        } catch (error) {
+            console.error('Error submitting IT request:', error);
         }
-
-        const result = await response.json();
-        console.log(isEditMode ? 'IT request updated successfully:' : 'IT request created successfully:', result);
-
-        setSuccessAlert(true);
-        clearForm();
-
-        setTimeout(() => {
-            setSuccessAlert(false);
-            navigate('/');
-        }, 2000);
-    } catch (error) {
-        console.error(isEditMode ? 'Error updating IT request:' : 'Error submitting IT request:', error);
-    }
-};
+    };
 
     const clearForm = () => {
         setSelectedDepartment(null);
@@ -261,6 +192,10 @@ const handleSubmit = async () => {
         navigate('/');
     };
 
+    const navigate = useNavigate();
+
+
+
     return (
         <React.Fragment>
             <CssBaseline />
@@ -268,10 +203,10 @@ const handleSubmit = async () => {
                 {successAlert && (
                     <Box
                         sx={{
-                            position: 'fixed',
-                            top: '1rem',
-                            right: '1rem',
-                            zIndex: 1300,
+                            position: 'fixed', // ให้เป็นตำแหน่ง fixed
+                            top: '1rem', // ระยะห่างจากด้านบน
+                            right: '1rem', // ระยะห่างจากด้านขวา
+                            zIndex: 1300, // ให้ซ้อนเหนือ element อื่นๆ
                         }}
                     >
                         <Alert
@@ -331,14 +266,14 @@ const handleSubmit = async () => {
 
                 <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
                     <Box sx={{ padding: 2 }}>
-                        <h2>{isEditMode ? 'Request Edit' : 'Request Form'}</h2>
+                        <h2>Request Form</h2>
                     </Box>
                     <hr />
 
                     <Grid container spacing={2}>
                         <Grid item xs={4}>
                             <Box sx={{ mt: 4 }}>
-                                <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={selectedDepartment} />
+                                <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={null} />
                                 {errors.department && <Typography color="danger">{errors.department}</Typography>}
                             </Box>
                             <NameInput value={name} onChange={(e) => setName(e.target.value)} />
@@ -346,34 +281,40 @@ const handleSubmit = async () => {
                             <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
                             {errors.phone && <Typography color="danger">{errors.phone}</Typography>}
                             <Box sx={{ mt: 2 }}>
-                                <SelectTypeRequest onSelectType={handleTypeChange} initialValue={selectedTypeId} />
+                                <SelectTypeRequest onSelectType={handleTypeChange} initialValue={null} />
                                 {errors.typeId && <Typography color="danger">{errors.typeId}</Typography>}
                             </Box>
                         </Grid>
                         <Grid item xs={8}>
                             <Box sx={{ mt: 4 }}>
-                                <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} initialValue={selectedTopicId} />
+                                <SelectTopic selectedTypeId={selectedTypeId} onSelectTopic={handleTopicChange} initialValue={null} />
                                 {errors.topicId && <Typography color="danger">{errors.topicId}</Typography>}
                             </Box>
 
                             {selectedTopicId === 2 ? (
                                 <Box sx={{ mt: 2 }}>
-                                    <SelectProgram onProgramChange={handleProgramChange} initialValue={selectedProgram} />
+                                    <SelectProgram onProgramChange={handleProgramChange} initialValue={null} />
+                                    {/* {errors.program && <Typography color="danger">{errors.program}</Typography>} */}
                                 </Box>
                             ) : (
                                 <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
+                                
                             )}
+                            {/* {errors.title && <Typography color="danger">{errors.title}</Typography>} */}
 
                             <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
                             {errors.details && <Typography color="danger">{errors.details}</Typography>}
-                            <Fileupload onFilesChange={handleFilesChange} initialFiles={uploadedFiles} />
+                            <Fileupload onFilesChange={handleFilesChange} />
                             {errors.files && <Typography color="danger">{errors.files}</Typography>}
                         </Grid>
                     </Grid>
+                    {/* <Box sx={{ pl: 2, mt: 2 }}>
+                        <SelectWithApi type="m" value={selectedTypeId?.toString() || ''} onChange={handleTypeAChange} />
+                    </Box> */}
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
-                                {isEditMode ? 'Update' : 'บันทึก'}
+                                บันทึก
                             </Button>
                             <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
                                 ย้อนกลับ
@@ -383,5 +324,7 @@ const handleSubmit = async () => {
                 </Paper>
             </Container>
         </React.Fragment>
+
+
     );
 }
