@@ -57,7 +57,7 @@ export default function List_Request() {
     const fetchRequests = async () => {
         try {
             // const response = await fetch('http://10.200.240.2:1234/it-requests');
-            const response = await fetch('http://127.0.0.1:1234/it-requests');
+            const response = await fetch('http://10.200.240.2:1234/it-requests');
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -88,7 +88,7 @@ export default function List_Request() {
         if (selectedId) {
             try {
                 // const response = await fetch(`http://10.200.240.2:1234/it-requests/${selectedId}`, 
-                const response = await fetch(`http://127.0.0.1:1234/it-requests/${selectedId}`, 
+                const response = await fetch(`http://10.200.240.2:1234/it-requests/${selectedId}`, 
                 {
                     method: 'DELETE',
                 });

@@ -56,7 +56,7 @@ export default function RequestForm() {
                 setIsLoading(true);
                 try {
                     // const response = await fetch(`http://10.200.240.2:1234/it-requests?req_id=${id}`);
-                    const response = await fetch(`http://127.0.0.1:1234/it-requests?req_id=${id}`);
+                    const response = await fetch(`http://10.200.240.2:1234/it-requests?req_id=${id}`);
                     if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
 
                     const { data } = await response.json();
@@ -216,7 +216,7 @@ const handleSubmit = async () => {
         console.log('Form Data:', formData);
 
         const response = await fetch(
-            isEditMode ? `http://127.0.0.1:1234/it-requests/${id}` : 'http://127.0.0.1:1234/it-requests',
+            isEditMode ? `http://10.200.240.1:1234/it-requests/${id}` : 'http://10.200.240.1:1234/it-requests',
             {
                 method: isEditMode ? 'PUT' : 'POST',
                 body: formData,
