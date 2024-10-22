@@ -151,7 +151,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                                             {fileName}
                                         </Typography>
                                     ) : (
-                                        <a href={`http://127.0.0.1:1234/${filePath}`} target="_blank" rel="noopener noreferrer">
+                                        <a href={`http://10.200.240.2:1234/${filePath}`} target="_blank" rel="noopener noreferrer">
                                             {fileName}
                                         </a>
                                     )}
