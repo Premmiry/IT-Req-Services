@@ -216,7 +216,7 @@ const handleSubmit = async () => {
         console.log('Form Data:', formData);
 
         const response = await fetch(
-            isEditMode ? `http://10.200.240.1:1234/it-requests/${id}` : 'http://10.200.240.1:1234/it-requests',
+            isEditMode ? `http://10.200.240.1:1234/it-requests/${id}` : 'http://10.200.240.2:1234/it-requests',
             {
                 method: isEditMode ? 'PUT' : 'POST',
                 body: formData,
