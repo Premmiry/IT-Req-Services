@@ -113,16 +113,12 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                 </Box>
             </Box>
             <List>
-                {files.length === 0 ? (
+                {files.some(file => 'file_path' in file && file.file_path === null) && !files.some(file => file instanceof File) ? (
                     <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
                         ไม่มีไฟล์แนบ
                     </Typography>
-                ) : (
-                    files.some(file => 'file_path' in file && file.file_path === null) ? (
-                        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
-                            ไม่มีไฟล์แนบ
-                        </Typography>
-                    ) : (
+                ) : 
+                      (
                         files.map((file, index) => {
                             const { fileName, filePath } = getFileName(file);
                             return (
@@ -151,7 +147,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                                             {fileName}
                                         </Typography>
                                     ) : (
-                                        <a href={`http://127.0.0.1:1234/${filePath}`} target="_blank" rel="noopener noreferrer">
+                                        <a href={`http://10.200.240.2:1234/${filePath}`} target="_blank" rel="noopener noreferrer">
                                             {fileName}
                                         </a>
                                     )}
@@ -159,7 +155,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                             );
                         })
                     )
-                )}
+                }
             </List>
         </Box>
     );
