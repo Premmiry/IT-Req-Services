@@ -44,7 +44,6 @@ export default function RequestForm() {
     const [title, setTitle] = useState<string>('');
     const [details, setDetails] = useState<string>('');
     const [uploadedFiles, setUploadedFiles] = useState<(File | ExistingFileInfo)[]>([]);
-    const [status_id, setStatusId] = useState<number | null>(null);
     const [successAlert, setSuccessAlert] = useState<boolean>(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [rsCode, setRsCode] = useState<string>('');
@@ -52,8 +51,6 @@ export default function RequestForm() {
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
-    const [managerApprove, setManagerApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
-    const [directorApprove, setDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
 
     useEffect(() => {
         if (isEditMode) {
@@ -81,9 +78,6 @@ export default function RequestForm() {
                         setPhone(requestData.phone || '');
                         setTitle(requestData.title_req || '');
                         setDetails(requestData.detail_req || '');
-                        setStatusId(requestData.status_id || null);
-                        setManagerApprove({ name: requestData.m_name || '', status: requestData.m_status || '', req_id: id || '' });
-                        setDirectorApprove({ name: requestData.d_name || '', status: requestData.d_status || '', req_id: id || '' });
 
                         let parsedFiles: ExistingFileInfo[] = [];
                         try {
@@ -122,7 +116,8 @@ export default function RequestForm() {
 
             // Set default values from sessionStorage
             setSelectedDepartment({ key: userDataParsed.id_department, label: '' });
-            setName(userDataParsed.name_employee);
+            setName(userDataParsed.name_employee
+            );
         }
     
         if (storedAdmin) {
@@ -319,16 +314,8 @@ export default function RequestForm() {
                                 {
                                     userData && (userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && (
                                         <>
-                                            {managerApprove !== null ? (
-                                                <BoxManagerApprove managerApprove={managerApprove} />
-                                            ) : (
-                                                <BoxManagerApprove managerApprove={{ name: '', status: '', req_id: '' }} />
-                                            )}
-                                            {directorApprove !== null ? (
-                                                <BoxDirectorApprove directorApprove={directorApprove} />
-                                            ) : (
-                                                <BoxDirectorApprove directorApprove={{ name: '', status: '', req_id: '' }} />
-                                            )}
+                                            <BoxManagerApprove managerApprove={undefined} />
+                                            <BoxDirectorApprove directorApprove={undefined} />
                                         </>
                                     )
                                 }

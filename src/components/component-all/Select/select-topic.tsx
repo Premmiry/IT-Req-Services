@@ -34,7 +34,7 @@ export default function SelectTopic({ selectedTypeId, onSelectTopic, initialValu
             setLoading(true);
             try {
                 // const response = await fetch(`http://10.200.240.2:1234/topics?typeId=${selectedTypeId}`);
-                const response = await fetch(`http://10.200.240.2:1234/topics?typeId=${selectedTypeId}`);
+                const response = await fetch(`http://127.0.0.1:1234/topics?typeId=${selectedTypeId}`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }

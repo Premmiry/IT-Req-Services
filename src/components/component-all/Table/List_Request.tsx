@@ -6,9 +6,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Alert, AspectRatio, IconButton, LinearProgress, Typography as JoyTypography } from '@mui/joy';
-import Close from '@mui/icons-material/Close';
-import Check from '@mui/icons-material/Check';
+import { SaveAlert } from '../Alert/alert';
 
 export default function List_Request() {
     const navigate = useNavigate();
@@ -16,6 +14,9 @@ export default function List_Request() {
     const [open, setOpen] = useState(false);
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [successAlert, setSuccessAlert] = useState(false);
+    const [userData, setUserData] = useState<any | null>(null);
+    const [admin, setAdmin] = useState<string | null>(null);
+    // const [apiUrl, setApiUrl] = useState<string>('');
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -24,6 +25,19 @@ export default function List_Request() {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         return `${day}/${month}/${buddhistYear}`;
     };
+
+    const getTypeColor = (type: string) => {
+        switch (type) {
+            case 'Service':
+                return '#fc836a';
+            case 'Develop':
+                return '#9d42f9';
+            case 'Issue':
+                return '#27e16d';
+            default:
+                return '#81b1c9';
+        }
+    }
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -54,18 +68,116 @@ export default function List_Request() {
         navigate('/request');
     };
 
+    // const fetchRequests = async () => {
+    //     try {
+    //         console.log("Fetching Requests...");
+    //         let apiUrl = 'http://127.0.0.1:1234/it-requests';
+    //         console.log("Admin Check:", admin, userData && userData.id_department);
+    //         console.log("Admin Value:", admin);
+    //         console.log("User Data:", userData);
+
+    //         if (admin === 'USER' && userData && userData.id_department) {
+    //             apiUrl += `?department=${userData.id_department}`;
+    //             console.log("API URL:", apiUrl); // แสดง API URL ที่ถูกสร้าง
+    //         }
+
+    //         const response = await fetch(apiUrl);
+    //         console.log(apiUrl)
+    //         if (!response.ok) {
+    //             throw new Error('Network response was not ok');
+    //         }
+    //         const data = await response.json();
+    //         const mappedData = data.data.map((item: any) => ({
+    //             id: item.id,
+    //             req_no: item.rs_code,
+    //             name: `${item.title_req || (item.program_name ? `พัฒนาโปรแกรมต่อเนื่อง (${item.program_name})` : 'พัฒนาโปรแกรมต่อเนื่อง')}`,
+    //             status: item.status_name,
+    //             type_id: item.type_id,
+    //             type: item.type,
+    //             assignee: item.assign_name || '',
+    //             datecreated: formatDate(item.created_at),
+    //         }));
+    //         setRows(mappedData);
+    //     } catch (error) {
+    //         console.error('Error fetching requests:', error);
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     const storedUserData = sessionStorage.getItem('userData');
+    //     const storedAdmin = sessionStorage.getItem('admin');
+
+    //     if (storedUserData) {
+    //         const userDataParsed = JSON.parse(storedUserData); // Make sure this is defined
+    //         setUserData(userDataParsed);
+    //         console.log("UserData:", userDataParsed);
+    //     }
+
+    //     if (storedAdmin) {
+    //         setAdmin(storedAdmin);
+    //         console.log("Admin:", storedAdmin);
+    //     }
+
+    //     // Call fetchRequests after setting userData and admin
+    //     if (storedUserData && storedAdmin) {
+    //         fetchRequests();
+    //     }
+    // }, []);
+    useEffect(() => {
+        const storedUserData = sessionStorage.getItem('userData');
+        const storedAdmin = sessionStorage.getItem('admin');
+    
+        console.log("Stored UserData:", storedUserData);
+        console.log("Stored Admin:", storedAdmin);
+    
+        if (storedUserData) {
+            const userDataParsed = JSON.parse(storedUserData);
+            setUserData(userDataParsed);
+            console.log("UserData:", userDataParsed);
+        }
+    
+        if (storedAdmin) {
+            setAdmin(storedAdmin);
+            console.log("Admin:", storedAdmin);
+        }
+    }, []);
+    
+    // Call fetchRequests when userData or admin changes
+    useEffect(() => {
+        if (userData && userData.id_department && admin) {
+            fetchRequests();
+        } else {
+            console.log("UserData or department is not set. Aborting fetch.");
+        }
+    }, [userData, admin]);
+    
     const fetchRequests = async () => {
+        if (!userData || !userData.id_department) return; // Make sure userData and department are set
+    
         try {
-            // const response = await fetch('http://10.200.240.2:1234/it-requests');
-            const response = await fetch('http://10.200.240.2:1234/it-requests');
+            console.log("Fetching Requests...");
+            let apiUrl = 'http://127.0.0.1:1234/it-requests';
+            console.log("Admin Check:", admin, userData.id_department);
+            console.log("Admin Value:", admin);
+            console.log("User Data:", userData);
+    
+            if (admin === 'USER') {
+                apiUrl += `?department=${userData.id_department}`;
+                console.log("API URL:", apiUrl);
+            }
+    
+            const response = await fetch(apiUrl);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             const data = await response.json();
             const mappedData = data.data.map((item: any) => ({
                 id: item.id,
-                name: `${item.rs_code} ${item.title_req || (item.program_name ? `พัฒนาโปรแกรมต่อเนื่อง (${item.program_name})` : 'พัฒนาโปรแกรมต่อเนื่อง')}`,
+                req_no: item.rs_code,
+                name: `${item.title_req || (item.program_name ? `พัฒนาโปรแกรมต่อเนื่อง (${item.program_name})` : 'พัฒนาโปรแกรมต่อเนื่อง')}`,
                 status: item.status_name,
+                type_id: item.type_id,
+                type: item.type,
                 assignee: item.assign_name || '',
                 datecreated: formatDate(item.created_at),
             }));
@@ -73,11 +185,7 @@ export default function List_Request() {
         } catch (error) {
             console.error('Error fetching requests:', error);
         }
-    };
-
-    useEffect(() => {
-        fetchRequests();
-    }, []);
+    };    
 
     const handleDeleteClick = (id: number) => {
         setSelectedId(id);
@@ -87,9 +195,7 @@ export default function List_Request() {
     const handleConfirmDelete = async () => {
         if (selectedId) {
             try {
-                // const response = await fetch(`http://10.200.240.2:1234/it-requests/${selectedId}`, 
-                const response = await fetch(`http://10.200.240.2:1234/it-requests/${selectedId}`, 
-                {
+                const response = await fetch(`http://127.0.0.1:1234/it-requests/${selectedId}`, {
                     method: 'DELETE',
                 });
                 if (!response.ok) {
@@ -122,9 +228,14 @@ export default function List_Request() {
             ),
         },
         {
+            field: 'req_no',
+            headerName: 'Request No.',
+            width: 155,
+        },
+        {
             field: 'name',
             headerName: 'หัวข้อ Request',
-            width: 800,
+            width: 700,
             renderCell: (params: GridRenderCellParams) => (
                 <span
                     style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
@@ -135,10 +246,24 @@ export default function List_Request() {
             ),
         },
         {
+            field: 'type',
+            headerName: 'ประเภท',
+            width: 100,
+            editable: false,
+            renderCell: (params: GridRenderCellParams) => (
+                <Chip
+                    label={params.value}
+                    style={{ backgroundColor: getTypeColor(params.value), color: '#fff' }}
+                    size="medium"
+                    sx={{ width: 100 }}
+                />
+            ),
+        },
+        {
             field: 'status',
             headerName: 'สถานะดำเนินการ',
-            width: 200,
-            editable: true,
+            width: 130,
+            editable: false,
             renderCell: (params: GridRenderCellParams) => (
                 <Chip
                     label={params.value}
@@ -151,20 +276,20 @@ export default function List_Request() {
         {
             field: 'datecreated',
             headerName: 'วันที่ Request',
-            width: 150,
+            width: 100,
         },
         {
             field: 'actions',
             headerName: 'Actions',
-            width: 150,
+            width: 90,
             renderCell: (params: GridRenderCellParams) => (
                 <Button
                     variant="outlined"
                     color="error"
                     startIcon={<DeleteIcon />}
                     onClick={() => handleDeleteClick(params.row.id)}
+                    sx={{ width: 25, justifyContent: 'center' }}
                 >
-                    Delete
                 </Button>
             ),
         },
@@ -172,69 +297,7 @@ export default function List_Request() {
 
     return (
         <Container maxWidth={'xl'}>
-            {successAlert && (
-                <Box
-                    sx={{
-                        position: 'fixed',
-                        top: '1rem',
-                        right: '1rem',
-                        zIndex: 1300,
-                    }}
-                >
-                    <Alert
-                        size="lg"
-                        color="success"
-                        variant="solid"
-                        invertedColors
-                        startDecorator={
-                            <AspectRatio
-                                variant="solid"
-                                ratio="1"
-                                sx={{
-                                    minWidth: 40,
-                                    borderRadius: '50%',
-                                    boxShadow: '0 2px 12px 0 rgb(0 0 0/0.2)',
-                                }}
-                            >
-                                <div>
-                                    <Check />
-                                </div>
-                            </AspectRatio>
-                        }
-                        endDecorator={
-                            <IconButton
-                                variant="plain"
-                                sx={{
-                                    '--IconButton-size': '32px',
-                                    transform: 'translate(0.5rem, -0.5rem)',
-                                }}
-                            >
-                                <Close />
-                            </IconButton>
-                        }
-                        sx={{ alignItems: 'flex-start', overflow: 'hidden' }}
-                    >
-                        <div>
-                            <JoyTypography level="title-lg" sx={{ color: 'white' }}>ลบข้อมูลสำเร็จ</JoyTypography>
-                            <JoyTypography level="body-sm" sx={{ color: 'white' }}>
-                                กรุณารอสักครู่...
-                            </JoyTypography>
-                        </div>
-                        <LinearProgress
-                            variant="solid"
-                            color="success"
-                            value={40}
-                            sx={{
-                                position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                borderRadius: 0,
-                            }}
-                        />
-                    </Alert>
-                </Box>
-            )}
+            {successAlert && <SaveAlert onClose={() => setSuccessAlert(false)} />}
             <Box sx={{ my: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h4" component="h1">
