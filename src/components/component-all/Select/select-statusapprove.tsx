@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
+import URLAPI from '../../../URLAPI';
 // Base Select Component
 const BaseSelect: React.FC<{
     label: string;
@@ -33,7 +33,7 @@ export const SelectWithApi: React.FC<{
         const fetchData = async () => {
             try {
                 // const response = await fetch(`http://10.200.240.2:1234/status_a`);
-                const response = await fetch(`http://127.0.0.1:1234/status_a`);
+                const response = await fetch(`${URLAPI}/status_a`);
                 const data = await response.json();
     
                 // กรองข้อมูลตาม type ที่ได้รับจาก prop

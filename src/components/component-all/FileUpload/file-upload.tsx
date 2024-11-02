@@ -3,6 +3,7 @@ import { FormLabel, Box, IconButton, Typography } from '@mui/material';
 import { Button, List, ListItem } from '@mui/joy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SvgIcon from '@mui/joy/SvgIcon';
+import URLAPI from '../../../URLAPI';
 
 interface ExistingFileInfo {
     file_path: string;
@@ -24,26 +25,27 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
         const fetchExistingFiles = async () => {
             if (!reqId) return;
             try {
-                const response = await fetch(`http://127.0.0.1:1234/it-requests/images?req_id=${reqId}`);
+                const response = await fetch(`${URLAPI}/it-requests/images?req_id=${reqId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch existing files');
                 }
                 const data = await response.json();
-                if (data.length === 0) {
-                    setFiles([]);
-                    onFilesChange([]);
-                } else {
-                    setFiles([...initialFiles, ...data]);
-                    onFilesChange([...initialFiles, ...data]);
-                }
+                // กรองไฟล์ที่มี file_path เป็น null หรือ undefined ออก
+                const validFiles = data.filter((file: ExistingFileInfo) => file.file_path);
+                setFiles([...initialFiles, ...validFiles]);
+                onFilesChange([...initialFiles, ...validFiles]);
             } catch (error) {
                 console.error('Error fetching existing files:', error);
             }
         };
 
         if (initialFiles.length > 0) {
-            setFiles(initialFiles);
-            onFilesChange(initialFiles);
+            // กรองไฟล์ที่มี file_path เป็น null หรือ undefined ออกจาก initialFiles
+            const validInitialFiles = initialFiles.filter(file => 
+                file instanceof File || (file as ExistingFileInfo).file_path
+            );
+            setFiles(validInitialFiles);
+            onFilesChange(validInitialFiles);
         } else if (reqId) {
             fetchExistingFiles();
         }
@@ -52,7 +54,11 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFiles = event.target.files;
         if (uploadedFiles) {
-            const newFiles = [...files, ...Array.from(uploadedFiles)];
+            // รวมไฟล์ใหม่กับไฟล์ที่มีอยู่ โดยกรองเฉพาะไฟล์ที่มี file_path
+            const existingValidFiles = files.filter(file => 
+                file instanceof File || (file as ExistingFileInfo).file_path
+            );
+            const newFiles = [...existingValidFiles, ...Array.from(uploadedFiles)];
             setFiles(newFiles);
             onFilesChange(newFiles);
         }
@@ -67,11 +73,13 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
     const getFileName = (file: File | ExistingFileInfo) => {
         if (file instanceof File) {
             return { fileName: file.name, filePath: '' };
-        } else {
-            const filePath = file.file_path || 'Unknown file path';
-            console.log(file.file_path)
-            return { fileName: file.file_old_name || filePath.split('/').pop() || 'ไม่มีไฟล์', filePath };
+        } else if (file.file_path) { // เพิ่มเงื่อนไขตรวจสอบ file_path
+            return { 
+                fileName: file.file_old_name || file.file_path.split('/').pop() || 'ไม่มีไฟล์', 
+                filePath: file.file_path 
+            };
         }
+        return { fileName: 'ไม่มีไฟล์', filePath: '' };
     };
 
     return (
@@ -113,13 +121,14 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                 </Box>
             </Box>
             <List>
-                {files.some(file => 'file_path' in file && file.file_path === null) && !files.some(file => file instanceof File) ? (
+                {files.length === 0 ? (
                     <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
                         ไม่มีไฟล์แนบ
                     </Typography>
-                ) :
-                    (
-                        files.map((file, index) => {
+                ) : (
+                    files.map((file, index) => {
+                        // แสดงเฉพาะไฟล์ที่มี file_path หรือเป็น File object
+                        if (file instanceof File || (file as ExistingFileInfo).file_path) {
                             const { fileName, filePath } = getFileName(file);
                             return (
                                 <ListItem
@@ -147,15 +156,16 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                                             {fileName}
                                         </Typography>
                                     ) : (
-                                        <a href={`http://127.0.0.1:1234/${filePath}`} target="_blank" rel="noopener noreferrer">
+                                        <a href={`${URLAPI}/${filePath}`} target="_blank" rel="noopener noreferrer">
                                             {fileName}
                                         </a>
                                     )}
                                 </ListItem>
                             );
-                        })
-                    )
-                }
+                        }
+                        return null;
+                    })
+                )}
             </List>
         </Box>
     );

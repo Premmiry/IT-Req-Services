@@ -3,16 +3,19 @@ import { FormLabel, Box, IconButton, Typography } from '@mui/material';
 import { Button, List, ListItem } from '@mui/joy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SvgIcon from '@mui/joy/SvgIcon';
+import URLAPI from '../../../URLAPI';
 
 interface ExistingFileInfo {
     file_path: string;
     file_name: string;
+    file_old_name: string;
+    file_new_name: string;
 }
 
 interface FileuploadProps {
     onFilesChange: (files: (File | ExistingFileInfo)[]) => void;
-    reqId: string | number;
-    initialFiles?: ExistingFileInfo[];
+    reqId?: string | number;
+    initialFiles?: (File | ExistingFileInfo)[];
 }
 
 export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: FileuploadProps) {
@@ -20,8 +23,9 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
 
     useEffect(() => {
         const fetchExistingFiles = async () => {
+            if (!reqId) return;
             try {
-                const response = await fetch(`http://10.200.240.2:1234/it-requests/images?req_id=${reqId}`);
+                const response = await fetch(`${URLAPI}/it-requests/images?req_id=${reqId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch existing files');
                 }
@@ -36,10 +40,10 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
         if (initialFiles.length > 0) {
             setFiles(initialFiles);
             onFilesChange(initialFiles);
-        } else {
+        } else if (reqId) {
             fetchExistingFiles();
         }
-    }, [reqId, onFilesChange, initialFiles]);
+    }, [reqId, initialFiles]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFiles = event.target.files;
@@ -61,7 +65,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
             return { fileName: file.name, filePath: '' };
         } else {
             const filePath = file.file_path || 'Unknown file path';
-            return { fileName: file.file_name || filePath.split('/').pop() || 'Unknown file', filePath };
+            return { fileName: file.file_old_name || filePath.split('/').pop() || 'ไม่มีไฟล์', filePath };
         }
     };
 
@@ -77,31 +81,41 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                         color="primary"
                         startDecorator={
                             <SvgIcon>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
+                                    />
                                 </svg>
                             </SvgIcon>
                         }
                     >
                         Upload a file
-                        <input type="file" multiple hidden onChange={handleFileUpload} />
+                        <input
+                            type="file"
+                            multiple
+                            hidden
+                            onChange={handleFileUpload}
+                        />
                     </Button>
                 </Box>
-                {initialFiles.length > 0 && (
-                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-                        * หมายเหตุ: เมื่ออัพโหลดไฟล์ใหม่จะแทนที่ไฟล์เดิมจะหายไป
-                    </Typography>
-                )}
             </Box>
             <List>
                 {files.length === 0 ? (
                     <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
-                        
+                        ไม่มีไฟล์แนบ
                     </Typography>
                 ) : (
                     files.map((file, index) => {
                         const { fileName, filePath } = getFileName(file);
-                        const displayName = `ไฟล์แนบ ${index + 1}`; // ตั้งชื่อที่แสดงเอง
+                        console.log('file ที่ส่งมา : ', file);
                         return (
                             <ListItem
                                 sx={{
@@ -113,27 +127,25 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                                 }}
                                 key={index}
                                 endAction={
-                                    initialFiles.length === 0 ? (
-                                        <IconButton
-                                            edge="end"
-                                            aria-label="delete"
-                                            color="error"
-                                            onClick={() => handleFileDelete(index)}
-                                        >
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    ) : null
+                                    <IconButton
+                                        edge="end"
+                                        aria-label="delete"
+                                        color="error"
+                                        onClick={() => handleFileDelete(index)}
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
                                 }
                             >
-                                <Typography variant="body2" color="primary">
-                                    {file instanceof File ? (
-                                        fileName
-                                    ) : (
-                                        <a href={`http://10.200.240.2:1234/${file.file_path}`} target="_blank" rel="noopener noreferrer">
-                                            {displayName} {/* ใช้ชื่อที่แสดงที่กำหนดเอง */}
-                                        </a>
-                                    )}
-                                </Typography>
+                                {file instanceof File ? (
+                                    <Typography variant="body2" color="primary">
+                                        {fileName}
+                                    </Typography>
+                                ) : (
+                                    <a href={`${URLAPI}/${filePath}`} target="_blank" rel="noopener noreferrer">
+                                        {fileName}
+                                    </a>
+                                )}
                             </ListItem>
                         );
                     })

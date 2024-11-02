@@ -27,7 +27,6 @@ interface ApproveProps {
     name: string | null;
     status: string | null;
     req_id: string | null;
-    m_name?: string | null;
 }
 
 interface UserData {
@@ -36,7 +35,7 @@ interface UserData {
 }
 
 export const BoxManagerApprove = ({ managerApprove }: { managerApprove: ApproveProps }) => {
-    const [value1, setValue1] = React.useState<number | null>(null);
+    const [value1, setValue1] = React.useState<string | null>(managerApprove?.status || '');
     const [approveOptions, setApproveOptions] = useState<{ id_approve: number, name_approve: string }[]>([]);
     const [managerName, setManagerName] = useState<string>(managerApprove?.name || '');
     const [showSubmitButton, setShowSubmitButton] = useState(false);
@@ -50,22 +49,15 @@ export const BoxManagerApprove = ({ managerApprove }: { managerApprove: ApproveP
             if (userData.position === 'm' || userData.position === 'd' && !managerApprove?.name) {
                 setManagerName(userData.name_employee);
             }
-            else if (managerApprove?.name) {
-                setManagerName(managerApprove.name);
-                setValue1(managerApprove.status ? parseInt(managerApprove.status) : null);
-            }
 
             // Check conditions to show/hide submit button
-            const shouldShowSubmitButton = Boolean(managerApprove.req_id) &&
-                !managerApprove.status &&
-                userData.position === 'm';
+            const shouldShowSubmitButton = Boolean(managerApprove.req_id) && 
+                                        !managerApprove.status && 
+                                        userData.position === 'm';
             setShowSubmitButton(shouldShowSubmitButton);
         }
 
-        fetchApproveOptions().then(data => {
-            console.log("Approve Options:", data);
-            setApproveOptions(data);
-        });
+        fetchApproveOptions().then(data => setApproveOptions(data));
     }, [managerApprove?.name, managerApprove.req_id, managerApprove.status]);
 
     const handleSubmit = async () => {
@@ -78,30 +70,31 @@ export const BoxManagerApprove = ({ managerApprove }: { managerApprove: ApproveP
             alert('Request ID cannot be empty');
             return;
         }
-
+        
         try {
-            const response = await fetch(`${URLAPI}/m_approve/${managerApprove.req_id}?name=${encodeURIComponent(managerName)}&status=${encodeURIComponent(value1)}`, {
+            const response = await fetch(`${URLAPI}/m_approve/${managerApprove.req_id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                body: JSON.stringify({
+                    name: managerName,
+                    status: value1,
+                }),
             });
-
+            console.log(managerName , value1);
             if (!response.ok) {
-                const errorMessage = await response.text();
-                console.error('Error:', errorMessage);
-                alert(`Error: ${errorMessage}`);
                 throw new Error('Network response was not ok');
             }
 
             const result = await response.json();
             console.log('Manager approval updated successfully:', result);
             const userData: UserData = JSON.parse(sessionStorage.getItem('userData') || '{}');
-            const shouldShowSubmitButton = Boolean(managerApprove.req_id) &&
-                !value1 &&
-                userData.position === 'm';
+            const shouldShowSubmitButton = Boolean(managerApprove.req_id) && 
+                                        !value1 && 
+                                        userData.position === 'm';
             setShowSubmitButton(shouldShowSubmitButton);
-
+            
         } catch (error) {
             console.error('Error updating manager approval:', error);
         }
@@ -119,10 +112,7 @@ export const BoxManagerApprove = ({ managerApprove }: { managerApprove: ApproveP
                     action={action}
                     value={value1}
                     placeholder="Status"
-                    onChange={(_e, newValue) => {
-                        console.log("Selected Value:", newValue);
-                        setValue1(newValue);
-                    }}
+                    onChange={(_e, newValue) => setValue1(newValue)}
                     variant="outlined" color="success"
                     {...(value1 && {
                         endDecorator: (
@@ -143,7 +133,7 @@ export const BoxManagerApprove = ({ managerApprove }: { managerApprove: ApproveP
                     })}
                 >
                     {approveOptions.map(option => (
-                        <Option key={option.id_approve} value={option.id_approve}>
+                        <Option key={option.id_approve} value={option.name_approve}>
                             {option.name_approve}
                         </Option>
                     ))}
@@ -154,8 +144,8 @@ export const BoxManagerApprove = ({ managerApprove }: { managerApprove: ApproveP
     );
 };
 
-export const BoxDirectorApprove = ({ directorApprove , m_name }: { directorApprove: ApproveProps, m_name: string | null }) => {
-    const [value2, setValue2] = React.useState<number | null>(null);
+export const BoxDirectorApprove = ({ directorApprove }: { directorApprove: ApproveProps }) => {
+    const [value2, setValue2] = React.useState<string | null>(directorApprove?.status || '');
     const [approveOptions, setApproveOptions] = useState<{ id_approve: number, name_approve: string }[]>([]);
     const [directorName, setDirectorName] = useState<string>(directorApprove?.name || '');
     const [showSubmitButton, setShowSubmitButton] = useState(false);
@@ -169,22 +159,15 @@ export const BoxDirectorApprove = ({ directorApprove , m_name }: { directorAppro
             if (userData.position === 'd' && !directorApprove?.name) {
                 setDirectorName(userData.name_employee);
             }
-            else if (directorApprove?.name) {
-                setDirectorName(directorApprove.name);
-                setValue2(directorApprove.status ? parseInt(directorApprove.status) : null);
-            }
 
             // Check conditions to show/hide submit button
-            const shouldShowSubmitButton = Boolean(directorApprove.req_id) &&
-                !directorApprove.status &&
-                userData.position === 'd';
+            const shouldShowSubmitButton = Boolean(directorApprove.req_id) && 
+                                        !directorApprove.status && 
+                                        userData.position === 'd';
             setShowSubmitButton(shouldShowSubmitButton);
         }
 
-        fetchApproveOptions().then(data => {
-            console.log("Approve Options:", data);
-            setApproveOptions(data);
-        });
+        fetchApproveOptions().then(data => setApproveOptions(data));
     }, [directorApprove?.name, directorApprove.req_id, directorApprove.status]);
 
     const handleSubmit = async () => {
@@ -199,89 +182,74 @@ export const BoxDirectorApprove = ({ directorApprove , m_name }: { directorAppro
         }
 
         try {
-            if (!m_name) {
-                // If ManagerApprove.name is null, save DirectorApprove as ManagerApprove
-                const response = await fetch(`${URLAPI}/m_approve/${directorApprove.req_id}?name=${encodeURIComponent(directorName)}&status=${encodeURIComponent(value2)}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                if (!response.ok) {
-                    const errorMessage = await response.text();
-                    console.error('Error:', errorMessage);
-                    alert(`Error: ${errorMessage}`);
-                    throw new Error('Network response was not ok');
-                }
-            }
-
-            // Save DirectorApprove
-            const response = await fetch(`${URLAPI}/d_approve/${directorApprove.req_id}?name=${encodeURIComponent(directorName)}&status=${encodeURIComponent(value2)}`, {
+            const response = await fetch(`${URLAPI}/d_approve/${directorApprove.req_id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                body: JSON.stringify({
+                    name: directorName,
+                    status: value2
+                }),
+                
             });
 
-            console.log(directorName, value2);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
+
             const result = await response.json();
             console.log('Director approval updated successfully:', result);
             const userData: UserData = JSON.parse(sessionStorage.getItem('userData') || '{}');
-            const shouldShowSubmitButton = Boolean(directorApprove.req_id) &&
-                !value2 &&
-                userData.position === 'd';
+            const shouldShowSubmitButton = Boolean(directorApprove.req_id) && 
+                                        !value2 && 
+                                        userData.position === 'd';
             setShowSubmitButton(shouldShowSubmitButton);
         } catch (error) {
             console.error('Error updating director approval:', error);
         }
     };
 
-return (
-    <Stack direction={{ xs: 'column', sm: 'row' }}>
-        <Item>
-            <FormLabel>Director Approve</FormLabel>
-            <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly={true} onChange={(e) => setDirectorName(e.target.value)} />
-        </Item>
-        <Item>
-            <FormLabel>Status</FormLabel>
-            <Select
-                action={action}
-                value={value2}
-                placeholder="Status"
-                onChange={(_e, newValue) => {
-                    console.log("Selected Value:", newValue);
-                    setValue2(newValue);
-                }}
-                variant="outlined" color="warning"
-                {...(value2 && {
-                    endDecorator: (
-                        <IconButton
-                            size="sm"
-                            variant="plain"
-                            color="neutral"
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onClick={() => {
-                                setValue2(null);
-                                action.current?.focusVisible();
-                            }}
-                        >
-                            <CloseRounded />
-                        </IconButton>
-                    ),
-                    indicator: null,
-                })}
-            >
-                {approveOptions.map(option => (
-                    <Option key={option.id_approve} value={option.id_approve}>
-                        {option.name_approve}
-                    </Option>
-                ))}
-            </Select>
-        </Item>
-        {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
-    </Stack>
-);
-    };
+    return (
+        <Stack direction={{ xs: 'column', sm: 'row' }}>
+            <Item>
+                <FormLabel>Director Approve</FormLabel>
+                <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly={true} onChange={(e) => setDirectorName(e.target.value)} />
+            </Item>
+            <Item>
+                <FormLabel>Status</FormLabel>
+                <Select
+                    action={action}
+                    value={value2}
+                    placeholder="Status"
+                    onChange={(_e, newValue) => setValue2(newValue)}
+                    variant="outlined" color="warning"
+                    {...(value2 && {
+                        endDecorator: (
+                            <IconButton
+                                size="sm"
+                                variant="plain"
+                                color="neutral"
+                                onMouseDown={(event) => event.stopPropagation()}
+                                onClick={() => {
+                                    setValue2(null);
+                                    action.current?.focusVisible();
+                                }}
+                            >
+                                <CloseRounded />
+                            </IconButton>
+                        ),
+                        indicator: null,
+                    })}
+                >
+                    {approveOptions.map(option => (
+                        <Option key={option.id_approve} value={option.name_approve}>
+                            {option.name_approve}
+                        </Option>
+                    ))}
+                </Select>
+            </Item>
+            {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
+        </Stack>
+    );
+};

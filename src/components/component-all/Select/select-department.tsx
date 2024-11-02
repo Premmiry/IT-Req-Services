@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
 import { FormLabel } from '@mui/material';
-
+import URLAPI from '../../../URLAPI';
 interface Department {
   id_department: number;
   name_department: string;
@@ -25,7 +25,7 @@ export default function SelectDepartment({ onDepartmentChange, initialValue }: S
     const fetchDepartments = async () => {
       try {
         // const response = await fetch('http://10.200.240.2:1234/departments');
-        const response = await fetch('http://127.0.0.1:1234/departments');
+        const response = await fetch(`${URLAPI}/departments`);
         const data: Department[] = await response.json();
         const departmentOptions: DepartmentOption[] = data.map(dept => ({
           key: dept.id_department,
@@ -57,6 +57,7 @@ export default function SelectDepartment({ onDepartmentChange, initialValue }: S
         value={selectedDepartment}
         variant="outlined"
         color="primary"
+        readOnly={true}
         getOptionLabel={(option: DepartmentOption) => option.label}
         isOptionEqualToValue={(option: DepartmentOption, value: DepartmentOption) => option.key === value.key}
         onChange={(_event, value) => {

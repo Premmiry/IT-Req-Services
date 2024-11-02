@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
 import { FormLabel, Box } from '@mui/material';
-
+import URLAPI from '../../../URLAPI';
 interface TypesReq {
     type_id: number;
     type_name: string;
@@ -25,7 +25,7 @@ export default function SelectTypeRequest({ onSelectType, initialValue }: Select
         const fetchTypesReq = async () => {
             try {
                 // const response = await fetch('http://10.200.240.2:1234/treqs');
-                const response = await fetch('http://127.0.0.1:1234/treqs');
+                const response = await fetch(`${URLAPI}/treqs`);
                 const data: TypesReq[] = await response.json();
                 const typesreqOptions: TypesReqOption[] = data.map(typer => ({
                     key: typer.type_id,

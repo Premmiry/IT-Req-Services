@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, TextField, Button, Typography, Container, Paper } from '@mui/material'
-
+import URLAPI from '../../../URLAPI';
 function Login() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [usernameError, setUsernameError] = useState("")
     const [passwordError, setPasswordError] = useState("")
     const navigate = useNavigate();
-
 
     const onButtonClick = async () => {
         setUsernameError("")
@@ -28,7 +27,7 @@ function Login() {
         // // หรือใช้ clear เพื่อลบข้อมูลทั้งหมด
         // sessionStorage.clear();
         try {
-            const response = await fetch('http://127.0.0.1:1234/login', {
+            const response = await fetch(`${URLAPI}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -47,7 +46,7 @@ function Login() {
             // }
             sessionStorage.setItem('loginAD', JSON.stringify(data));
 
-            const userResponse = await fetch(`http://127.0.0.1:1234/user_yanhee?user=${username}`, { method: 'GET' });
+            const userResponse = await fetch(`${URLAPI}/user_yanhee?user=${username}`, { method: 'GET' });
 
             if (!userResponse.ok) {
                 navigate('/nouseryh');
@@ -62,7 +61,7 @@ function Login() {
                 sessionStorage.setItem('userData', JSON.stringify(userData));
 
                 // ตรวจสอบ admin
-                const adminResponse = await fetch(`http://127.0.0.1:1234/admin?user=${username}`, { method: 'GET' });
+                const adminResponse = await fetch(`${URLAPI}/admin?user=${username}`, { method: 'GET' });
 
                 if (adminResponse.ok) {
                     const adminData = await adminResponse.json();

@@ -7,6 +7,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { SaveAlert } from '../Alert/alert';
+import URLAPI from '../../../URLAPI';
 
 export default function List_Request() {
     const navigate = useNavigate();
@@ -144,7 +145,7 @@ export default function List_Request() {
     
     // Call fetchRequests when userData or admin changes
     useEffect(() => {
-        if (userData && userData.id_department && admin) {
+        if (userData && userData.username && admin) {
             fetchRequests();
         } else {
             console.log("UserData or department is not set. Aborting fetch.");
@@ -152,17 +153,27 @@ export default function List_Request() {
     }, [userData, admin]);
     
     const fetchRequests = async () => {
-        if (!userData || !userData.id_department) return; // Make sure userData and department are set
+        if (!userData || !userData.username) return; // Make sure userData and department are set
     
         try {
             console.log("Fetching Requests...");
-            let apiUrl = 'http://127.0.0.1:1234/it-requests';
-            console.log("Admin Check:", admin, userData.id_department);
+            let apiUrl = `${URLAPI}/it-requests`;
+            console.log("Admin Check:", admin);
             console.log("Admin Value:", admin);
             console.log("User Data:", userData);
     
             if (admin === 'USER') {
-                apiUrl += `?department=${userData.id_department}`;
+                if (userData.position === 's' || userData.position === 'h') {
+                    apiUrl += `?position=${userData.position}&department=${userData.id_department}`;
+                    console.log("API URLsh:", apiUrl);
+                } else if (userData.position === 'm') {
+                    apiUrl += `?position=${userData.position}&division_competency=${userData.id_division_competency}`;
+                    console.log("API URLm:", apiUrl);
+                } else if (userData.position === 'd') {
+                    apiUrl += `?position=${userData.position}&section_competency=${userData.id_section_competency}`;
+                    console.log("API URLd:", apiUrl);
+                }
+
                 console.log("API URL:", apiUrl);
             }
     
@@ -195,7 +206,7 @@ export default function List_Request() {
     const handleConfirmDelete = async () => {
         if (selectedId) {
             try {
-                const response = await fetch(`http://127.0.0.1:1234/it-requests/${selectedId}`, {
+                const response = await fetch(`${URLAPI}/it-requests/${selectedId}`, {
                     method: 'DELETE',
                 });
                 if (!response.ok) {
