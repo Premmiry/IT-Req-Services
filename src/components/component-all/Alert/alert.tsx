@@ -88,7 +88,15 @@ export const SaveAlert: React.FC<{ onClose: () => void }> = ({ onClose }) => (
 export const ErrorAlert: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     <PopAlert 
         title="บันทึกไม่สำเร็จ" 
-        message="กรุณารอซักครู่..." 
+        message="กรุณารอซักครู่กำลังกลับไปหน้ารายการ..." 
+        onClose={onClose}
+    />
+);
+
+export const ApproveAlert: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <PopAlert 
+        title="บันทึกผลการอนุมัติสำเร็จ" 
+        message="กรุณารอซักครู่กำลังกลับไปหน้ารายการ..." 
         onClose={onClose}
     />
 );

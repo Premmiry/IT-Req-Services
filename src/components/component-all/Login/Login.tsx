@@ -22,10 +22,7 @@ function Login() {
             setPasswordError("Please enter a password")
             return
         }
-        // sessionStorage.removeItem('userData');
-        // sessionStorage.removeItem('admin');
-        // // หรือใช้ clear เพื่อลบข้อมูลทั้งหมด
-        // sessionStorage.clear();
+
         try {
             const response = await fetch(`${URLAPI}/login`, {
                 method: 'POST',
@@ -40,10 +37,7 @@ function Login() {
             }
 
             const data = await response.json();
-            // if (!data) {
-            //     navigate("/nouserad");
-            //     return;
-            // }
+
             sessionStorage.setItem('loginAD', JSON.stringify(data));
 
             const userResponse = await fetch(`${URLAPI}/user_yanhee?user=${username}`, { method: 'GET' });
@@ -59,6 +53,7 @@ function Login() {
                 navigate('/nouseryh');
             } else {
                 sessionStorage.setItem('userData', JSON.stringify(userData));
+                console.log("User Data stored in sessionStorage:", userData);
 
                 // ตรวจสอบ admin
                 const adminResponse = await fetch(`${URLAPI}/admin?user=${username}`, { method: 'GET' });
@@ -69,13 +64,17 @@ function Login() {
                 } else {
                     sessionStorage.setItem('admin', 'USER');
                 }
-
-                navigate('/request-list');
-
+                if (userData.id_section === 28 || userData.id_division_competency === 86 || userData.id_section_competency === 28) {
+                    navigate('/request-list-it');
+                }
+                else {
+                    navigate('/request-list');
+                }
             }
         } catch (error) {
             // console.error("Error fetching data:", error);
             setPasswordError("ไม่พบ ข้อมูลผู้ใช้ในระบบ กรุณาติดต่อ 57976 วิค , 57974 เปรม"); // แจ้งให้ผู้ใช้ทราบว่ามีข้อผิดพลาด
+            navigate("/nouserad");
         }
     }
 

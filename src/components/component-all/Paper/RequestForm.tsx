@@ -112,10 +112,10 @@ export default function RequestForm() {
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
         const storedAdmin = sessionStorage.getItem('admin');
-    
+
         console.log("Stored UserData:", storedUserData);
         console.log("Stored Admin:", storedAdmin);
-    
+
         if (storedUserData) {
             const userDataParsed = JSON.parse(storedUserData);
             setUserData(userDataParsed);
@@ -125,13 +125,13 @@ export default function RequestForm() {
             setSelectedDepartment({ key: userDataParsed.id_department, label: '' });
             setName(userDataParsed.name_employee);
         }
-    
+
         if (storedAdmin) {
             setAdmin(storedAdmin);
             console.log("Admin:", storedAdmin);
         }
     }, []);
-    
+
     // Call fetchRequests when userData or admin changes
     useEffect(() => {
         if (userData && admin) {
@@ -180,13 +180,13 @@ export default function RequestForm() {
 
         switch (selectedTypeId) {
             case 1:
-                return `IT${dateCode}`;
+                return `IT/${dateCode}`;
             case 2:
-                return `IS${dateCode}`;
+                return `IS/${dateCode}`;
             case 3:
-                return `DEV${dateCode}`;
+                return `DEV/${dateCode}`;
             default:
-                return `UNK${dateCode}`;
+                return `UNK/${dateCode}`;
         }
     };
 
@@ -213,6 +213,9 @@ export default function RequestForm() {
             formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
             formData.append('id_division', userData ? userData.id_division : '');
             formData.append('id_section', userData ? userData.id_section : '');
+            formData.append('id_job_description', userData ? userData.id_job_description : '');
+            formData.append('id_division_competency', userData ? userData.id_division_competency : '');
+            formData.append('id_section_competency', userData ? userData.id_section_competency : '');
             formData.append('user_req', userData ? userData.username : '');
             formData.append('position', userData ? userData.position : '');
             formData.append('name_req', name);
@@ -268,7 +271,12 @@ export default function RequestForm() {
 
             setTimeout(() => {
                 setSuccessAlert(false);
-                navigate('/request-list');
+                if (userData.id_section === 28 || userData.id_division_competency === 86 || userData.id_section_competency === 28) {
+                    navigate('/request-list-it');
+                }
+                else {
+                    navigate('/request-list');
+                }
             }, 2000);
         } catch (error) {
             console.error(isEditMode ? 'Error updating IT request:' : 'Error submitting IT request:', error);
@@ -289,7 +297,12 @@ export default function RequestForm() {
     };
 
     const handleCancel = () => {
-        navigate('/request-list');
+        if (userData.id_section === 28 || userData.id_division_competency === 86 || userData.id_section_competency === 28) {
+            navigate('/request-list-it');
+        }
+        else {
+            navigate('/request-list');
+        }
     };
 
     return (
@@ -323,14 +336,14 @@ export default function RequestForm() {
                                     userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2) && (
                                         <>
                                             {managerApprove !== null ? (
-                                                <BoxManagerApprove managerApprove={managerApprove} />
+                                                <BoxManagerApprove managerApprove={managerApprove } id_division_competency={userData.id_division_competency} />
                                             ) : (
-                                                <BoxManagerApprove managerApprove={{ name: '', status: '', req_id: '' , m_name: '' }} />
+                                                <BoxManagerApprove managerApprove={{ name: '', status: '', req_id: '', m_name: '' }} id_division_competency={userData.id_division_competency} />
                                             )}
                                             {directorApprove !== null ? (
-                                                <BoxDirectorApprove directorApprove={directorApprove} m_name={null} />
+                                                <BoxDirectorApprove directorApprove={directorApprove} m_name={managerApprove?.name ?? null} id_section_competency={userData.id_section_competency} />
                                             ) : (
-                                                <BoxDirectorApprove directorApprove={{ name: '', status: '', req_id: '', m_name: '' }} m_name={null} />
+                                                <BoxDirectorApprove directorApprove={{ name: '', status: '', req_id: '', m_name: '' }} m_name={null} id_section_competency={userData.id_section_competency} />
                                             )}
                                         </>
                                     )
@@ -359,9 +372,11 @@ export default function RequestForm() {
                     </Grid>
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+
                             <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
                                 {isEditMode ? 'Update' : 'บันทึก'}
                             </Button>
+
                             <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
                                 ย้อนกลับ
                             </Button>
