@@ -59,6 +59,7 @@ interface AssignedDepartment extends AssignedEntity {
 interface AssignedEmployee extends AssignedEntity {
     id_req_emp: string;
     id_emp: string;
+    emp_name: string;
 }
 
 export default function RequestDetail() {
@@ -133,8 +134,9 @@ export default function RequestDetail() {
             const employees = await employeesRes.json();
 
             setAssignedDepartments(departments);
-            console.log(setAssignedDepartments);
+            console.log(departments);
             setAssignedEmployees(employees);
+            console.log(employees);
         } catch (error) {
             console.error('Error fetching assignments:', error);
         }
@@ -254,7 +256,7 @@ export default function RequestDetail() {
                         {assignedEmployees.map((emp, index) => (
                             <ListItem key={index}>
                                 <Typography>
-                                    {emp.user_assigned} (ID: {emp.id_emp}, Assigned: {emp.assigned_date})
+                                    {emp.user_assigned} (ID: {emp.id_emp}, Name: {emp.emp_name}, Assigned: {emp.assigned_date})
                                 </Typography>
                             </ListItem>
                         ))}
