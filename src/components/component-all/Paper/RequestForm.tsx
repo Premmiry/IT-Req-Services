@@ -176,23 +176,50 @@ export default function RequestForm() {
         setErrors(prev => ({ ...prev, files: '' }));
     }, []);
 
-    const generateRsCode = useCallback((selectedTypeId: number | null): string => {
-        const date = new Date();
-        const year = String(date.getFullYear()).substring(2);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
-        const dateCode = `${year}${month}${day}${milliseconds}`;
-
-        switch (selectedTypeId) {
-            case 1:
-                return `IT/${dateCode}`;
-            case 2:
-                return `IS/${dateCode}`;
-            case 3:
-                return `DEV/${dateCode}`;
-            default:
-                return `UNK/${dateCode}`;
+    const generateRsCode = useCallback(async (selectedTypeId: number | null): Promise<string> => {
+        try {
+            const response = await fetch(`${URLAPI}/generatecode`);
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+                const { years, total_requests } = data[0];
+                // Format the total_requests to have leading zeros (padding to 3 digits)
+                const formattedTotal = String(total_requests).padStart(3, '0');
+                const dateCode = `${years}/${formattedTotal}`;
+    
+                switch (selectedTypeId) {
+                    case 1:
+                        return `IT${dateCode}`;
+                    case 2:
+                        return `IS${dateCode}`;
+                    case 3:
+                        return `DEV${dateCode}`;
+                    default:
+                        return `UNK${dateCode}`;
+                }
+            } else {
+                throw new Error('No data received from the API');
+            }
+        } catch (error) {
+            console.error('Error generating code:', error);
+            // Fallback to original format if API fails
+            const date = new Date();
+            const year = String(date.getFullYear()).substring(2);
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+            const fallbackDateCode = `${year}${month}${day}${milliseconds}`;
+    
+            switch (selectedTypeId) {
+                case 1:
+                    return `IT-${fallbackDateCode}`;
+                case 2:
+                    return `IS-${fallbackDateCode}`;
+                case 3:
+                    return `DEV-${fallbackDateCode}`;
+                default:
+                    return `UNK-${fallbackDateCode}`;
+            }
         }
     }, []);
 
@@ -215,7 +242,8 @@ export default function RequestForm() {
         try {
             const formData = new FormData();
 
-            formData.append('rs_code', isEditMode ? rsCode : generateRsCode(selectedTypeId));
+            const rsCodeToUse = isEditMode ? rsCode : await generateRsCode(selectedTypeId);
+            formData.append('rs_code', rsCodeToUse);
             formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
             formData.append('id_division', userData ? userData.id_division : '');
             formData.append('id_section', userData ? userData.id_section : '');
