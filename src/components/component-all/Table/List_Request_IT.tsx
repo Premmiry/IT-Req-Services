@@ -150,8 +150,10 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
             renderCell: (params: GridRenderCellParams) => (
                 <span
                     style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                    onClick={() => navigate(`/edit-request/${params.row.id}`)}
+                    // onClick={() => navigate(`/edit-request/${params.row.id}`)}
+                    onClick={() => navigate(`/request-detail/${params.row.id}`)}
                 >
+                    
                     {params.value}
                 </span>
             ),

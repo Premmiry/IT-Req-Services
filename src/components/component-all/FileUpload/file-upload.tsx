@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FormLabel, Box, IconButton, Typography } from '@mui/material';
 import { Button, List, ListItem } from '@mui/joy';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -19,7 +19,7 @@ interface FileuploadProps {
 }
 
 export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: FileuploadProps) {
-    const [files, setFiles] = useState<(File | ExistingFileInfo)[]>([]);
+    const [files, setFiles] = useState<(File | ExistingFileInfo)[]>(initialFiles);
 
     useEffect(() => {
         const fetchExistingFiles = async () => {
@@ -30,28 +30,38 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                     throw new Error('Failed to fetch existing files');
                 }
                 const data = await response.json();
-                // กรองไฟล์ที่มี file_path เป็น null หรือ undefined ออก
                 const validFiles = data.filter((file: ExistingFileInfo) => file.file_path);
-                setFiles([...initialFiles, ...validFiles]);
-                onFilesChange([...initialFiles, ...validFiles]);
+                setFiles(prevFiles => {
+                    // ตรวจสอบว่าไฟล์เปลี่ยนแปลงจริงๆ หรือไม่
+                    if (JSON.stringify(prevFiles) !== JSON.stringify([...initialFiles, ...validFiles])) {
+                        onFilesChange([...initialFiles, ...validFiles]);
+                        return [...initialFiles, ...validFiles];
+                    }
+                    return prevFiles;
+                });
             } catch (error) {
                 console.error('Error fetching existing files:', error);
             }
         };
-
+    
         if (initialFiles.length > 0) {
-            // กรองไฟล์ที่มี file_path เป็น null หรือ undefined ออกจาก initialFiles
             const validInitialFiles = initialFiles.filter(file => 
                 file instanceof File || (file as ExistingFileInfo).file_path
             );
-            setFiles(validInitialFiles);
-            onFilesChange(validInitialFiles);
+            setFiles(prevFiles => {
+                // ตรวจสอบว่าไฟล์เปลี่ยนแปลงจริงๆ หรือไม่
+                if (JSON.stringify(prevFiles) !== JSON.stringify(validInitialFiles)) {
+                    onFilesChange(validInitialFiles);
+                    return validInitialFiles;
+                }
+                return prevFiles;
+            });
         } else if (reqId) {
             fetchExistingFiles();
         }
-    }, [reqId, initialFiles]);
+    }, [reqId, initialFiles, onFilesChange]); // เพิ่ม onFilesChange เข้าไปใน dependencies
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFiles = event.target.files;
         if (uploadedFiles) {
             // รวมไฟล์ใหม่กับไฟล์ที่มีอยู่ โดยกรองเฉพาะไฟล์ที่มี file_path
@@ -62,15 +72,15 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
             setFiles(newFiles);
             onFilesChange(newFiles);
         }
-    };
+    }, [files, onFilesChange]);
 
-    const handleFileDelete = (fileIndex: number) => {
+    const handleFileDelete = useCallback((fileIndex: number) => {
         const updatedFiles = files.filter((_, index) => index !== fileIndex);
         setFiles(updatedFiles);
         onFilesChange(updatedFiles);
-    };
+    }, [files, onFilesChange]);
 
-    const getFileName = (file: File | ExistingFileInfo) => {
+    const getFileName = useCallback((file: File | ExistingFileInfo) => {
         if (file instanceof File) {
             return { fileName: file.name, filePath: '' };
         } else if (file.file_path) { // เพิ่มเงื่อนไขตรวจสอบ file_path
@@ -80,7 +90,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
             };
         }
         return { fileName: 'ไม่มีไฟล์', filePath: '' };
-    };
+    }, []);
 
     return (
         <Box sx={{ mt: 2 }}>

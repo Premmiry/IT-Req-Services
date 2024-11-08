@@ -69,3 +69,11 @@ export const ManagerInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
 export const DirectorInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
   <InputComponent {...props} id={props.id || "d_name"} label={props.label || "ชื่อผู้อำนวยการฝ่าย"} placeholder={props.placeholder || "ชื่อ-นามสกุล..."} />
 );
+
+export const ITManagerTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
+  <InputComponent {...props} id={props.id || "it_manager"} label={props.label || "IT Manager"} placeholder={props.placeholder || "IT Manager..."} type="textarea" />
+);
+
+export const ITDirectorTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
+  <InputComponent {...props} id={props.id || "it_director"} label={props.label || "IT Director"} placeholder={props.placeholder || "IT Director..."} type="textarea" />
+);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Box, Button, Typography } from '@mui/joy';
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
@@ -8,11 +8,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Container, Paper, Grid } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import Fileupload from '../FileUpload/file-upload';
-import { NameInput, PhoneInput, TitleInput, DetailsTextarea } from '../Input/input-requestform';
+import { NameInput, PhoneInput, TitleInput, DetailsTextarea, ITManagerTextarea, ITDirectorTextarea } from '../Input/input-requestform';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReplyIcon from '@mui/icons-material/Reply';
 import { SaveAlert } from '../Alert/alert';
 import { BoxDirectorApprove, BoxManagerApprove } from '../ContentTypeR/boxmdapprove';
+import { BoxITDirectorApprove, BoxITManagerApprove } from '../ContentTypeR/boxitmdapprove';
 import URLAPI from '../../../URLAPI';
 
 interface ProgramOption {
@@ -35,7 +36,7 @@ interface ExistingFileInfo {
 export default function RequestForm() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [isEditMode, setIsEditMode] = useState(!!id);
+    const [isEditMode] = useState(!!id);
     const [selectedDepartment, setSelectedDepartment] = useState<DepartmentOption | null>(null);
     const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
     const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
@@ -55,6 +56,10 @@ export default function RequestForm() {
     const [admin, setAdmin] = useState<string | null>(null);
     const [managerApprove, setManagerApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
     const [directorApprove, setDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
+    const [itmanagerApprove, setITManagerApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
+    const [itmanagerNote, setITManagerNote] = useState<string>('');
+    const [itdirectorNote, setITDirectorNote] = useState<string>('');
+    const [itdirectorApprove, setITDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
 
     useEffect(() => {
         if (isEditMode) {
@@ -85,7 +90,10 @@ export default function RequestForm() {
                         setStatusId(requestData.status_id || null);
                         setManagerApprove({ name: requestData.m_name || '', status: requestData.m_status || '', req_id: id || '' });
                         setDirectorApprove({ name: requestData.d_name || '', status: requestData.d_status || '', req_id: id || '' });
-
+                        setITManagerApprove({ name: requestData.it_m_name || '', status: requestData.it_m_status || '', req_id: id || '' });
+                        setITManagerNote(requestData.it_m_note || '');
+                        setITDirectorApprove({ name: requestData.it_d_name || '', status: requestData.it_d_status || '', req_id: id || '' });
+                        setITDirectorNote(requestData.it_d_note || '');
                         let parsedFiles: ExistingFileInfo[] = [];
                         try {
                             parsedFiles = JSON.parse(requestData.files);
@@ -132,45 +140,43 @@ export default function RequestForm() {
         }
     }, []);
 
-    // Call fetchRequests when userData or admin changes
-    useEffect(() => {
-        if (userData && admin) {
+    // Memoize complex calculations
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
 
-        } else {
-            console.log("UserData or department is not set. Aborting fetch.");
-        }
-    }, [userData, admin]);
-
-    const handleDepartmentChange = (department: DepartmentOption | null) => {
+    const handleDepartmentChange = useCallback((department: DepartmentOption | null) => {
         setSelectedDepartment(department);
-        setErrors({ ...errors, department: '' });
-    };
+        setErrors(prev => ({ ...prev, department: '' }));
+    }, []);
 
-    const handleTypeChange = (typeId: number | null) => {
+    const handleTypeChange = useCallback((typeId: number | null) => {
         setSelectedTypeId(typeId);
         if (typeId === null) {
             setSelectedTopicId(null);
         }
-        setErrors({ ...errors, typeId: '' });
-    };
+        setErrors(prev => ({ ...prev, typeId: '' }));
+    }, []);
 
-    const handleTopicChange = (topicId: number | null) => {
+    const handleTopicChange = useCallback((topicId: number | null) => {
         setSelectedTopicId(topicId);
         setTitle('');
-        setErrors({ ...errors, topicId: '' });
-    };
+        setErrors(prev => ({ ...prev, topicId: '' }));
+    }, []);
 
-    const handleProgramChange = (program: ProgramOption | null) => {
+    const handleProgramChange = useCallback((program: ProgramOption | null) => {
         setSelectedProgram(program);
-        setErrors({ ...errors, program: '' });
-    };
+        setErrors(prev => ({ ...prev, program: '' }));
+    }, []);
 
-    const handleFilesChange = (files: (File | ExistingFileInfo)[]) => {
+    const handleFilesChange = useCallback((files: (File | ExistingFileInfo)[]) => {
         setUploadedFiles(files);
-        setErrors({ ...errors, files: '' });
-    };
+        setErrors(prev => ({ ...prev, files: '' }));
+    }, []);
 
-    const generateRsCode = (selectedTypeId: number | null): string => {
+    const generateRsCode = useCallback((selectedTypeId: number | null): string => {
         const date = new Date();
         const year = String(date.getFullYear()).substring(2);
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -188,9 +194,9 @@ export default function RequestForm() {
             default:
                 return `UNK/${dateCode}`;
         }
-    };
+    }, []);
 
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
         const newErrors: { [key: string]: string } = {};
 
         if (!selectedDepartment) newErrors.department = 'กรุณาเลือกแผนก';
@@ -201,9 +207,9 @@ export default function RequestForm() {
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
+    }, [selectedDepartment, selectedTypeId, name, phone, details]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         if (!validateForm()) return;
 
         try {
@@ -271,19 +277,18 @@ export default function RequestForm() {
 
             setTimeout(() => {
                 setSuccessAlert(false);
-                if (userData.id_section === 28 || userData.id_division_competency === 86 || userData.id_section_competency === 28) {
+                if (userData?.id_section === 28 || userData?.id_division_competency === 86 || userData?.id_section_competency === 28) {
                     navigate('/request-list-it');
-                }
-                else {
+                } else {
                     navigate('/request-list');
                 }
             }, 2000);
         } catch (error) {
             console.error(isEditMode ? 'Error updating IT request:' : 'Error submitting IT request:', error);
         }
-    };
+    }, [isEditMode, rsCode, selectedDepartment, userData, name, phone, selectedTypeId, selectedTopicId, title, details, selectedProgram, uploadedFiles, validateForm, generateRsCode, navigate]);
 
-    const clearForm = () => {
+    const clearForm = useCallback(() => {
         setSelectedDepartment(null);
         setSelectedTypeId(null);
         setSelectedTopicId(null);
@@ -294,16 +299,15 @@ export default function RequestForm() {
         setDetails('');
         setUploadedFiles([]);
         setErrors({});
-    };
+    }, []);
 
-    const handleCancel = () => {
-        if (userData.id_section === 28 || userData.id_division_competency === 86 || userData.id_section_competency === 28) {
+    const handleCancel = useCallback(() => {
+        if (userData?.id_section === 28 || userData?.id_division_competency === 86 || userData?.id_section_competency === 28) {
             navigate('/request-list-it');
-        }
-        else {
+        } else {
             navigate('/request-list');
         }
-    };
+    }, [userData, navigate]);
 
     return (
         <React.Fragment>
@@ -336,7 +340,7 @@ export default function RequestForm() {
                                     userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2) && (
                                         <>
                                             {managerApprove !== null ? (
-                                                <BoxManagerApprove managerApprove={managerApprove } id_division_competency={userData.id_division_competency} />
+                                                <BoxManagerApprove managerApprove={managerApprove} id_division_competency={userData.id_division_competency} />
                                             ) : (
                                                 <BoxManagerApprove managerApprove={{ name: '', status: '', req_id: '', m_name: '' }} id_division_competency={userData.id_division_competency} />
                                             )}
@@ -370,13 +374,41 @@ export default function RequestForm() {
                             {errors.files && <Typography color="danger">{errors.files}</Typography>}
                         </Grid>
                     </Grid>
+                    {
+                        userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
+                            <>
+                                <Grid item xs={12}>
+                                    <Grid item xs={6}>
+                                        {itmanagerApprove !== null ? (
+                                            <BoxITManagerApprove itmanagerApprove={itmanagerApprove} id_division_competency={userData.id_division_competency} it_m_note={itmanagerNote} />
+                                        ) : (
+                                            <BoxITManagerApprove itmanagerApprove={{ name: '', status: '', req_id: '', it_m_name: '' }} id_division_competency={userData.id_division_competency} it_m_note={null} />
+                                        )}
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        {itdirectorApprove !== null ? (
+                                            <BoxITDirectorApprove itdirectorApprove={itdirectorApprove} it_m_name={itmanagerApprove?.name ?? null} id_section_competency={userData.id_section_competency} it_d_note={itdirectorNote} />
+                                        ) : (
+                                            <BoxITDirectorApprove itdirectorApprove={{ name: '', status: '', req_id: '', it_m_name: '' }} it_m_name={null} id_section_competency={userData.id_section_competency} it_d_note={null} />
+                                        )}
+                                    </Grid>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Grid item xs={6}>
+                                        <ITManagerTextarea value={itmanagerNote} onChange={(e) => setITManagerNote(e.target.value)} />
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <ITDirectorTextarea value={itdirectorNote} onChange={(e) => setITDirectorNote(e.target.value)} />
+                                    </Grid>
+                                </Grid>
+                            </>
+                        )
+                    }
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-
                             <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
                                 {isEditMode ? 'Update' : 'บันทึก'}
                             </Button>
-
                             <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
                                 ย้อนกลับ
                             </Button>
