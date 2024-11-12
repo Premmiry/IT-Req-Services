@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, TextField, Button, Typography, Container, Paper } from '@mui/material'
 import URLAPI from '../../../URLAPI';
+
 function Login() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [usernameError, setUsernameError] = useState("")
     const [passwordError, setPasswordError] = useState("")
     const navigate = useNavigate();
+
 
     const onButtonClick = async () => {
         setUsernameError("")
@@ -39,7 +41,11 @@ function Login() {
             const data = await response.json();
 
             sessionStorage.setItem('loginAD', JSON.stringify(data));
-
+            console.log("Login Data stored in sessionStorage:", data);
+            if (data.status === "error") {
+                navigate('/nouserad');
+                return;
+            }
             const userResponse = await fetch(`${URLAPI}/user_yanhee?user=${username}`, { method: 'GET' });
 
             if (!userResponse.ok) {

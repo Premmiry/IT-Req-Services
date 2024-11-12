@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Container, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material';
+import { Modal, Box, Container, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
@@ -8,6 +8,7 @@ import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedS
 import DeleteIcon from '@mui/icons-material/Delete';
 import { SaveAlert } from '../Alert/alert';
 import URLAPI from '../../../URLAPI';
+import RequestDetail from '../Paper/RequestDetail';
 
 // แยก Type ออกมาเพื่อความชัดเจน
 interface RequestData {
@@ -34,6 +35,8 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
 
     // แยก utility functions ออกมาและใช้ useMemo เพื่อ cache ค่า
     const formatDate = useCallback((dateString: string) => {
@@ -105,6 +108,15 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         setOpen(false);
     }, []);
 
+    const handleOpenModal = useCallback((id: number) => {
+        setSelectedRequestId(id);
+        setModalOpen(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setModalOpen(false);
+    }, []);
+
     // แยก fetchRequests ออกมาและใช้ useCallback
     const fetchRequests = useCallback(async () => {
         if (!userData?.username) return;
@@ -150,10 +162,8 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
             renderCell: (params: GridRenderCellParams) => (
                 <span
                     style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                    // onClick={() => navigate(`/edit-request/${params.row.id}`)}
-                    onClick={() => navigate(`/request-detail/${params.row.id}`)}
+                    onClick={() => handleOpenModal(params.row.id)}
                 >
-                    
                     {params.value}
                 </span>
             ),
@@ -203,7 +213,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 />
             ),
         },
-    ], [navigate, getTypeColor, getStatusColor, handleDeleteClick]);
+    ], [handleOpenModal, getTypeColor, getStatusColor, handleDeleteClick]);
 
     // Load user data on mount
     useEffect(() => {
@@ -283,6 +293,26 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <Modal
+                open={modalOpen}
+                onClose={handleCloseModal}
+                aria-labelledby="request-detail-modal-title"
+                aria-describedby="request-detail-modal-description"
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 800,
+                    bgcolor: 'background.paper',
+                    boxShadow: 24,
+                    p: 4,
+                }}>
+                    {selectedRequestId && <RequestDetail id={selectedRequestId} />}
+                </Box>
+            </Modal>
         </Container>
     );
 }

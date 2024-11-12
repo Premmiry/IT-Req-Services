@@ -1,13 +1,46 @@
 import React from 'react';
 import { Box, Typography, Button, Container } from '@mui/material';
-import { UserX, Users } from 'lucide-react';
+import { UserX, Users, LogIn } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface NoUserProps {
-    type: 'AD' | 'YH';
+    type: 'AD' | 'YH' | 'NO';
 }
 
 const NoUser: React.FC<NoUserProps> = ({ type }) => {
-    const isAD = type === 'AD';
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    const getMessage = () => {
+        switch (type) {
+            case 'AD':
+                return {
+                    title: 'ไม่พบข้อมูลผู้ใช้',
+                    subtitle: 'ไม่พบข้อมูลผู้ใช้ใน Active Directory',
+                    description: 'กรุณาตรวจสอบว่าผู้ใช้มีบัญชี Active Directory หรือลองค้นหาใหม่อีกครั้ง'
+                };
+            case 'YH':
+                return {
+                    title: 'ไม่พบข้อมูลผู้ใช้',
+                    subtitle: 'ไม่พบข้อมูลผู้ใช้ในระบบ YH',
+                    description: 'กรุณาตรวจสอบว่าผู้ใช้มีบัญชีในระบบ YH หรือลองค้นหาใหม่อีกครั้ง'
+                };
+            case 'NO':
+                return {
+                    title: 'กรุณาเข้าสู่ระบบ',
+                    subtitle: 'คุณยังไม่ได้เข้าสู่ระบบ',
+                    description: 'กรุณาเข้าสู่ระบบเพื่อเข้าถึงหน้านี้'
+                };
+            default:
+                return {
+                    title: 'เกิดข้อผิดพลาด',
+                    subtitle: 'ไม่สามารถเข้าถึงหน้านี้ได้',
+                    description: 'กรุณาลองใหม่อีกครั้ง'
+                };
+        }
+    };
+
+    const message = getMessage();
 
     return (
         <Container maxWidth="sm">
@@ -51,28 +84,25 @@ const NoUser: React.FC<NoUserProps> = ({ type }) => {
                 </Box>
 
                 <Typography variant="h4" component="h1" gutterBottom color="error">
-                    ไม่พบข้อมูลผู้ใช้
+                    {message.title}
                 </Typography>
 
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                    {isAD ? 'ไม่พบข้อมูลผู้ใช้ใน Active Directory' : 'ไม่พบข้อมูลผู้ใช้ในระบบ YH'}
+                    {message.subtitle}
                 </Typography>
 
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                    {isAD
-                        ? 'กรุณาตรวจสอบว่าผู้ใช้มีบัญชี Active Directory หรือลองค้นหาใหม่อีกครั้ง'
-                        : 'กรุณาตรวจสอบว่าผู้ใช้มีบัญชีในระบบ YH หรือลองค้นหาใหม่อีกครั้ง'
-                    }
+                    {message.description}
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button
-                        variant="outlined"
+                        variant="contained"
                         color="primary"
-                        startIcon={<Users />}
-                        href="/"
+                        startIcon={<LogIn />}
+                        onClick={() => navigate('/')}
                     >
-                        กลับไปหน้ารายการผู้ใช้
+                        เข้าสู่ระบบ
                     </Button>
                 </Box>
             </Box>

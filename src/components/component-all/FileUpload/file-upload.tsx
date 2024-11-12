@@ -133,7 +133,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
             <List>
                 {files.length === 0 ? (
                     <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
-                        ไม่มีไฟล์แนบ
+                        
                     </Typography>
                 ) : (
                     files.map((file, index) => {

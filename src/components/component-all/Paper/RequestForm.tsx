@@ -176,25 +176,43 @@ export default function RequestForm() {
         setErrors(prev => ({ ...prev, files: '' }));
     }, []);
 
-    const generateRsCode = useCallback((selectedTypeId: number | null): string => {
-        const date = new Date();
-        const year = String(date.getFullYear()).substring(2);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
-        const dateCode = `${year}${month}${day}${milliseconds}`;
-
-        switch (selectedTypeId) {
-            case 1:
-                return `IT/${dateCode}`;
-            case 2:
-                return `IS/${dateCode}`;
-            case 3:
-                return `DEV/${dateCode}`;
-            default:
-                return `UNK/${dateCode}`;
+    const generateRsCode = useCallback(async (selectedTypeId: number | null): Promise<string> => {
+        const getFallbackCode = (prefix: string) => {
+            const timestamp = Date.now(); // Millisecond timestamp
+            return `${prefix}-${timestamp}`;
+        };
+    
+        try {
+            const response = await fetch(`${URLAPI}/generatecode`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch data from API');
+            }
+    
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const { years, total_requests } = data[0];
+                const incrementedTotal = total_requests + 1; // เพิ่มค่า total_requests ขึ้น 1
+                const formattedTotal = String(incrementedTotal).padStart(3, '0'); // Padding เป็น 3 หลัก
+                const dateCode = `${years}/${formattedTotal}`;
+                
+                // กำหนด prefix ตามประเภทที่เลือก
+                const prefix = selectedTypeId === 1 ? 'IT' :
+                               selectedTypeId === 2 ? 'IS' :
+                               selectedTypeId === 3 ? 'DEV' : 'UNK';
+    
+                return `${prefix}${dateCode}`; // Generate รหัสที่ไม่ซ้ำโดยเพิ่มเลข request ขึ้น 1
+            } else {
+                throw new Error('No data received from the API');
+            }
+        } catch (error) {
+            console.error('Error generating code:', error);
+            const prefix = selectedTypeId === 1 ? 'IT' :
+                           selectedTypeId === 2 ? 'IS' :
+                           selectedTypeId === 3 ? 'DEV' : 'UNK';
+            return getFallbackCode(prefix);
         }
     }, []);
+    
 
     const validateForm = useCallback(() => {
         const newErrors: { [key: string]: string } = {};
@@ -215,7 +233,8 @@ export default function RequestForm() {
         try {
             const formData = new FormData();
 
-            formData.append('rs_code', isEditMode ? rsCode : generateRsCode(selectedTypeId));
+            const rsCodeToUse = isEditMode ? rsCode : await generateRsCode(selectedTypeId);
+            formData.append('rs_code', rsCodeToUse);
             formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
             formData.append('id_division', userData ? userData.id_division : '');
             formData.append('id_section', userData ? userData.id_section : '');
