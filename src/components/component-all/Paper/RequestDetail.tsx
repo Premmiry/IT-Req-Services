@@ -17,7 +17,7 @@ import React from 'react';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import DeleteIcon from '@mui/icons-material/Delete';
-import DepartmentChip from './AssigneeDepSelector';
+import AssigneeDepSelector from './AssigneeDepSelector';
 import AssigneeEmpSelector from './AssigneeEmpSelector';
 import DoneIcon from '@mui/icons-material/Done';
 import { ChevronsLeftIcon } from 'lucide-react';
@@ -143,8 +143,9 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
 
     // State to store selected departments and employees (for tag management)
-    
+
     const [selectedAssignees, setSelectedAssignees] = useState([]);
+    const [selectedDepartments, setSelectedDepartments] = useState([]);
 
 
 
@@ -227,32 +228,43 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
     const fetchAssignments = useCallback(async () => {
         if (!id) return;
-
+    
         try {
             const [departmentsRes, employeesRes] = await Promise.all([
                 fetch(`${URLAPI}/assigned_department/${id}`),
                 fetch(`${URLAPI}/assigned_employee/${id}`)
             ]);
-
+    
             if (!departmentsRes.ok || !employeesRes.ok) {
                 throw new Error('Error fetching assignments');
             }
-
-            const departments: AssignedDepartment[] = await departmentsRes.json();
-            const employees: AssignedEmployee[] = await employeesRes.json();
-
+    
+            let departments: AssignedDepartment[] = await departmentsRes.json();
+            let employees: AssignedEmployee[] = await employeesRes.json();
+    
             console.log(departments, employees);
-
+    
+            // ตรวจสอบว่า departments และ employees เป็น array ก่อนใช้งาน
+            if (!Array.isArray(departments)) {
+                departments = []; // หรือ handle error
+                console.warn('departments ไม่เป็น array');
+            }
+            if (!Array.isArray(employees)) {
+                employees = []; // หรือ handle error
+                console.warn('employees ไม่เป็น array');
+            }
+    
             // Fetch IT department details
             const departmentIds = departments.map(dept => parseInt(dept.id_department));
             await fetchITDepartments(departmentIds);
-
+    
             setAssignedDepartments(departments);
             setAssignedEmployees(employees);
         } catch (error) {
             console.error('Error fetching assignments:', error);
         }
     }, [id, fetchITDepartments]);
+    
 
 
 
@@ -262,16 +274,16 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
     // ฟังก์ชันสำหรับการลบแผนก
     const handleRemoveDepartment = async (id_req_dep) => {
         try {
-            // Send DELETE request using id_req_dep
+            // ส่งคำขอ DELETE โดยใช้ id_req_dep
             const response = await fetch(`${URLAPI}/assign_department/${id_req_dep}`, {
                 method: 'DELETE',
             });
-
+    
             if (!response.ok) {
                 throw new Error('Failed to remove department');
             }
-
-            // Update the UI after successfully removing the department
+    
+            // อัปเดต UI หลังจากลบแผนกสำเร็จ
             setAssignedDepartments((prevDepartments) =>
                 prevDepartments.filter((department) => department.id_req_dep !== id_req_dep)
             );
@@ -281,9 +293,21 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
         }
     };
 
+    // Update assigned departments when new departments are selected
+    useEffect(() => {
+        if (selectedDepartments.length > 0) {
+            // Update assigned departments when new assignees are selected
+            setAssignedDepartments((prevDepartments) => [
+                ...prevDepartments,
+                ...selectedDepartments.filter((department) =>
+                    !prevDepartments.some((dept) => dept.id_department_it === department.id)
+                )
+            ]);
+        }
+    }, [selectedDepartments]);
 
 
-// Update assigned employees when new assignees are selected ...........................................................................................
+    // Update assigned employees when new assignees are selected ...........................................................................................
 
     // ฟังก์ชันสำหรับการลบพนักงาน
     const handleRemoveEmployee = async (id_req_emp) => {
@@ -307,7 +331,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
         }
     };
 
-// Update assigned employees when new assignees are selected
+    // Update assigned employees when new assignees are selected
     useEffect(() => {
         if (selectedAssignees.length > 0) {
             // Update assigned employees when new assignees are selected
@@ -319,7 +343,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             ]);
         }
     }, [selectedAssignees]);
-// ....................................................end............................................................................. //
+    // ....................................................end............................................................................. //
 
 
 
@@ -347,18 +371,35 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             fetchDepartmentName(requestData.id_department);
         }
     }, [requestData?.id_department, fetchDepartmentName]);
-
+    
     useEffect(() => {
         if (assignedDepartments.length > 0 && itDepartments.length > 0) {
+            // Map assigned departments with department names from itDepartments
             const updatedDepartments = assignedDepartments.map(dept => ({
                 ...dept,
                 departmentName: itDepartments.find(
                     itDept => itDept.id_department_it === parseInt(dept.id_department)
-                )?.[`name_department_it`]
+                )?.name_department_it || dept.departmentName
             }));
-            setAssignedDepartments(updatedDepartments);
+            
+            // ตรวจสอบการเปลี่ยนแปลงก่อนตั้งค่า
+            const hasChanges = updatedDepartments.some(
+                (newDept, index) => newDept.departmentName !== assignedDepartments[index].departmentName
+            );
+    
+            if (hasChanges) {
+                setAssignedDepartments(updatedDepartments);
+            }
         }
-    }, [itDepartments]);
+    }, [itDepartments, assignedDepartments]);
+    
+    useEffect(() => {
+        if (assignedDepartments.length > 0 && itDepartments.length > 0) {
+            console.log('Assigned Departments:', assignedDepartments);
+            console.log('IT Departments:', itDepartments);
+        }
+    }, [assignedDepartments, itDepartments]);
+    
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -624,13 +665,15 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                             <Typography gutterBottom variant="body2">มอบหมายงานแผนก </Typography>
 
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                
 
 
-                                <DepartmentChip 
-                                requestId={requestData.id}
-                                selectedDepartments={assignedDepartments} 
-                                setSelectedDepartments={setAssignedDepartments} />
+
+                                <AssigneeDepSelector
+                                    requestId={requestData.id}
+                                    selectedAssigneesDep={selectedDepartments}
+                                    onAssigneeDepChange={setSelectedDepartments}
+                                />
+
 
 
 
@@ -641,7 +684,8 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                                         <Chip
                                             key={index}
                                             icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                                            label={dept.departmentName || 'Loading department name...'}
+                                            label={dept.departmentName}
+                                            onClick={() => console.info(`You clicked the Chip for ${dept.departmentName}`)}
                                             onDelete={() => handleRemoveDepartment(dept.id_req_dep)} // Pass id_req_dep here
                                             size="small"
                                             sx={{
@@ -673,8 +717,6 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
 
                         </Stack>
-
-
 
 
 
