@@ -21,7 +21,7 @@ import URLAPI from '../../../URLAPI';
 
 const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeDepChange }) => {
     const [open, setOpen] = useState(false);
-    const [departments, setdepartments] = useState([]);
+    const [departments, setDepartments] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -34,7 +34,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
         }
     }, []);
 
-    const fetchdepartments = useCallback(async () => {
+    const fetchDepartments = useCallback(async () => {
         if (!userData) {
             console.error('User data is not available');
             return;
@@ -45,21 +45,20 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
             const response = await fetch(`${URLAPI}/departments_it`);
             if (!response.ok) throw new Error('Failed to fetch departments');
 
-            console.log(response);
             const data = await response.json();
-            setdepartments(data);
+            setDepartments(data);
         } catch (error) {
             setError('Error fetching departments');
             console.error('Error fetching departments:', error);
         } finally {
             setLoading(false);
         }
-    }, [URLAPI, userData]);
+    }, [userData]);
 
     const handleClickOpen = () => {
         if (userData) {
             setOpen(true);
-            fetchdepartments();
+            fetchDepartments();
         } else {
             console.error('User data is not available');
         }
@@ -75,48 +74,46 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
             console.error('User data is not available');
             return;
         }
-    
-        if (!department.id_dep) {
-            console.error('department ID is missing');
+
+        if (!department.id_department_it) {
+            console.error('Department ID is missing');
             return; // Skip if department doesn't have an ID
         }
-    
-        if (selectedAssigneesDep.some((a) => a.id_dep === department.id_dep)) {
-            console.log('department already assigned');
+
+        if (selectedAssigneesDep.some((a) => a.id_department_it === department.id_department_it)) {
+            console.log('Department already assigned');
             return;
         }
-    
+
         try {
             const response = await fetch(
-                `${URLAPI}/assign_department/${requestId}?id_department=${department.id_dep}&username=${userData.username}`,
+                `${URLAPI}/assign_department/${requestId}?id_department=${department.id_department_it}&username=${userData.username}`,
                 { method: 'POST' }
             );
             if (!response.ok) throw new Error('Error assigning department');
-    
+
             // Directly update the selectedAssigneesDep
-            onAssigneeDepChange((prevAssignees) => [...prevAssignees, { ...department, id: department.id_dep }]);
+            onAssigneeDepChange((prevAssignees) => [...prevAssignees, { ...department, id: department.id_department_it }]);
             handleClose();
         } catch (error) {
             console.error('Error adding department:', error);
         }
     };
-    
-    
 
-    const handleRemovedepartment = async (department) => {
+    const handleRemoveDepartment = async (department) => {
         try {
-            const response = await fetch(`${URLAPI}/assign_department/${department.id}`, {
+            const response = await fetch(`${URLAPI}/assign_department/${department.id_department_it}`, {
                 method: 'DELETE'
             });
             if (!response.ok) throw new Error('Error removing department');
-            onAssigneeDepChange(selectedAssigneesDep.filter((dep) => dep.id !== department.id));
+            onAssigneeDepChange(selectedAssigneesDep.filter((dep) => dep.id_department_it !== department.id_department_it));
         } catch (error) {
             console.error('Error removing department:', error);
         }
     };
 
-    const filtereddepartments = departments.filter((department) =>
-        department.dep_name.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredDepartments = departments.filter((department) =>
+        department.name_department_it.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -144,7 +141,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
                     <Box sx={{ mb: 2, mt: 1 }}>
                         <TextField
                             autoFocus
-                            placeholder="ค้นหาชื่อพนักงาน..."
+                            placeholder="ค้นหาชื่อแผนก..."
                             variant="outlined"
                             size="small"
                             fullWidth
@@ -156,16 +153,16 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
                     <Box>
                         {loading && <Typography variant="body2">Loading...</Typography>}
                         {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        {filtereddepartments.length === 0 && !loading && !error ? (
+                        {filteredDepartments.length === 0 && !loading && !error ? (
                             <Typography variant="body2">No departments available</Typography>
                         ) : (
                             <List>
-                                {filtereddepartments.map((department) => (
-                                    <ListItem button key={department.id_dep} onClick={() => handleSelectDepartment(department)}>
+                                {filteredDepartments.map((department) => (
+                                    <ListItem button key={department.id_department_it} onClick={() => handleSelectDepartment(department)}>
                                         <ListItemAvatar>
-                                            <Avatar>{department.dep_name[0]?.toUpperCase()}</Avatar>
+                                            <Avatar>{department.name_department_it[0]?.toUpperCase()}</Avatar>
                                         </ListItemAvatar>
-                                        <ListItemText primary={department.dep_name} />
+                                        <ListItemText primary={department.name_department_it} />
                                     </ListItem>
                                 ))}
                             </List>
@@ -178,8 +175,6 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
                     </Button>
                 </DialogActions>
             </Dialog>
-
-           
         </Box>
     );
 };
