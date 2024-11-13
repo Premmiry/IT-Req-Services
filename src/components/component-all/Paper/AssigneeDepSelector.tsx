@@ -77,7 +77,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
 
         if (!department.id_department_it) {
             console.error('Department ID is missing');
-            return; // Skip if department doesn't have an ID
+            return;
         }
 
         if (selectedAssigneesDep.some((a) => a.id_department_it === department.id_department_it)) {
@@ -92,7 +92,6 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
             );
             if (!response.ok) throw new Error('Error assigning department');
 
-            // Directly update the selectedAssigneesDep
             onAssigneeDepChange((prevAssignees) => [...prevAssignees, { ...department, id: department.id_department_it }]);
             handleClose();
         } catch (error) {
@@ -116,12 +115,17 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
         department.name_department_it.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const randomColor = () => {
+        const colors = ['#FF8A80', '#FFD180', '#FF9E80', '#E1BEE7', '#BBDEFB', '#C5E1A5'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    };
+
     return (
         <Box>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <Chip
                     icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                    label="Add department"
+                    label="Add Department : "
                     onClick={handleClickOpen}
                     size="small"
                     sx={{
@@ -160,7 +164,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
                                 {filteredDepartments.map((department) => (
                                     <ListItem button key={department.id_department_it} onClick={() => handleSelectDepartment(department)}>
                                         <ListItemAvatar>
-                                            <Avatar>{department.name_department_it[0]?.toUpperCase()}</Avatar>
+                                            <Avatar sx={{ bgcolor: randomColor() }}>{department.name_department_it[0]?.toUpperCase()}</Avatar>
                                         </ListItemAvatar>
                                         <ListItemText primary={department.name_department_it} />
                                     </ListItem>

@@ -117,12 +117,17 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
         employee.emp_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const randomColor = () => {
+        const colors = ['#FF8A80', '#FFD180', '#FF9E80', '#E1BEE7', '#BBDEFB', '#C5E1A5'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    };
+
     return (
         <Box>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <Chip
                     icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
-                    label="Add Employee"
+                    label="Add Employee :   "
                     onClick={handleClickOpen}
                     size="small"
                     sx={{
@@ -161,7 +166,7 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
                                 {filteredEmployees.map((employee) => (
                                     <ListItem button key={employee.id_emp} onClick={() => handleSelectEmployee(employee)}>
                                         <ListItemAvatar>
-                                            <Avatar>{employee.emp_name[0]?.toUpperCase()}</Avatar>
+                                            <Avatar sx={{ bgcolor: randomColor() }}>{employee.emp_name[0]?.toUpperCase()}</Avatar>
                                         </ListItemAvatar>
                                         <ListItemText primary={employee.emp_name} />
                                     </ListItem>
