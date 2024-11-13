@@ -16,7 +16,7 @@ import {
     TextField,
     Stack,
 } from '@mui/material';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import URLAPI from '../../../URLAPI';
 
 const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeDepChange }) => {
@@ -120,7 +120,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
         <Box>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <Chip
-                    icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
+                    icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
                     label="Add department"
                     onClick={handleClickOpen}
                     size="small"

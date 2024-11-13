@@ -93,7 +93,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 method: 'DELETE',
             });
             if (!response.ok) throw new Error('Network response was not ok');
-            
+
             setRows(prevRows => prevRows.filter(row => row.id !== selectedId));
             setSuccessAlert(true);
             setTimeout(() => setSuccessAlert(false), 3000);
@@ -125,7 +125,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         try {
             const response = await fetch(`${URLAPI}/it-requests?tab=${tab}`);
             if (!response.ok) throw new Error('Network response was not ok');
-            
+
             const { data } = await response.json();
             const mappedData: RequestData[] = data.map((item: any) => ({
                 id: item.id,
@@ -243,10 +243,10 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     <Typography variant="h4" component="h1">
                         Request List IT
                     </Typography>
-                    <Button 
-                        variant="contained" 
-                        color="primary" 
-                        startIcon={<AddIcon />} 
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
                         onClick={handleRequest}
                     >
                         Request
@@ -299,13 +299,26 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 onClose={handleCloseModal}
                 aria-labelledby="request-detail-modal-title"
                 aria-describedby="request-detail-modal-description"
+                role="dialog"
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }}
             >
                 <Box sx={{
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: 800,
+                    width: {
+                        xs: '90%',    // ใช้ความกว้าง 90% ของหน้าจอสำหรับขนาดเล็ก (มือถือ)
+                        sm: '80%',    // สำหรับแท็บเล็ตเล็ก
+                        md: '70%',    // สำหรับแท็บเล็ตและเดสก์ท็อปขนาดกลาง
+                        lg: '60%',    // สำหรับเดสก์ท็อปขนาดใหญ่
+                        xl: '50%',    // สำหรับจอขนาดใหญ่มาก
+                    },
+                    maxWidth: '800px',  // กำหนดขีดจำกัดความกว้างสูงสุดให้กับ Modal
                     bgcolor: 'background.paper',
                     boxShadow: 24,
                     p: 4,
@@ -313,6 +326,8 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     {selectedRequestId && <RequestDetail id={selectedRequestId} />}
                 </Box>
             </Modal>
+
+
         </Container>
     );
 }

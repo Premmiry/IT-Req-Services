@@ -107,16 +107,16 @@ interface ITDepartment {
 }
 
 interface AssignedDepartment extends AssignedEntity {
-    id_req_dep: string;
-    req_id: string;
-    id_department: string;
-    departmentName?: string;
+    id_req_dep: number;
+    req_id: number;
+    id_department: number; // id ที่ใช้แมพกับ id_department_it
+    name_department_it?: string; // เพิ่ม field สำหรับเก็บชื่อแผนก
 }
 
 interface AssignedEmployee extends AssignedEntity {
-    id_req_emp: string;
-    req_id: string;
-    id_emp: string;
+    id_req_emp: number;
+    req_id: number;
+    id_emp: number;
     emp_name?: string;
 }
 
@@ -129,7 +129,7 @@ interface RequestDetailProps {
 export default function RequestDetail({ id, isModal }: RequestDetailProps) {
     const navigate = useNavigate();
 
-    // State
+    // State declarations (no changes here)
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [requestData, setRequestData] = useState<RequestData | null>(null);
@@ -142,16 +142,13 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
     const [itDepartments, setItDepartments] = useState<ITDepartment[]>([]);
 
 
-    // State to store selected departments and employees (for tag management)
-
+    // Selection state (no changes here)
     const [selectedAssignees, setSelectedAssignees] = useState([]);
     const [selectedDepartments, setSelectedDepartments] = useState([]);
 
 
 
-
-
-
+    // Helper function to format dates
     const formatDate = useCallback((dateString: string) => {
         const date = new Date(dateString);
         const buddhistYear = date.getFullYear() + 543;
@@ -194,6 +191,8 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
         fetchRequestData();
     }, [fetchRequestData]);
 
+
+    // Fetch department name
     const fetchDepartmentName = useCallback(async (departmentId: number) => {
         try {
             const response = await fetch(`${URLAPI}/departments?id_dep=${departmentId}`);
@@ -208,6 +207,8 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
         }
     }, []);
 
+
+    // Fetch IT departments assignee
     const fetchITDepartments = useCallback(async (deptIds: number[]) => {
         try {
             const uniqueDeptIds = [...new Set(deptIds)];
@@ -228,22 +229,22 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
     const fetchAssignments = useCallback(async () => {
         if (!id) return;
-    
+
         try {
             const [departmentsRes, employeesRes] = await Promise.all([
                 fetch(`${URLAPI}/assigned_department/${id}`),
                 fetch(`${URLAPI}/assigned_employee/${id}`)
             ]);
-    
+
             if (!departmentsRes.ok || !employeesRes.ok) {
                 throw new Error('Error fetching assignments');
             }
-    
+
             let departments: AssignedDepartment[] = await departmentsRes.json();
             let employees: AssignedEmployee[] = await employeesRes.json();
-    
+
             console.log(departments, employees);
-    
+
             // ตรวจสอบว่า departments และ employees เป็น array ก่อนใช้งาน
             if (!Array.isArray(departments)) {
                 departments = []; // หรือ handle error
@@ -253,36 +254,94 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                 employees = []; // หรือ handle error
                 console.warn('employees ไม่เป็น array');
             }
-    
+
             // Fetch IT department details
-            const departmentIds = departments.map(dept => parseInt(dept.id_department));
+            const departmentIds = departments.map(deptId => parseInt(deptId.id_department));
             await fetchITDepartments(departmentIds);
-    
+
             setAssignedDepartments(departments);
             setAssignedEmployees(employees);
         } catch (error) {
             console.error('Error fetching assignments:', error);
         }
     }, [id, fetchITDepartments]);
-    
+
+    // Effects
+    useEffect(() => {
+        const fetchAllData = async () => {
+            setIsLoading(true);
+            try {
+                await Promise.all([
+                    fetchRequestData(),
+                    fetchAssignments()
+                ]);
+            } catch (error) {
+                setError(error instanceof Error ? error.message : 'An error occurred');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAllData();
+    }, [fetchRequestData, fetchAssignments]);
+
+    useEffect(() => {
+        if (requestData?.id_department) {
+            fetchDepartmentName(requestData.id_department);
+        }
+    }, [requestData?.id_department, fetchDepartmentName]);
+
+    // 2. อัพเดท useEffect สำหรับการแมพข้อมูล
+useEffect(() => {
+    if (assignedDepartments.length > 0 && itDepartments.length > 0) {
+        // แมพข้อมูลแผนกที่ถูก assign กับชื่อแผนกจาก itDepartments
+        const updatedDepartments = assignedDepartments.map(dept => {
+            const matchingDept = itDepartments.find(
+                itDept => itDept.id_department_it === parseInt(dept.id_department)
+            );
+
+            return {
+                ...dept,
+                name_department_it: matchingDept ? matchingDept.name_department_it : 'Unnamed Department'
+            };
+        });
+
+        // ตรวจสอบการเปลี่ยนแปลงก่อนอัพเดท state
+        const hasChanges = updatedDepartments.some(
+            (newDept, index) => newDept.name_department_it !== assignedDepartments[index].name_department_it
+        );
+
+        if (hasChanges) {
+            setAssignedDepartments(updatedDepartments);
+        }
+    }
+}, [itDepartments, assignedDepartments]);
+
+
+
+// 4. เพิ่ม Debug logging เพื่อตรวจสอบการแมพข้อมูล
+useEffect(() => {
+    if (assignedDepartments.length > 0 && itDepartments.length > 0) {
+        console.log('Assigned Departments:', assignedDepartments);
+        console.log('IT Departments:', itDepartments);
+    }
+}, [assignedDepartments, itDepartments]);
 
 
 
 
-
-
-    // ฟังก์ชันสำหรับการลบแผนก
-    const handleRemoveDepartment = async (id_req_dep) => {
+    // .............................ฟังก์ชันสำหรับการลบแผนก.................................................................................
+    const handleRemoveDepartment = async (id_req_dep: number) => {
         try {
             // ส่งคำขอ DELETE โดยใช้ id_req_dep
             const response = await fetch(`${URLAPI}/assign_department/${id_req_dep}`, {
                 method: 'DELETE',
             });
-    
+
             if (!response.ok) {
                 throw new Error('Failed to remove department');
             }
-    
+
             // อัปเดต UI หลังจากลบแผนกสำเร็จ
             setAssignedDepartments((prevDepartments) =>
                 prevDepartments.filter((department) => department.id_req_dep !== id_req_dep)
@@ -300,17 +359,18 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             setAssignedDepartments((prevDepartments) => [
                 ...prevDepartments,
                 ...selectedDepartments.filter((department) =>
-                    !prevDepartments.some((dept) => dept.id_department_it === department.id)
+                    !prevDepartments.some((deptId) => deptId.id_department_it === department.id)
                 )
             ]);
         }
     }, [selectedDepartments]);
 
+    // .............................end.................................................................................
 
-    // Update assigned employees when new assignees are selected ...........................................................................................
 
-    // ฟังก์ชันสำหรับการลบพนักงาน
-    const handleRemoveEmployee = async (id_req_emp) => {
+    // ฟังก์ชันสำหรับการลบพนักงาน...........................................................................................
+
+    const handleRemoveEmployee = async (id_req_emp: number) => {
         try {
             // Send DELETE request using id_req_emp
             const response = await fetch(`${URLAPI}/assign_employee/${id_req_emp}`, {
@@ -347,59 +407,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
 
 
-    // Effects
-    useEffect(() => {
-        const fetchAllData = async () => {
-            setIsLoading(true);
-            try {
-                await Promise.all([
-                    fetchRequestData(),
-                    fetchAssignments()
-                ]);
-            } catch (error) {
-                setError(error instanceof Error ? error.message : 'An error occurred');
-            } finally {
-                setIsLoading(false);
-            }
-        };
 
-        fetchAllData();
-    }, [fetchRequestData, fetchAssignments]);
-
-    useEffect(() => {
-        if (requestData?.id_department) {
-            fetchDepartmentName(requestData.id_department);
-        }
-    }, [requestData?.id_department, fetchDepartmentName]);
-    
-    useEffect(() => {
-        if (assignedDepartments.length > 0 && itDepartments.length > 0) {
-            // Map assigned departments with department names from itDepartments
-            const updatedDepartments = assignedDepartments.map(dept => ({
-                ...dept,
-                departmentName: itDepartments.find(
-                    itDept => itDept.id_department_it === parseInt(dept.id_department)
-                )?.name_department_it || dept.departmentName
-            }));
-            
-            // ตรวจสอบการเปลี่ยนแปลงก่อนตั้งค่า
-            const hasChanges = updatedDepartments.some(
-                (newDept, index) => newDept.departmentName !== assignedDepartments[index].departmentName
-            );
-    
-            if (hasChanges) {
-                setAssignedDepartments(updatedDepartments);
-            }
-        }
-    }, [itDepartments, assignedDepartments]);
-    
-    useEffect(() => {
-        if (assignedDepartments.length > 0 && itDepartments.length > 0) {
-            console.log('Assigned Departments:', assignedDepartments);
-            console.log('IT Departments:', itDepartments);
-        }
-    }, [assignedDepartments, itDepartments]);
-    
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -420,7 +428,6 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             console.log("Admin:", storedAdmin);
         }
     }, []);
-
 
 
 
@@ -679,39 +686,41 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
                                 {/* แสดงแผนกที่ถูกมอบหมาย */}
 
-                                {assignedDepartments.length > 0 ? (
-                                    assignedDepartments.map((dept, index) => (
-                                        <Chip
-                                            key={index}
-                                            icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                                            label={dept.departmentName}
-                                            onClick={() => console.info(`You clicked the Chip for ${dept.departmentName}`)}
-                                            onDelete={() => handleRemoveDepartment(dept.id_req_dep)} // Pass id_req_dep here
-                                            size="small"
-                                            sx={{
-                                                backgroundColor: '#e3f2fd',
-                                                border: '1px solid #90caf9',
-                                                borderRadius: '4px',
-                                                height: '24px',
-                                                '& .MuiChip-label': {
-                                                    px: 1,
-                                                    fontSize: '0.75rem'
-                                                },
-                                                '& .MuiChip-icon': {
-                                                    color: '#1976d2',
-                                                    ml: '4px'
-                                                },
-                                                '& .MuiChip-deleteIcon': {
-                                                    color: '#f44336',
-                                                    fontSize: 18,
-                                                    ml: '4px'
-                                                }
-                                            }}
-                                        />
-                                    ))
-                                ) : (
-                                    <Typography color="text.secondary">No departments assigned</Typography>
-                                )}
+                               
+{assignedDepartments.length > 0 ? (
+    assignedDepartments.map((dept, index) => (
+        <Chip
+            key={index}
+            icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
+            label={dept.name_department_it} // แสดงชื่อแผนกที่ได้จากการแมพ
+            onClick={() => console.info(`You clicked the Chip for ${dept.name_department_it}`)}
+            onDelete={() => handleRemoveDepartment(dept.id_req_dep)}
+            size="small"
+            sx={{
+                backgroundColor: '#e3f2fd',
+                border: '1px solid #90caf9',
+                borderRadius: '4px',
+                height: '24px',
+                '& .MuiChip-label': {
+                    px: 1,
+                    fontSize: '0.75rem'
+                },
+                '& .MuiChip-icon': {
+                    color: '#1976d2',
+                    ml: '4px'
+                },
+                '& .MuiChip-deleteIcon': {
+                    color: '#f44336',
+                    fontSize: 18,
+                    ml: '4px'
+                }
+            }}
+        />
+    ))
+) : (
+    <Typography color="text.secondary">No departments assigned</Typography>
+)}
+
 
                             </Box>
 
