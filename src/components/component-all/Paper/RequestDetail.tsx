@@ -212,16 +212,32 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
     const fetchITDepartments = useCallback(async (deptIds: number[]) => {
         try {
             const uniqueDeptIds = [...new Set(deptIds)];
-            const departmentsData = await Promise.all(
-                uniqueDeptIds.map(async (deptId) => {
-                    const response = await fetch(`${URLAPI}/departments_it?id_dep=${deptId}`);
-                    if (!response.ok) throw new Error(`Error fetching IT department data for ID ${deptId}`);
-                    const data = await response.json();
-                    return data[0];
-                })
+            
+            // เรียก API ครั้งเดียวโดยไม่ใส่ filter
+            const response = await fetch(`${URLAPI}/departments_it`);
+            if (!response.ok) {
+                throw new Error('Error fetching IT departments');
+            }
+            
+            const allDepartments = await response.json();
+            
+            // filter ข้อมูลหลังจากได้ response
+            const filteredDepartments = allDepartments.filter(
+                dept => uniqueDeptIds.includes(dept.id_department_it)
             );
-            setItDepartments(departmentsData.filter(Boolean));
-            console.log(departmentsData)
+    
+            // ตรวจสอบว่าได้ข้อมูลครบ
+            const missingIds = uniqueDeptIds.filter(
+                id => !filteredDepartments.some(dept => dept.id_department_it === id)
+            );
+            
+            if (missingIds.length > 0) {
+                console.warn('Missing departments for IDs:', missingIds);
+            }
+    
+            setItDepartments(filteredDepartments);
+            console.log('Filtered IT Departments:', filteredDepartments);
+            
         } catch (error) {
             console.error('Error fetching IT departments:', error);
         }
@@ -291,44 +307,76 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
         }
     }, [requestData?.id_department, fetchDepartmentName]);
 
-    // 2. อัพเดท useEffect สำหรับการแมพข้อมูล
+// 1. แยก effect สำหรับการ fetch ข้อมูล
 useEffect(() => {
+    // เช็คว่ามี assigned departments ก่อน
+    if (assignedDepartments.length > 0) {
+        const deptIds = assignedDepartments.map(dept => Number(dept.id_department));
+        fetchITDepartments(deptIds);
+    }
+}, [assignedDepartments, fetchITDepartments]); // dependency เฉพาะที่จำเป็น
+
+// 2. แยก effect สำหรับการแมปข้อมูล
+useEffect(() => {
+    // เช็คว่ามีข้อมูลพร้อมก่อนทำการแมป
     if (assignedDepartments.length > 0 && itDepartments.length > 0) {
-        // แมพข้อมูลแผนกที่ถูก assign กับชื่อแผนกจาก itDepartments
-        const updatedDepartments = assignedDepartments.map(dept => {
-            const matchingDept = itDepartments.find(
-                itDept => itDept.id_department_it === parseInt(dept.id_department)
-            );
-
-            return {
-                ...dept,
-                name_department_it: matchingDept ? matchingDept.name_department_it : 'Unnamed Department'
-            };
-        });
-
-        // ตรวจสอบการเปลี่ยนแปลงก่อนอัพเดท state
-        const hasChanges = updatedDepartments.some(
-            (newDept, index) => newDept.name_department_it !== assignedDepartments[index].name_department_it
-        );
-
-        if (hasChanges) {
+        const needsUpdate = assignedDepartments.some(dept => !dept.name_department_it);
+        
+        if (needsUpdate) {
+            const updatedDepartments = assignedDepartments.map(dept => {
+                const matchingDept = itDepartments.find(
+                    itDept => itDept.id_department_it === Number(dept.id_department)
+                );
+                
+                // ถ้ามีชื่อแผนกอยู่แล้ว ให้ใช้ของเดิม
+                if (dept.name_department_it) {
+                    return dept;
+                }
+                
+                return {
+                    ...dept,
+                    name_department_it: matchingDept?.name_department_it || 'Unnamed Department'
+                };
+            });
+            
             setAssignedDepartments(updatedDepartments);
         }
     }
-}, [itDepartments, assignedDepartments]);
+}, [itDepartments]); // เอา assignedDepartments ออกจาก dependency
 
 
 
 // 4. เพิ่ม Debug logging เพื่อตรวจสอบการแมพข้อมูล
 useEffect(() => {
+    if (!itDepartments?.length) {
+        console.log('IT Departments not loaded yet');
+        return;
+    }
+    if (!assignedDepartments?.length) {
+        console.log('Assigned Departments not loaded yet');
+        return;
+    }
     if (assignedDepartments.length > 0 && itDepartments.length > 0) {
+
+        
         console.log('Assigned Departments:', assignedDepartments);
         console.log('IT Departments:', itDepartments);
     }
 }, [assignedDepartments, itDepartments]);
 
 
-
+useEffect(() => {
+    console.log('Debug Data:', {
+        assignedDepartments: assignedDepartments.map(d => ({
+            id: d.id_department,
+            mapped_name: d.name_department_it
+        })),
+        itDepartments: itDepartments.map(d => ({
+            id: d.id_department_it,
+            name: d.name_department_it
+        }))
+    });
+}, [assignedDepartments, itDepartments]);
 
     // .............................ฟังก์ชันสำหรับการลบแผนก.................................................................................
     const handleRemoveDepartment = async (id_req_dep: number) => {
