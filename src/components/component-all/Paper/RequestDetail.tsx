@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Button, Typography, Paper, Divider, Grid, Link, Stepper, Step, StepLabel, IconButton, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
@@ -13,7 +13,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
-import React from 'react';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -23,11 +22,11 @@ import DoneIcon from '@mui/icons-material/Done';
 import { ChevronsLeftIcon } from 'lucide-react';
 
 // ฟังก์ชันสุ่มสี
-const getRandomColor = () => {
+const getRandomColor = (): string => {
     const colors = ['primary', 'success', 'secondary', 'error', 'warning', 'info']; // สีที่ต้องการ
     const randomIndex = Math.floor(Math.random() * colors.length); // สุ่มดัชนี
     return colors[randomIndex]; // คืนค่าสีที่สุ่มได้
-  };
+};
 
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -124,11 +123,11 @@ interface RequestDetailProps {
 }
 
 // Component
-export default function RequestDetail({ id, isModal }: RequestDetailProps) {
+const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
     const navigate = useNavigate();
 
     // State declarations
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [requestData, setRequestData] = useState<RequestData | null>(null);
     const [departmentName, setDepartmentName] = useState<string>('');
@@ -138,11 +137,11 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
     const [assignedDepartments, setAssignedDepartments] = useState<AssignedDepartment[]>([]);
     const [assignedEmployees, setAssignedEmployees] = useState<AssignedEmployee[]>([]);
     const [itDepartments, setItDepartments] = useState<ITDepartment[]>([]);
-    const [selectedAssignees, setSelectedAssignees] = useState([]);
-    const [selectedDepartments, setSelectedDepartments] = useState([]);
+    const [selectedAssignees, setSelectedAssignees] = useState<any[]>([]);
+    const [selectedDepartments, setSelectedDepartments] = useState<any[]>([]);
 
     // Helper function to format dates
-    const formatDate = useCallback((dateString: string) => {
+    const formatDate = useCallback((dateString: string): string => {
         const date = new Date(dateString);
         const buddhistYear = date.getFullYear() + 543;
         const day = String(date.getDate()).padStart(2, '0');
@@ -203,11 +202,11 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
             const allDepartments = await response.json();
             const filteredDepartments = allDepartments.filter(
-                dept => uniqueDeptIds.includes(dept.id_department_it)
+                (dept: ITDepartment) => uniqueDeptIds.includes(dept.id_department_it)
             );
 
             const missingIds = uniqueDeptIds.filter(
-                id => !filteredDepartments.some(dept => dept.id_department_it === id)
+                (id) => !filteredDepartments.some((dept: ITDepartment) => dept.id_department_it === id)
             );
 
             if (missingIds.length > 0) {
@@ -249,7 +248,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                 console.warn('employees ไม่เป็น array');
             }
 
-            const departmentIds = departments.map(deptId => parseInt(deptId.id_department));
+            const departmentIds = departments.map((dept) => parseInt(dept.id_department));
             await fetchITDepartments(departmentIds);
 
             setAssignedDepartments(departments);
@@ -286,19 +285,19 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
     useEffect(() => {
         if (assignedDepartments.length > 0) {
-            const deptIds = assignedDepartments.map(dept => Number(dept.id_department));
+            const deptIds = assignedDepartments.map((dept) => Number(dept.id_department));
             fetchITDepartments(deptIds);
         }
     }, [assignedDepartments, fetchITDepartments]);
 
     useEffect(() => {
         if (assignedDepartments.length > 0 && itDepartments.length > 0) {
-            const needsUpdate = assignedDepartments.some(dept => !dept.name_department_it);
+            const needsUpdate = assignedDepartments.some((dept) => !dept.name_department_it);
 
             if (needsUpdate) {
-                const updatedDepartments = assignedDepartments.map(dept => {
+                const updatedDepartments = assignedDepartments.map((dept) => {
                     const matchingDept = itDepartments.find(
-                        itDept => itDept.id_department_it === Number(dept.id_department)
+                        (itDept) => itDept.id_department_it === Number(dept.id_department)
                     );
 
                     if (dept.name_department_it) {
@@ -318,11 +317,11 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
     useEffect(() => {
         console.log('Debug Data:', {
-            assignedDepartments: assignedDepartments.map(d => ({
+            assignedDepartments: assignedDepartments.map((d) => ({
                 id: d.id_department,
                 mapped_name: d.name_department_it
             })),
-            itDepartments: itDepartments.map(d => ({
+            itDepartments: itDepartments.map((d) => ({
                 id: d.id_department_it,
                 name: d.name_department_it
             }))
@@ -503,75 +502,95 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
 
 
                             <Box sx={{ p: 2 }}>
-                        {(requestData?.m_name || requestData?.d_name) && (
-                            <Stepper alternativeLabel>
-                                {requestData.m_name && (
-                                    <Step completed={false}>
-                                        <StepLabel>Manager</StepLabel>
-                                    </Step>
-                                )}
-                                {requestData.d_name && (
-                                    <Step
-                                        completed
-                                        StepIconComponent={() => (
-                                            <CheckCircleIcon sx={{ color: 'success.main' }} />
+                                {(requestData?.m_name || requestData?.d_name) && (
+                                    <Stack spacing={2}>
+                                    <Stepper size="sm">
+                                        {requestData.m_name && (
+                                            <Step completed={false}>
+                                                <StepLabel>Manager</StepLabel>
+                                            </Step>
                                         )}
-                                    >
-                                        <StepLabel>Director</StepLabel>
-                                    </Step>
+                                        {requestData.d_name && (
+                                            <Step
+                                                completed
+                                                StepIconComponent={() => (
+                                                    <CheckCircleIcon sx={{ color: 'success.main' }} />
+                                                )}
+                                            >
+                                                <StepLabel>Director</StepLabel>
+                                            </Step>
+                                        )}
+                                    </Stepper>
+                                    </Stack>
                                 )}
-                            </Stepper>
-                        )}
 
-                        <Grid container spacing={2} justifyContent="center">
-                            {requestData?.m_name && (
-                                <Grid item xs={12} sm={6} md={4}>
-                                    <List sx={{ bgcolor: 'background.paper' }}>
-                                        <ListItem alignItems="flex-start">
-                                            <ListItemAvatar>
-                                                <Avatar alt="Manager" src="" />
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={
-                                                    <>
-                                                        <span>{requestData.m_name} : </span>
-                                                        <span style={{ color: 'green' }}>{requestData.mapp}</span>
-                                                    </>
-                                                }
-                                               
-                                            />
-                                        </ListItem>
-                                        
-                                    </List>
+                                <Grid container spacing={2} justifyContent="center">
+                                    {requestData?.m_name && (
+                                        <Grid item xs={12} sm={6} md={4}>
+                                            <List sx={{
+                        bgcolor: 'background.paper',
+                        borderRadius: 1,
+                        boxShadow: 1,
+                        p: 0.1, // ลด padding ของ List
+                    }}>
+                                                <ListItem alignItems="center" sx={{ padding: 0.2 }}>
+                                                    <ListItemAvatar>
+                                                        <Avatar alt="Manager" src="" sx={{
+                                    width: 20, // ลดขนาดของ Avatar
+                                    height: 20,
+                                    bgcolor: 'primary.main',
+                                }}/>
+                                                    </ListItemAvatar>
+                                                    <ListItemText
+                                                        primary={
+                                                            <>
+                                                                <span>{requestData.m_name} : </span>
+                                                                <span style={{ color: 'green' }}>{requestData.mapp}</span>
+                                                            </>
+                                                        }
+
+                                                    />
+                                                </ListItem>
+
+                                            </List>
+                                        </Grid>
+                                    )}
+
+
+                                    {requestData?.d_name && (
+                                        <Grid item xs={12} sm={6} md={4}>
+                                            <List sx={{
+                        bgcolor: 'background.paper',
+                        borderRadius: 1,
+                        boxShadow: 1,
+                        p: 0.1, // ลด padding ของ List
+                    }}>
+                                                <ListItem alignItems="center" sx={{ padding: 0.2 }}>
+                                                    <ListItemAvatar>
+                                                        <Avatar alt="IT Director" src="" sx={{
+                                    width: 20, // ลดขนาดของ Avatar
+                                    height: 20,
+                                    bgcolor: 'primary.main',
+                                }}/>
+                                                    </ListItemAvatar>
+                                                    <ListItemText
+                                                        primary={
+                                                            <>
+                                                                <span>{requestData.d_name} : </span>
+                                                                <span style={{ color: 'green' }}>{requestData.dapp}</span>
+
+                                                            </>
+                                                        }
+
+
+                                                    />
+                                                </ListItem>
+
+                                            </List>
+                                        </Grid>
+                                    )}
                                 </Grid>
-                            )}
-
-
-                            {requestData?.d_name && (
-                                <Grid item xs={12} sm={6} md={4}>
-                                    <List sx={{ bgcolor: 'background.paper' }}>
-                                        <ListItem alignItems="flex-start">
-                                            <ListItemAvatar>
-                                                <Avatar alt="IT Director" src="" />
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={
-                                                    <>
-                                                        <span>{requestData.d_name} : </span>
-                                                        <span style={{ color: 'green' }}>{requestData.dapp}</span>
-
-                                                    </>
-                                                }
-
-                                                
-                                            />
-                                        </ListItem>
-                                       
-                                    </List>
-                                </Grid>
-                            )}
-                        </Grid>
-                    </Box>
+                            </Box>
 
                         </Stack>
                     </Box>
@@ -790,16 +809,18 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             </Box>
 
             {!isModal && (
-                
-                    <Button 
-                    variant="contained" 
+
+                <Button
+                    variant="contained"
                     endIcon={<SendIcon />}
                     onClick={handleEdit}
-                    sx={{ mt: 2, mb: 2, width: '100%'}}
-                    >
+                    sx={{ mt: 2, mb: 2, width: '100%' }}
+                >
                     Request Form
                 </Button>
             )}
         </Box>
     );
-}
+};
+
+export default RequestDetail;

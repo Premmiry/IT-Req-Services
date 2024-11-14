@@ -252,7 +252,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                         Request
                     </Button>
                 </Box>
-                <Box sx={{ height: 600, width: '100%' }}>
+                <Box sx={{ height: 580, width: '100%' }}>
                     <DataGrid
                         rows={rows}
                         columns={columns}

@@ -26,41 +26,39 @@ interface UserData {
   name_job_description: string;
 }
 
-function Navbar() {
-  // const navigate = useNavigate();
+const Navbar: React.FC = () => {
   const navigate: NavigateFunction = useNavigate();
-  const [userData, setUserData] = useState<any | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [admin, setAdmin] = useState<string | null>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
-      useEffect(() => {
-        const storedUserData = sessionStorage.getItem('userData');
-        const storedAdmin = sessionStorage.getItem('admin');
 
-        console.log("Stored UserData:", storedUserData);
-        console.log("Stored Admin:", storedAdmin);
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem('userData');
+    const storedAdmin = sessionStorage.getItem('admin');
 
-        if (storedUserData) {
-            const userDataParsed = JSON.parse(storedUserData);
-            setUserData(userDataParsed);
-            console.log("UserData:", userDataParsed);
-            
+    console.log("Stored UserData:", storedUserData);
+    console.log("Stored Admin:", storedAdmin);
 
-        }
+    if (storedUserData) {
+      const userDataParsed: UserData = JSON.parse(storedUserData);
+      setUserData(userDataParsed);
+      console.log("UserData:", userDataParsed);
+    }
 
-        if (storedAdmin) {
-            setAdmin(storedAdmin);
-            console.log("Admin:", storedAdmin);
-        }
-    }, []);
+    if (storedAdmin) {
+      setAdmin(storedAdmin);
+      console.log("Admin:", storedAdmin);
+    }
+  }, []);
 
-    // Call fetchRequests when userData or admin changes
-    useEffect(() => {
-        if (userData && admin) {
-
-        } else {
-            console.log("UserData or department is not set. Aborting fetch.");
-        }
-    }, [userData, admin]);
+  // Call fetchRequests when userData or admin changes
+  useEffect(() => {
+    if (userData && admin) {
+      // Add your logic here
+    } else {
+      console.log("UserData or department is not set. Aborting fetch.");
+    }
+  }, [userData, admin]);
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -76,11 +74,10 @@ function Navbar() {
     handleCloseUserMenu();
     // เพิ่ม logic การ redirect ไปหน้า login หรือหน้าอื่นๆ ตามต้องการ
     navigate('/');
-    
   };
 
   // ฟังก์ชันสำหรับแสดงชื่อย่อของผู้ใช้
-  const getInitials = (name: string) => {
+  const getInitials = (name: string): string => {
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -92,44 +89,75 @@ function Navbar() {
     <AppBar position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <AdbIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
-          <Typography
-            variant="h6"
-            noWrap
-            component="a"
-            href="#app-bar-with-responsive-menu"
-            sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'flex' },
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              letterSpacing: '.3rem',
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-          >
-            LOGO
-          </Typography>
+        <Box
+    component="img"
+    src="https://www.yanhee.net/wp-content/uploads/Yanhee_Logo.png"
+    alt="Yanhee Logo"
+    sx={{
+      display: { xs: 'none', md: 'flex' },
+      mr: 2,
+      width: 140,
+      height: 55,
+      borderRadius: 2, // ทำให้มุมโค้งเล็กน้อย
+      
+      transition: 'transform 0.3s, box-shadow 0.3s', // เพิ่มการเคลื่อนไหวแบบนุ่มนวล
+      '&:hover': {
+          transform: 'scale(1.05)', // ขยายขนาดเล็กน้อยเมื่อ hover
+          boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.3)', // เพิ่มเงาเมื่อ hover
+      },
+  }}
+/>
 
-          <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
-          <Typography
-            variant="h5"
-            noWrap
-            component="a"
-            href="#app-bar-with-responsive-menu"
-            sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
-              flexGrow: 1,
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              letterSpacing: '.3rem',
-              color: 'inherit',
-              textDecoration: 'none',
-            }}
-          >
-            LOGO
-          </Typography>
+<Typography
+    variant="h6"
+    noWrap
+    component="a"
+    href="/"
+    sx={{
+        mr: 2,
+        display: { xs: 'none', md: 'flex' },
+        fontFamily: 'monospace',
+        fontWeight: 700,
+        letterSpacing: '.3rem',
+        color: 'inherit',
+        textDecoration: 'none',
+        borderRadius: 2, // ทำให้มุมโค้งเล็กน้อย
+        transition: 'transform 0.3s, box-shadow 0.3s', // เพิ่มการเคลื่อนไหวแบบนุ่มนวล
+      '&:hover': {
+          transform: 'scale(1.05)', // ขยายขนาดเล็กน้อยเมื่อ hover
+          boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.3)', // เพิ่มเงาเมื่อ hover
+      },
+    }}
+>
+    
+</Typography>
+
+<Box
+    component="img"
+    src="https://www.yanhee.net/wp-content/uploads/Yanhee_Logo.png"
+    alt="Yanhee Logo"
+    sx={{ display: { xs: 'flex', md: 'none' }, mr: 1, width: 100, height: 40 }}
+/>
+
+<Typography
+    variant="h5"
+    noWrap
+    component="a"
+    href="/"
+    sx={{
+        mr: 2,
+        display: { xs: 'flex', md: 'none' },
+        flexGrow: 1,
+        fontFamily: 'monospace',
+        fontWeight: 700,
+        letterSpacing: '.3rem',
+        color: 'inherit',
+        textDecoration: 'none',
+    }}
+>
+    
+</Typography>
+
 
           <Box sx={{ flexGrow: 1 }} />
 
@@ -145,7 +173,7 @@ function Navbar() {
                   ({userData.name_job_description})
                 </Typography>
               </Box>
-              
+
               <Box>
                 <Tooltip title="เมนูผู้ใช้งาน">
                   <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
@@ -179,7 +207,7 @@ function Navbar() {
                       {userData.name_job_description}
                     </Typography>
                   </Box>
-                  
+
                   <MenuItem onClick={handleLogout}>
                     <LogoutIcon sx={{ mr: 1 }} />
                     <Typography>ออกจากระบบ</Typography>
@@ -192,6 +220,6 @@ function Navbar() {
       </Container>
     </AppBar>
   );
-}
+};
 
 export default Navbar;
