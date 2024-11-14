@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Button, Typography } from '@mui/joy';
+import { Autocomplete, Box, Button, FormLabel, IconButton, Input, Select, Stack, Textarea, Typography } from '@mui/joy';
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
@@ -15,6 +15,7 @@ import { SaveAlert } from '../Alert/alert';
 import { BoxDirectorApprove, BoxManagerApprove } from '../ContentTypeR/boxmdapprove';
 import { BoxITDirectorApprove, BoxITManagerApprove } from '../ContentTypeR/boxitmdapprove';
 import URLAPI from '../../../URLAPI';
+import { CloseRounded } from '@mui/icons-material';
 
 interface ProgramOption {
     key: number;
@@ -181,25 +182,25 @@ export default function RequestForm() {
             const timestamp = Date.now(); // Millisecond timestamp
             return `${prefix}-${timestamp}`;
         };
-    
+
         try {
             const response = await fetch(`${URLAPI}/generatecode`);
             if (!response.ok) {
                 throw new Error('Failed to fetch data from API');
             }
-    
+
             const data = await response.json();
             if (data && data.length > 0) {
                 const { years, total_requests } = data[0];
                 const incrementedTotal = total_requests + 1; // เพิ่มค่า total_requests ขึ้น 1
                 const formattedTotal = String(incrementedTotal).padStart(3, '0'); // Padding เป็น 3 หลัก
                 const dateCode = `${years}/${formattedTotal}`;
-                
+
                 // กำหนด prefix ตามประเภทที่เลือก
                 const prefix = selectedTypeId === 1 ? 'IT' :
-                               selectedTypeId === 2 ? 'IS' :
-                               selectedTypeId === 3 ? 'DEV' : 'UNK';
-    
+                    selectedTypeId === 2 ? 'IS' :
+                        selectedTypeId === 3 ? 'DEV' : 'UNK';
+
                 return `${prefix}${dateCode}`; // Generate รหัสที่ไม่ซ้ำโดยเพิ่มเลข request ขึ้น 1
             } else {
                 throw new Error('No data received from the API');
@@ -207,12 +208,12 @@ export default function RequestForm() {
         } catch (error) {
             console.error('Error generating code:', error);
             const prefix = selectedTypeId === 1 ? 'IT' :
-                           selectedTypeId === 2 ? 'IS' :
-                           selectedTypeId === 3 ? 'DEV' : 'UNK';
+                selectedTypeId === 2 ? 'IS' :
+                    selectedTypeId === 3 ? 'DEV' : 'UNK';
             return getFallbackCode(prefix);
         }
     }, []);
-    
+
 
     const validateForm = useCallback(() => {
         const newErrors: { [key: string]: string } = {};
@@ -395,32 +396,148 @@ export default function RequestForm() {
                     </Grid>
                     {
                         userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
-                            <>
-                                <Grid item xs={12}>
-                                    <Grid item xs={6}>
-                                        {itmanagerApprove !== null ? (
-                                            <BoxITManagerApprove itmanagerApprove={itmanagerApprove} id_division_competency={userData.id_division_competency} it_m_note={itmanagerNote} />
-                                        ) : (
-                                            <BoxITManagerApprove itmanagerApprove={{ name: '', status: '', req_id: '', it_m_name: '' }} id_division_competency={userData.id_division_competency} it_m_note={null} />
-                                        )}
+                            <Box
+                                sx={{
+                                    backgroundColor: '#fff',
+                                    padding: 2,
+                                    borderRadius: 2,
+                                    marginTop: 4,
+                                    border: '1px dashed', 
+                                    borderColor: 'lightblue', 
+                                    
+                                    // boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
+                                }}
+                            >
+
+                                <Typography
+                                    sx={{
+                                        mt: 2,
+                                        mb: 4,
+                                        fontWeight: 'bold',
+                                        fontSize: 20,
+                                        color: '#1976d2',
+                                        textAlign: 'center',
+                                        textDecoration: 'underline',
+                                        textDecorationThickness: 2,
+                                        textUnderlineOffset: 6,
+                                        textDecorationColor: '#1976d2',
+                                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                    }}
+                                >
+                                    IT Approve
+                                </Typography>
+
+                                <Grid container spacing={4}>
+                                    {/* IT Manager Section */}
+                                    <Grid item xs={12} sm={6}>
+                                        <Box>
+                                            {itmanagerApprove !== null ? (
+                                                <BoxITManagerApprove
+                                                    itmanagerApprove={itmanagerApprove}
+                                                    id_division_competency={userData.id_division_competency}
+                                                    it_m_note={itmanagerNote}
+                                                />
+                                            ) : (
+                                                <BoxITManagerApprove
+                                                    itmanagerApprove={{ name: '', status: '', req_id: '', it_m_name: '' }}
+                                                    id_division_competency={userData.id_division_competency}
+                                                    it_m_note={null}
+                                                />
+                                            )}
+
+                                            <Typography variant="h6" sx={{ mt: 2, fontWeight: 'bold' }}>
+                                                IT Manager Note
+                                            </Typography>
+                                            <Textarea
+                                                minRows={4}
+                                                placeholder="Type in here…"
+                                                variant="soft"
+                                                color="success"
+                                                value={itmanagerNote}
+                                                onChange={(e) => setITManagerNote(e.target.value)}
+                                                sx={{
+                                                    mt: 1,
+                                                    borderBottom: '2px solid',
+                                                    borderColor: 'neutral.outlinedBorder',
+                                                    borderRadius: 2,
+                                                    '&:hover': {
+                                                        borderColor: 'neutral.outlinedHoverBorder',
+                                                    },
+                                                    '&::before': {
+                                                        border: '1px solid var(--Textarea-focusedHighlight)',
+                                                        transform: 'scaleX(0)',
+                                                        left: 0,
+                                                        right: 0,
+                                                        bottom: '-2px',
+                                                        top: 'unset',
+                                                        transition: 'transform .15s cubic-bezier(0.1,0.9,0.2,1)',
+                                                        borderRadius: 0,
+                                                    },
+                                                    '&:focus-within::before': {
+                                                        transform: 'scaleX(1)',
+                                                    },
+                                                }}
+                                            />
+                                        </Box>
                                     </Grid>
-                                    <Grid item xs={6}>
-                                        {itdirectorApprove !== null ? (
-                                            <BoxITDirectorApprove itdirectorApprove={itdirectorApprove} it_m_name={itmanagerApprove?.name ?? null} id_section_competency={userData.id_section_competency} it_d_note={itdirectorNote} />
-                                        ) : (
-                                            <BoxITDirectorApprove itdirectorApprove={{ name: '', status: '', req_id: '', it_m_name: '' }} it_m_name={null} id_section_competency={userData.id_section_competency} it_d_note={null} />
-                                        )}
+
+                                    {/* IT Director Section */}
+                                    <Grid item xs={12} sm={6}>
+                                        <Box>
+                                            {itdirectorApprove !== null ? (
+                                                <BoxITDirectorApprove
+                                                    itdirectorApprove={itdirectorApprove}
+                                                    it_m_name={itmanagerApprove?.name ?? null}
+                                                    id_section_competency={userData.id_section_competency}
+                                                    it_d_note={itdirectorNote}
+                                                />
+                                            ) : (
+                                                <BoxITDirectorApprove
+                                                    itdirectorApprove={{ name: '', status: '', req_id: '', it_m_name: '' }}
+                                                    it_m_name={null}
+                                                    id_section_competency={userData.id_section_competency}
+                                                    it_d_note={null}
+                                                />
+                                            )}
+
+                                            <Typography variant="h6" sx={{ mt: 2, fontWeight: 'bold' }}>
+                                                IT Director Note
+                                            </Typography>
+                                            <Textarea
+                                                minRows={4}
+                                                placeholder="Type in here…"
+                                                variant="soft"
+                                                color="warning"
+                                                value={itdirectorNote}
+                                                onChange={(e) => setITDirectorNote(e.target.value)}
+                                                sx={{
+                                                    mt: 1,
+                                                    borderBottom: '2px solid',
+                                                    borderColor: 'neutral.outlinedBorder',
+                                                    borderRadius: 2,
+                                                    '&:hover': {
+                                                        borderColor: 'neutral.outlinedHoverBorder',
+                                                    },
+                                                    '&::before': {
+                                                        border: '1px solid var(--Textarea-focusedHighlight)',
+                                                        transform: 'scaleX(0)',
+                                                        left: 0,
+                                                        right: 0,
+                                                        bottom: '-2px',
+                                                        top: 'unset',
+                                                        transition: 'transform .15s cubic-bezier(0.1,0.9,0.2,1)',
+                                                        borderRadius: 0,
+                                                    },
+                                                    '&:focus-within::before': {
+                                                        transform: 'scaleX(1)',
+                                                    },
+                                                }}
+                                            />
+                                        </Box>
                                     </Grid>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <Grid item xs={6}>
-                                        <ITManagerTextarea value={itmanagerNote} onChange={(e) => setITManagerNote(e.target.value)} />
-                                    </Grid>
-                                    <Grid item xs={6}>
-                                        <ITDirectorTextarea value={itdirectorNote} onChange={(e) => setITDirectorNote(e.target.value)} />
-                                    </Grid>
-                                </Grid>
-                            </>
+                            </Box>
+
                         )
                     }
                     <Grid item xs={12}>

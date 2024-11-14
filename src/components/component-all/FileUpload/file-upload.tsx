@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FormLabel, Box, IconButton, Typography } from '@mui/material';
-import { Button, List, ListItem } from '@mui/joy';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { FormLabel, Box, Typography } from '@mui/material';
+import { Button, Chip, IconButton } from '@mui/joy';
 import SvgIcon from '@mui/joy/SvgIcon';
+import DeleteIcon from '@mui/icons-material/Delete';
 import URLAPI from '../../../URLAPI';
 
 interface ExistingFileInfo {
@@ -32,7 +32,6 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                 const data = await response.json();
                 const validFiles = data.filter((file: ExistingFileInfo) => file.file_path);
                 setFiles(prevFiles => {
-                    // ตรวจสอบว่าไฟล์เปลี่ยนแปลงจริงๆ หรือไม่
                     if (JSON.stringify(prevFiles) !== JSON.stringify([...initialFiles, ...validFiles])) {
                         onFilesChange([...initialFiles, ...validFiles]);
                         return [...initialFiles, ...validFiles];
@@ -49,7 +48,6 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                 file instanceof File || (file as ExistingFileInfo).file_path
             );
             setFiles(prevFiles => {
-                // ตรวจสอบว่าไฟล์เปลี่ยนแปลงจริงๆ หรือไม่
                 if (JSON.stringify(prevFiles) !== JSON.stringify(validInitialFiles)) {
                     onFilesChange(validInitialFiles);
                     return validInitialFiles;
@@ -59,12 +57,11 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
         } else if (reqId) {
             fetchExistingFiles();
         }
-    }, [reqId, initialFiles, onFilesChange]); // เพิ่ม onFilesChange เข้าไปใน dependencies
+    }, [reqId, initialFiles, onFilesChange]);
 
     const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFiles = event.target.files;
         if (uploadedFiles) {
-            // รวมไฟล์ใหม่กับไฟล์ที่มีอยู่ โดยกรองเฉพาะไฟล์ที่มี file_path
             const existingValidFiles = files.filter(file => 
                 file instanceof File || (file as ExistingFileInfo).file_path
             );
@@ -74,16 +71,18 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
         }
     }, [files, onFilesChange]);
 
-    const handleFileDelete = useCallback((fileIndex: number) => {
-        const updatedFiles = files.filter((_, index) => index !== fileIndex);
-        setFiles(updatedFiles);
-        onFilesChange(updatedFiles);
-    }, [files, onFilesChange]);
+    const handleFileDelete = useCallback((index: number) => {
+        setFiles(prevFiles => {
+            const newFiles = prevFiles.filter((_, i) => i !== index);
+            onFilesChange(newFiles);
+            return newFiles;
+        });
+    }, [onFilesChange]);
 
     const getFileName = useCallback((file: File | ExistingFileInfo) => {
         if (file instanceof File) {
             return { fileName: file.name, filePath: '' };
-        } else if (file.file_path) { // เพิ่มเงื่อนไขตรวจสอบ file_path
+        } else if (file.file_path) {
             return { 
                 fileName: file.file_old_name || file.file_path.split('/').pop() || 'ไม่มีไฟล์', 
                 filePath: file.file_path 
@@ -94,7 +93,15 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
 
     return (
         <Box sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', border: '1px dashed', borderColor: 'lightblue', borderRadius: 'sm', padding: 2, marginTop: 2 }}>
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                border: '1px dashed', 
+                borderColor: 'lightblue', 
+                borderRadius: 'sm', 
+                padding: 2, 
+                marginTop: 2 
+            }}>
                 <FormLabel>แนบไฟล์</FormLabel>
                 <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
                     <Button
@@ -129,54 +136,93 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
                         />
                     </Button>
                 </Box>
-            </Box>
-            <List>
-                {files.length === 0 ? (
-                    <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', marginTop: 2 }}>
-                        
-                    </Typography>
-                ) : (
-                    files.map((file, index) => {
-                        // แสดงเฉพาะไฟล์ที่มี file_path หรือเป็น File object
-                        if (file instanceof File || (file as ExistingFileInfo).file_path) {
-                            const { fileName, filePath } = getFileName(file);
-                            return (
-                                <ListItem
-                                    sx={{
-                                        border: '1px dashed',
-                                        borderColor: 'lightblue',
-                                        borderRadius: 'sm',
-                                        margin: 1,
-                                        padding: 1,
-                                    }}
-                                    key={index}
-                                    endAction={
-                                        <IconButton
-                                            edge="end"
-                                            aria-label="delete"
-                                            color="error"
-                                            onClick={() => handleFileDelete(index)}
+
+                <Box sx={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: 1,
+                    minHeight: '50px',
+                    padding: 1
+                }}>
+                    {files.length === 0 ? (
+                        <Typography variant="body2" color="textSecondary" sx={{ width: '100%', textAlign: 'center' }}>
+                            
+                        </Typography>
+                    ) : (
+                        files.map((file, index) => {
+                            if (file instanceof File || (file as ExistingFileInfo).file_path) {
+                                const { fileName, filePath } = getFileName(file);
+                                return (
+                                    <Box
+                                        key={index}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 0.5
+                                        }}
+                                    >
+                                        <Chip
+                                            variant="soft"
+                                            color="primary"
+                                            sx={{
+                                                maxWidth: '200px',
+                                                '& .MuiChip-label': {
+                                                    display: 'block',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap'
+                                                }
+                                            }}
                                         >
-                                            <DeleteIcon />
+                                            {file instanceof File ? (
+                                                <Box sx={{ 
+                                                    maxWidth: '180px',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {fileName}
+                                                </Box>
+                                            ) : (
+                                                <a 
+                                                    href={`${URLAPI}/${filePath}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        color: 'inherit',
+                                                        textDecoration: 'none'
+                                                    }}
+                                                >
+                                                    <Box sx={{ 
+                                                        maxWidth: '180px',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {fileName}
+                                                    </Box>
+                                                </a>
+                                            )}
+                                        </Chip>
+                                        <IconButton
+                                            size="sm"
+                                            variant="soft"
+                                            color="danger"
+                                            onClick={() => handleFileDelete(index)}
+                                            sx={{
+                                                '--IconButton-size': '24px',
+                                            }}
+                                        >
+                                            <DeleteIcon sx={{ fontSize: '1rem' }} />
                                         </IconButton>
-                                    }
-                                >
-                                    {file instanceof File ? (
-                                        <Typography variant="body2" color="primary">
-                                            {fileName}
-                                        </Typography>
-                                    ) : (
-                                        <a href={`${URLAPI}/${filePath}`} target="_blank" rel="noopener noreferrer">
-                                            {fileName}
-                                        </a>
-                                    )}
-                                </ListItem>
-                            );
-                        }
-                        return null;
-                    })
-                )}
-            </List>
+                                    </Box>
+                                );
+                            }
+                            return null;
+                        })
+                    )}
+                </Box>
+            </Box>
         </Box>
     );
 }

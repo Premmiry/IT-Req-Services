@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Stack } from '@mui/material';
-import { FormLabel, Input, Select, Option, IconButton, Sheet, styled, SelectStaticProps, Button } from '@mui/joy';
+import { FormLabel, Input, Select, Option, IconButton, Sheet, styled, SelectStaticProps, Button, Grid } from '@mui/joy';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import { ApproveAlert } from '../Alert/alert';
 import { useNavigate } from 'react-router-dom';
@@ -129,12 +129,13 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
     }, [value1, managerApprove, managerName, id_division_competency, navigate]);
 
     return (
-        <Stack direction={{ xs: 'column', sm: 'row' }}>
-            <Item>
+        <Grid container spacing={1}>
+                <Grid item xs={8} component="div">
                 <FormLabel>Manager Approve</FormLabel>
                 <Input variant="outlined" color="success" type='text' placeholder='Manager Name' value={managerName} readOnly={true} onChange={(e) => setManagerName(e.target.value)} />
-            </Item>
-            <Item>
+            </Grid>
+
+            <Grid item xs={4} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -146,20 +147,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
                     }}
                     variant="outlined" color="success"
                     {...(value1 && {
-                        endDecorator: (
-                            <IconButton
-                                size="sm"
-                                variant="plain"
-                                color="neutral"
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={() => {
-                                    setValue1(null);
-                                    action.current?.focusVisible();
-                                }}
-                            >
-                                <CloseRounded />
-                            </IconButton>
-                        ),
+                        
                         indicator: null,
                     })}
                 >
@@ -169,10 +157,10 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
                         </Option>
                     ))}
                 </Select>
-            </Item>
+            </Grid>
             {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
             {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
-        </Stack>
+        </Grid>
     );
 };
 
@@ -265,12 +253,13 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
     }, [value2, directorApprove, directorName, id_section_competency, navigate, m_name]);
 
     return (
-        <Stack direction={{ xs: 'column', sm: 'row' }}>
-            <Item>
+        <Grid container spacing={1}>
+            <Grid item xs={8} component="div">
                 <FormLabel>Director Approve</FormLabel>
                 <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly={true} onChange={(e) => setDirectorName(e.target.value)} />
-            </Item>
-            <Item>
+            </Grid>
+
+            <Grid item xs={4} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -282,20 +271,7 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                     }}
                     variant="outlined" color="warning"
                     {...(value2 && {
-                        endDecorator: (
-                            <IconButton
-                                size="sm"
-                                variant="plain"
-                                color="neutral"
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={() => {
-                                    setValue2(null);
-                                    action.current?.focusVisible();
-                                }}
-                            >
-                                <CloseRounded />
-                            </IconButton>
-                        ),
+                        
                         indicator: null,
                     })}
                 >
@@ -305,9 +281,9 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                         </Option>
                     ))}
                 </Select>
-            </Item>
+            </Grid>
             {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
             {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
-        </Stack>
+        </Grid>
     );
 };

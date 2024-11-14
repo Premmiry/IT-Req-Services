@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Button, Typography, Paper, Divider, Grid, Link, Stepper, Step, StepLabel, IconButton, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import SendIcon from '@mui/icons-material/Send';
 import URLAPI from '../../../URLAPI';
 import { styled } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
@@ -21,6 +21,13 @@ import AssigneeDepSelector from './AssigneeDepSelector';
 import AssigneeEmpSelector from './AssigneeEmpSelector';
 import DoneIcon from '@mui/icons-material/Done';
 import { ChevronsLeftIcon } from 'lucide-react';
+
+// ฟังก์ชันสุ่มสี
+const getRandomColor = () => {
+    const colors = ['primary', 'success', 'secondary', 'error', 'warning', 'info']; // สีที่ต้องการ
+    const randomIndex = Math.floor(Math.random() * colors.length); // สุ่มดัชนี
+    return colors[randomIndex]; // คืนค่าสีที่สุ่มได้
+  };
 
 const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
@@ -165,7 +172,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                 }
             }
 
-            console.log('Request data:', data[0]);
+            // console.log('Request data:', data[0]);
         } catch (error) {
             setError(error instanceof Error ? error.message : 'An error occurred');
         }
@@ -208,7 +215,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             }
 
             setItDepartments(filteredDepartments);
-            console.log('Filtered IT Departments:', filteredDepartments);
+            // console.log('Filtered IT Departments:', filteredDepartments);
 
         } catch (error) {
             console.error('Error fetching IT departments:', error);
@@ -471,28 +478,101 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                             </Stack>
 
                             <Stack direction="column" spacing={0.5}>
-                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                    ประเภท: <Box component="span">{requestData.type}</Box>
+                                <Typography gutterBottom component="div">
+                                    ประเภท: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.type}</Box>
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                    รายละเอียด: <Box component="span">{requestData.detail_req}</Box>
+                                <Typography gutterBottom component="div">
+                                    รายละเอียด: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.detail_req}</Box>
                                 </Typography>
                             </Stack>
 
-                            <Stack direction="column" spacing={1} sx={{ mt: 2 }}>
+                            {/* <Stack direction="column" spacing={1} sx={{ mt: 2 }}>
                                 {requestData?.m_name && (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                        Manager: <Box component="span" sx={{ color: 'text.primary', fontWeight: 'bold' }}>{requestData.m_name}</Box>
-                                        <Box component="span" sx={{ ml: 1 }}>Status: {requestData.mapp}</Box>
+                                    <Typography gutterBottom component="div">
+                                        Manager: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.m_name}</Box>
+                                        <Box component="span" sx={{ ml: 1 }}>Status: <Box component="span" sx={{ fontSize: "0.875rem", color: "green" }}>{requestData.mapp}</Box></Box>
                                     </Typography>
                                 )}
                                 {requestData?.d_name && (
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                        Director: <Box component="span" sx={{ color: 'text.primary', fontWeight: 'bold' }}>{requestData.d_name}</Box>
-                                        <Box component="span" sx={{ ml: 1 }}>Status: {requestData.dapp}</Box>
+                                    <Typography gutterBottom component="div">
+                                        Director: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.d_name}</Box>
+                                        <Box component="span" sx={{ ml: 1 }}>Status: <Box component="span" sx={{ fontSize: "0.875rem", color: "green" }}>{requestData.dapp}</Box></Box>
                                     </Typography>
                                 )}
-                            </Stack>
+                            </Stack> */}
+
+
+                            <Box sx={{ p: 2 }}>
+                        {(requestData?.m_name || requestData?.d_name) && (
+                            <Stepper alternativeLabel>
+                                {requestData.m_name && (
+                                    <Step completed={false}>
+                                        <StepLabel>Manager</StepLabel>
+                                    </Step>
+                                )}
+                                {requestData.d_name && (
+                                    <Step
+                                        completed
+                                        StepIconComponent={() => (
+                                            <CheckCircleIcon sx={{ color: 'success.main' }} />
+                                        )}
+                                    >
+                                        <StepLabel>Director</StepLabel>
+                                    </Step>
+                                )}
+                            </Stepper>
+                        )}
+
+                        <Grid container spacing={2} justifyContent="center">
+                            {requestData?.m_name && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <List sx={{ bgcolor: 'background.paper' }}>
+                                        <ListItem alignItems="flex-start">
+                                            <ListItemAvatar>
+                                                <Avatar alt="Manager" src="" />
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <>
+                                                        <span>{requestData.m_name} : </span>
+                                                        <span style={{ color: 'green' }}>{requestData.mapp}</span>
+                                                    </>
+                                                }
+                                               
+                                            />
+                                        </ListItem>
+                                        
+                                    </List>
+                                </Grid>
+                            )}
+
+
+                            {requestData?.d_name && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <List sx={{ bgcolor: 'background.paper' }}>
+                                        <ListItem alignItems="flex-start">
+                                            <ListItemAvatar>
+                                                <Avatar alt="IT Director" src="" />
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <>
+                                                        <span>{requestData.d_name} : </span>
+                                                        <span style={{ color: 'green' }}>{requestData.dapp}</span>
+
+                                                    </>
+                                                }
+
+                                                
+                                            />
+                                        </ListItem>
+                                       
+                                    </List>
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
+
                         </Stack>
                     </Box>
 
@@ -561,7 +641,12 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                                                 <Avatar alt="IT Manager" src="" />
                                             </ListItemAvatar>
                                             <ListItemText
-                                                primary={`${requestData.it_m_name} : ${requestData.itmapp}`}
+                                                primary={
+                                                    <>
+                                                        <span>{requestData.it_m_name} : </span>
+                                                        <span style={{ color: 'green' }}>{requestData.itmapp}</span>
+                                                    </>
+                                                }
                                                 secondary={
                                                     <React.Fragment>
                                                         <Typography
@@ -581,6 +666,7 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                                 </Grid>
                             )}
 
+
                             {requestData?.it_d_name && (
                                 <Grid item xs={12} sm={6} md={4}>
                                     <List sx={{ bgcolor: 'background.paper' }}>
@@ -589,7 +675,14 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                                                 <Avatar alt="IT Director" src="" />
                                             </ListItemAvatar>
                                             <ListItemText
-                                                primary={`${requestData.it_d_name} : ${requestData.itdapp}`}
+                                                primary={
+                                                    <>
+                                                        <span>{requestData.it_d_name} : </span>
+                                                        <span style={{ color: 'green' }}>{requestData.itdapp}</span>
+
+                                                    </>
+                                                }
+
                                                 secondary={
                                                     <React.Fragment>
                                                         <Typography
@@ -636,22 +729,11 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
                                             onClick={() => console.info(`You clicked the Chip for ${dept.name_department_it}`)}
                                             onDelete={() => handleRemoveDepartment(dept.id_req_dep)}
                                             size="small"
+                                            color={getRandomColor()}
+                                            variant="outlined"
                                             sx={{
-                                                backgroundColor: '#e3f2fd',
-                                                border: '1px solid #90caf9',
-                                                borderRadius: '4px',
-                                                height: '24px',
-                                                '& .MuiChip-label': {
-                                                    px: 1,
-                                                    fontSize: '0.75rem'
-                                                },
-                                                '& .MuiChip-icon': {
-                                                    color: '#1976d2',
-                                                    ml: '4px'
-                                                },
                                                 '& .MuiChip-deleteIcon': {
                                                     color: '#f44336',
-                                                    fontSize: 18,
                                                     ml: '4px'
                                                 }
                                             }}
@@ -708,13 +790,14 @@ export default function RequestDetail({ id, isModal }: RequestDetailProps) {
             </Box>
 
             {!isModal && (
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
+                
+                    <Button 
+                    variant="contained" 
+                    endIcon={<SendIcon />}
                     onClick={handleEdit}
-                    sx={{ mt: 2 }}
-                >
-                    Edit Request
+                    sx={{ mt: 2, mb: 2, width: '100%'}}
+                    >
+                    Request Form
                 </Button>
             )}
         </Box>
