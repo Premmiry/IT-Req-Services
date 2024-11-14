@@ -6,7 +6,7 @@ import RequestListIT from './components/component-all/Paper/RequestListIT';
 import Login from './components/component-all/Login/Login';
 import NoUser from './components/component-all/Login/NoUser';
 import RequestDetail from './components/component-all/Paper/RequestDetail';
-
+import UAT from './components/component-all/ContentTypeR/boxUAT';
 function App() {
   return (
     <Router>
@@ -18,9 +18,10 @@ function App() {
         <Route path="request-list-it" element={<RequestListIT />} />
         <Route path="/request" element={<RequestForm />}  />
         <Route path="/edit-request/:id" element={<RequestForm />} />
-        <Route path="/request-detail/:id" element={<RequestDetail />} />
+        <Route path="/request-detail/:id" element={<RequestDetail id={0} />} />
         <Route path="/nouserad" element={<NoUser type="AD" />} />
         <Route path="/nouseryh" element={<NoUser type="YH" />} />
+        <Route path="/boxUAT/:id" element={<UAT id={0} username={''} />} />
       </Routes>
       <br />
       {/* <Footer /> */}
