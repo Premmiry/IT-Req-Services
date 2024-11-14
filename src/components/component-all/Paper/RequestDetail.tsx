@@ -20,6 +20,7 @@ import AssigneeDepSelector from './AssigneeDepSelector';
 import AssigneeEmpSelector from './AssigneeEmpSelector';
 import DoneIcon from '@mui/icons-material/Done';
 import { ChevronsLeftIcon } from 'lucide-react';
+import UAT from '../ContentTypeR/boxUAT';
 
 // ฟังก์ชันสุ่มสี
 const getRandomColor = (): string => {
@@ -52,6 +53,7 @@ const style = {
 
 // Interfaces
 interface RequestData {
+    id: number;
     id_department: number;
     type_id: number | null;
     type: string;
@@ -118,12 +120,14 @@ interface AssignedEmployee extends AssignedEntity {
 }
 
 interface RequestDetailProps {
-    id: string;
+    id: number;
     isModal?: boolean;
+    onClose?: () => void;
 }
 
 // Component
-const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
+const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: RequestDetailProps) => {
+    const { id: paramId } = useParams();
     const navigate = useNavigate();
 
     // State declarations
@@ -438,8 +442,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
     return (
         <Box sx={style}>
             <Typography variant="h5" gutterBottom>
-                {requestData.rs_code} : {requestData.topic}
-                {requestData.id_program ? requestData.program_name : requestData.title_req}
+                {requestData.rs_code} : {requestData.topic} {requestData.id_program ? requestData.program_name : requestData.title_req}
             </Typography>
 
             <Box>
@@ -501,96 +504,111 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
                             </Stack> */}
 
 
-                            <Box sx={{ p: 2 }}>
+                            <Box sx={{ p: 1 }}>
                                 {(requestData?.m_name || requestData?.d_name) && (
-                                    <Stack spacing={2}>
-                                    <Stepper size="sm">
-                                        {requestData.m_name && (
-                                            <Step completed={false}>
-                                                <StepLabel>Manager</StepLabel>
-                                            </Step>
-                                        )}
-                                        {requestData.d_name && (
-                                            <Step
-                                                completed
-                                                StepIconComponent={() => (
-                                                    <CheckCircleIcon sx={{ color: 'success.main' }} />
-                                                )}
-                                            >
-                                                <StepLabel>Director</StepLabel>
-                                            </Step>
-                                        )}
-                                    </Stepper>
-                                    </Stack>
+                                    <Grid container spacing={2} justifyContent="center" alignItems="center">
+                                        <Grid item xs={12} sm={6} md={8}>
+                                            <Stack spacing={2} sx={{ width: '100%' }}>
+                                                <Stepper size="sm" activeStep={-1} sx={{
+                                                    '.MuiStepLabel-root': {
+                                                        fontSize: '0.8rem', // ลดขนาดฟอนต์ของ StepLabel
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                    },
+                                                }}>
+                                                    {requestData.m_name && (
+                                                        <Step>
+                                                            <StepLabel
+                                                                variant="solid"
+                                                                color="neutral"
+                                                                StepIconComponent={() => (
+                                                                    <CheckCircleIcon sx={{ color: 'primary.main', fontSize: '1.5rem' }} />
+                                                                )}
+                                                            >
+                                                                Manager
+                                                            </StepLabel>
+                                                        </Step>
+                                                    )}
+                                                    {requestData.d_name && (
+                                                        <Step>
+                                                            <StepLabel
+                                                                StepIconComponent={() => (
+                                                                    <CheckCircleIcon sx={{ color: 'secondary.main', fontSize: '1.5rem' }} />
+                                                                )}
+                                                            >
+                                                                Director
+                                                            </StepLabel>
+                                                        </Step>
+                                                    )}
+                                                </Stepper>
+                                            </Stack>
+                                        </Grid>
+                                    </Grid>
                                 )}
 
-                                <Grid container spacing={2} justifyContent="center">
+                                <Grid container spacing={1} justifyContent="center">
                                     {requestData?.m_name && (
                                         <Grid item xs={12} sm={6} md={4}>
-                                            <List sx={{
-                        bgcolor: 'background.paper',
-                        borderRadius: 1,
-                        boxShadow: 1,
-                        p: 0.1, // ลด padding ของ List
-                    }}>
-                                                <ListItem alignItems="center" sx={{ padding: 0.2 }}>
+                                            <List>
+                                                <ListItem alignItems="center" sx={{ padding: 0.1 }}>
                                                     <ListItemAvatar>
-                                                        <Avatar alt="Manager" src="" sx={{
-                                    width: 20, // ลดขนาดของ Avatar
-                                    height: 20,
-                                    bgcolor: 'primary.main',
-                                }}/>
+                                                        <Avatar
+                                                            alt="Manager"
+                                                            src=""
+                                                            sx={{
+                                                                width: 20,
+                                                                height: 20,
+                                                                bgcolor: 'primary.main',
+                                                            }}
+                                                        />
                                                     </ListItemAvatar>
                                                     <ListItemText
                                                         primary={
                                                             <>
-                                                                <span>{requestData.m_name} : </span>
+                                                                <span >{requestData.m_name} : </span>
                                                                 <span style={{ color: 'green' }}>{requestData.mapp}</span>
                                                             </>
                                                         }
-
                                                     />
                                                 </ListItem>
-
+                                                <Divider variant="inset" component="li" />
                                             </List>
                                         </Grid>
                                     )}
 
-
                                     {requestData?.d_name && (
                                         <Grid item xs={12} sm={6} md={4}>
-                                            <List sx={{
-                        bgcolor: 'background.paper',
-                        borderRadius: 1,
-                        boxShadow: 1,
-                        p: 0.1, // ลด padding ของ List
-                    }}>
-                                                <ListItem alignItems="center" sx={{ padding: 0.2 }}>
+                                            <List>
+                                                <ListItem alignItems="center" sx={{ padding: 0.1 }}>
                                                     <ListItemAvatar>
-                                                        <Avatar alt="IT Director" src="" sx={{
-                                    width: 20, // ลดขนาดของ Avatar
-                                    height: 20,
-                                    bgcolor: 'primary.main',
-                                }}/>
+                                                        <Avatar
+                                                            alt="IT Director"
+                                                            src=""
+                                                            sx={{
+                                                                width: 20,
+                                                                height: 20,
+                                                                bgcolor: 'secondary.main',
+                                                            }}
+                                                        />
                                                     </ListItemAvatar>
                                                     <ListItemText
                                                         primary={
                                                             <>
-                                                                <span>{requestData.d_name} : </span>
+                                                                <span >{requestData.d_name} : </span>
                                                                 <span style={{ color: 'green' }}>{requestData.dapp}</span>
-
                                                             </>
                                                         }
-
-
                                                     />
                                                 </ListItem>
-
+                                                <Divider variant="inset" component="li" />
                                             </List>
                                         </Grid>
                                     )}
                                 </Grid>
                             </Box>
+
+
 
                         </Stack>
                     </Box>
@@ -630,34 +648,63 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
 
                 <br />
                 <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+
                     <Box sx={{ p: 2 }}>
                         {(requestData?.it_m_name || requestData?.it_d_name) && (
-                            <Stepper alternativeLabel>
-                                {requestData.it_m_name && (
-                                    <Step completed={false}>
-                                        <StepLabel>IT Manager</StepLabel>
-                                    </Step>
-                                )}
-                                {requestData.it_d_name && (
-                                    <Step
-                                        completed
-                                        StepIconComponent={() => (
-                                            <CheckCircleIcon sx={{ color: 'success.main' }} />
-                                        )}
-                                    >
-                                        <StepLabel>IT Director</StepLabel>
-                                    </Step>
-                                )}
-                            </Stepper>
+                            <Grid container spacing={2} justifyContent="center" alignItems="center">
+                                <Grid item xs={12} sm={6} md={8}>
+                                    <Stack spacing={2} sx={{ width: '100%' }}>
+                                        <Stepper size="sm" activeStep={-1} sx={{
+                                            '.MuiStepLabel-root': {
+                                                fontSize: '0.8rem', // ลดขนาดฟอนต์ของ StepLabel
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            },
+                                        }}>
+                                            {requestData.it_m_name && (
+                                                <Step>
+                                                    <StepLabel
+                                                        variant="solid"
+                                                        color="neutral"
+                                                        StepIconComponent={() => (
+                                                            <CheckCircleIcon sx={{ color: 'warning.main', fontSize: '1.5rem' }} />
+                                                        )}
+                                                    >
+                                                        Manager
+                                                    </StepLabel>
+                                                </Step>
+                                            )}
+                                            {requestData.it_d_name && (
+                                                <Step>
+                                                    <StepLabel
+                                                        StepIconComponent={() => (
+                                                            <CheckCircleIcon sx={{ color: 'success.main', fontSize: '1.5rem' }} />
+                                                        )}
+                                                    >
+                                                        Director
+                                                    </StepLabel>
+                                                </Step>
+                                            )}
+                                        </Stepper>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
                         )}
 
                         <Grid container spacing={2} justifyContent="center">
                             {requestData?.it_m_name && (
                                 <Grid item xs={12} sm={6} md={4}>
-                                    <List sx={{ bgcolor: 'background.paper' }}>
-                                        <ListItem alignItems="flex-start">
+                                    <List >
+                                        <ListItem alignItems="center" sx={{ padding: 0.1 }}>
                                             <ListItemAvatar>
-                                                <Avatar alt="IT Manager" src="" />
+                                                <Avatar alt="Manager"
+                                                    src=""
+                                                    sx={{
+                                                        width: 20,
+                                                        height: 20,
+                                                        bgcolor: 'warning.main',
+                                                    }} />
                                             </ListItemAvatar>
                                             <ListItemText
                                                 primary={
@@ -688,10 +735,16 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
 
                             {requestData?.it_d_name && (
                                 <Grid item xs={12} sm={6} md={4}>
-                                    <List sx={{ bgcolor: 'background.paper' }}>
-                                        <ListItem alignItems="flex-start">
+                                    <List >
+                                        <ListItem alignItems="center" sx={{ padding: 0.1 }}>
                                             <ListItemAvatar>
-                                                <Avatar alt="IT Director" src="" />
+                                                <Avatar alt="Manager"
+                                                    src=""
+                                                    sx={{
+                                                        width: 20,
+                                                        height: 20,
+                                                        bgcolor: 'success.main',
+                                                    }} />
                                             </ListItemAvatar>
                                             <ListItemText
                                                 primary={
@@ -807,6 +860,15 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal }) => {
 
                 </Card>
             </Box>
+
+            {requestData.status_id === 5 && requestData.type_id === 3 ? (
+                <Box sx={{ mt: 2 }}>
+                    <Typography variant="h6">UAT</Typography>
+                    <UAT id={requestData.id} username={userData.username} onClose={onClose} />
+                </Box>
+            ) : (
+                <Typography variant="h6">Confirm งาน</Typography>
+            )}
 
             {!isModal && (
 
