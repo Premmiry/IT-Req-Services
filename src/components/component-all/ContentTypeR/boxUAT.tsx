@@ -222,48 +222,65 @@ export default function UAT(props: Props) {
                 return;
             }
     
+            // ตรวจสอบว่าถ้าเลือกไม่ผ่านต้องมีการกรอกเหตุผล
+            const invalidRows = rowsToUpdate.filter(row => 
+                row.result === 2 && // result = 2 คือไม่ผ่าน
+                (!row.description || row.description.trim() === '')
+            );
+    
+            if (invalidRows.length > 0) {
+                alert("กรุณาใส่เหตุผลที่ไม่ให้ผ่าน !!");
+                return;
+            }
+    
             // สร้าง requests สำหรับ rows ที่จะอัพเดท
             const updatePromises = rowsToUpdate.map(async (row) => {
+                // ตรวจสอบและแปลงค่าให้ตรงกับ type ที่ API ต้องการ
                 const data = {
-                    id_uat: row.id_uat,
-                    req_id: props.id,
-                    assigned_username: props.username,
-                    testresults: row.result, // 1 = ผ่าน, 2 = ไม่ผ่าน
-                    uat_note: row.description || null // ถ้าไม่มีค่าให้เป็น null
+                    id_uat: Number(row.id_uat),
+                    req_id: Number(props.id),
+                    assigned_username: String(props.username),
+                    testresults: row.result !== null ? Number(row.result) : null,
+                    uat_note: row.description ? String(row.description) : null
                 };
     
-                const response = await fetch(`${URLAPI}/assigned_uat/${row.id_uat}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
+                try {
+                    const response = await fetch(`${URLAPI}/assigned_uat/${row.id_uat}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
     
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Failed to update UAT row ${row.id_uat}: ${errorText}`);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to update UAT');
+                    }
+    
+                    return await response.json();
+                } catch (err) {
+                    console.error(`Error updating UAT row ${row.id_uat}:`, err);
+                    throw err;
                 }
-    
-                return response.json();
             });
     
             // รอให้ทุก request เสร็จสิ้น
-            await Promise.all(updatePromises);
+            const results = await Promise.all(updatePromises);
             
-            alert(`บันทึกผลการทดสอบ UAT เรียบร้อยแล้ว ${rowsToUpdate.length} รายการ`);
+            alert(`บันทึกผลการทดสอบ UAT เรียบร้อยแล้ว ${results.length} รายการ`);
             
             // ปิด modal ถ้ามี
             if (props.onClose) {
                 props.onClose();
             }
     
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating UAT results:', error);
-            alert("เกิดข้อผิดพลาดในการบันทึกผลการทดสอบ UAT");
+            alert(`เกิดข้อผิดพลาดในการบันทึกผลการทดสอบ UAT: ${error.message}`);
         }
     };
-
+    
     const handleBack = () => {
         if (props.onClose) {
             props.onClose(); // ปิด modal เมื่อกดปุ่ม handleBack
