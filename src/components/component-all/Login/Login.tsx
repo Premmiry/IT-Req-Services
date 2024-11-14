@@ -33,7 +33,8 @@ function Login() {
             });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                navigate("/nouserad");
+                return;
             }
 
             const data = await response.json();

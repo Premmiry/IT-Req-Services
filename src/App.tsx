@@ -21,7 +21,7 @@ function App() {
         <Route path="/request-detail/:id" element={<RequestDetail id={0} />} />
         <Route path="/nouserad" element={<NoUser type="AD" />} />
         <Route path="/nouseryh" element={<NoUser type="YH" />} />
-        <Route path="/boxUAT/:id" element={<UAT id={0} username={''} />} />
+        <Route path="/boxUAT/:id" element={<UAT id={0} username={''} department={0} status={0} />} />
       </Routes>
       <br />
       {/* <Footer /> */}

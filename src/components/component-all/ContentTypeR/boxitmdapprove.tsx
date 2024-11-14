@@ -129,9 +129,9 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
     }, [value1, itmanagerApprove, itmanagerName, it_m_note, id_division_competency, navigate]);
 
     return (
-        <Box sx={{ mt: 4, mb: 4, p: 2, border: '1px dashed #87beff' }}>
+       
             <Grid container spacing={1}>
-                <Grid item xs={3} component="div">
+                <Grid item xs={6} component="div">
                     <FormLabel>IT Manager Approve</FormLabel>
                     <Input 
                         variant="outlined" 
@@ -156,20 +156,7 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
                         variant="outlined" 
                         color="success"
                         {...(value1 && {
-                            endDecorator: (
-                                <IconButton
-                                    size="sm"
-                                    variant="plain"
-                                    color="neutral"
-                                    onMouseDown={(event) => event.stopPropagation()}
-                                    onClick={() => {
-                                        setValue1(null);
-                                        action.current?.focusVisible();
-                                    }}
-                                >
-                                    <CloseRounded />
-                                </IconButton>
-                            ),
+                            
                             indicator: null,
                         })}
                     >
@@ -185,7 +172,7 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
                     </Stack>
                 </Grid>
             </Grid>
-        </Box>
+        
     );    
 };
 
@@ -278,12 +265,14 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
     }, [value2, itdirectorApprove, itdirectorName, it_d_note, id_section_competency, navigate, it_m_name]);
 
     return (
-        <Stack direction={{ xs: 'column', sm: 'row' }}>
-            <Item>
+
+        
+        <Grid container spacing={1}>
+            <Grid item xs={6} component="div">
                 <FormLabel>IT Director Approve</FormLabel>
                 <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={itdirectorName} readOnly={true} onChange={(e) => setITDirectorName(e.target.value)} />
-            </Item>
-            <Item>
+                </Grid>
+                <Grid item xs={3} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -295,20 +284,7 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                     }}
                     variant="outlined" color="warning"
                     {...(value2 && {
-                        endDecorator: (
-                            <IconButton
-                                size="sm"
-                                variant="plain"
-                                color="neutral"
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={() => {
-                                    setValue2(null);
-                                    action.current?.focusVisible();
-                                }}
-                            >
-                                <CloseRounded />
-                            </IconButton>
-                        ),
+                        
                         indicator: null,
                     })}
                 >
@@ -318,11 +294,13 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                         </Option>
                     ))}
                 </Select>
-            </Item>
+            </Grid>
             {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
             {showAlert && <ApproveAlert onClose={function (): void {
                 throw new Error('Function not implemented.');
             }} />}
-        </Stack>
+        </Grid>
+        
+
     );
 };
