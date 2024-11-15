@@ -1,12 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Typography, Paper, Divider, Grid, Link, Stepper, Step, StepLabel, IconButton, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Box, Button, Typography, Paper, Divider, Grid, Link, Stepper, Step, StepLabel } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import URLAPI from '../../../URLAPI';
 import { styled } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
 import Card from '@mui/material/Card';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -16,11 +15,10 @@ import Avatar from '@mui/material/Avatar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AssigneeDepSelector from './AssigneeDepSelector';
-import AssigneeEmpSelector from './AssigneeEmpSelector';
-import DoneIcon from '@mui/icons-material/Done';
-import { ChevronsLeftIcon } from 'lucide-react';
+import AssigneeDepSelector from '../Select/AssigneeDepSelector';
+import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
 import UAT from '../ContentTypeR/boxUAT';
+
 
 // ฟังก์ชันสุ่มสี
 const getRandomColor = (): string => {
@@ -28,14 +26,6 @@ const getRandomColor = (): string => {
     const randomIndex = Math.floor(Math.random() * colors.length); // สุ่มดัชนี
     return colors[randomIndex]; // คืนค่าสีที่สุ่มได้
 };
-
-const Item = styled(Paper)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-    ...theme.typography.body2,
-    padding: theme.spacing(2),
-    textAlign: 'center',
-    color: theme.palette.text.secondary,
-}));
 
 const style = {
     position: 'absolute',
@@ -153,6 +143,11 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         return `${day}/${month}/${buddhistYear}`;
     }, []);
 
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
     // Fetch Functions
     const fetchRequestData = useCallback(async () => {
         if (!id) return;
@@ -488,22 +483,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 </Typography>
                             </Stack>
 
-                            {/* <Stack direction="column" spacing={1} sx={{ mt: 2 }}>
-                                {requestData?.m_name && (
-                                    <Typography gutterBottom component="div">
-                                        Manager: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.m_name}</Box>
-                                        <Box component="span" sx={{ ml: 1 }}>Status: <Box component="span" sx={{ fontSize: "0.875rem", color: "green" }}>{requestData.mapp}</Box></Box>
-                                    </Typography>
-                                )}
-                                {requestData?.d_name && (
-                                    <Typography gutterBottom component="div">
-                                        Director: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.d_name}</Box>
-                                        <Box component="span" sx={{ ml: 1 }}>Status: <Box component="span" sx={{ fontSize: "0.875rem", color: "green" }}>{requestData.dapp}</Box></Box>
-                                    </Typography>
-                                )}
-                            </Stack> */}
-
-
                             <Box sx={{ p: 1 }}>
                                 {(requestData?.m_name || requestData?.d_name) && (
                                     <Grid container spacing={2} justifyContent="center" alignItems="center">
@@ -799,7 +778,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                             icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
                                             label={dept.name_department_it}
                                             onClick={() => console.info(`You clicked the Chip for ${dept.name_department_it}`)}
-                                            onDelete={() => handleRemoveDepartment(dept.id_req_dep)}
+                                            onDelete={isITStaff ? () => handleRemoveDepartment(dept.id_req_dep) : undefined}
                                             size="small"
                                             color={getRandomColor()}
                                             variant="outlined"
@@ -814,6 +793,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 ) : (
                                     <Typography color="text.secondary">No departments assigned</Typography>
                                 )}
+
                             </Box>
                         </Stack>
 
@@ -840,7 +820,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                                 avatar={<Avatar alt={emp.emp_name} src="" />}
                                                 label={emp.emp_name}
                                                 onClick={() => console.info(`You clicked the Chip for ${emp.emp_name}`)}
-                                                onDelete={() => handleRemoveEmployee(emp.id_req_emp)}
+                                                onDelete={isITStaff ? () => handleRemoveEmployee(emp.id_req_emp) : undefined}
                                                 deleteIcon={<DeleteIcon />}
                                                 sx={{
                                                     '& .MuiChip-deleteIcon': {
@@ -859,16 +839,44 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                     </Box>
 
                 </Card>
+
+                <br />
+                <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+
+                    <Box sx={{ p: 2 }}>
+                        {requestData.status_id === 5 && requestData.type_id === 3 ? (
+                            <>
+                                {/* <Typography
+                                    sx={{
+                                        mt: 2,
+                                        mb: 2,
+                                        fontWeight: 'bold',
+                                        fontSize: 20,
+                                        color: '#1976d2',
+                                        textAlign: 'left',
+                                        textDecoration: 'underline',
+                                        textDecorationThickness: 2,
+                                        textUnderlineOffset: 6,
+                                        textDecorationColor: '#1976d2',
+                                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                    }}
+                                >
+                                    UAT
+                                </Typography> */}
+                                <UAT id={requestData.id} username={userData.username} department={userData.id_department} status={requestData.status_id} onClose={onClose} />
+                            </>
+                        ) : (
+                            <Typography variant="h6">Confirm งาน</Typography>
+                        )}
+
+
+                    </Box>
+                </Card>
+
+
             </Box>
 
-            {requestData.status_id === 5 && requestData.type_id === 3 ? (
-                <Box sx={{ mt: 2 }}>
-                    <Typography variant="h6">UAT</Typography>
-                    <UAT id={requestData.id} username={userData.username} onClose={onClose} />
-                </Box>
-            ) : (
-                <Typography variant="h6">Confirm งาน</Typography>
-            )}
+
 
             {!isModal && (
 
@@ -881,6 +889,10 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                     Request Form
                 </Button>
             )}
+
+
+
+
         </Box>
     );
 };

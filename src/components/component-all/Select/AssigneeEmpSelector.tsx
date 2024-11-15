@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Chip,
     Avatar,
@@ -33,6 +33,12 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
             setUserData(JSON.parse(storedUserData));
         }
     }, []);
+
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
 
     const fetchEmployees = useCallback(async () => {
         if (!userData) {
@@ -125,6 +131,7 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
     return (
         <Box>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+            {isITStaff && (
                 <Chip
                     icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
                     label="Add Employee :   "
@@ -139,6 +146,7 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
                         '&:hover': { backgroundColor: '#e3f2fd' }
                     }}
                 />
+            )}
             </Stack>
 
             <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>

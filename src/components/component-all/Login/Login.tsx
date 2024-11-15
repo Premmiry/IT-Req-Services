@@ -35,7 +35,10 @@ function Login() {
             });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                // console.error("Error fetching data:", error);
+                setPasswordError("ไม่พบ ข้อมูลผู้ใช้ในระบบ กรุณาติดต่อ 57976 วิค , 57974 เปรม"); // แจ้งให้ผู้ใช้ทราบว่ามีข้อผิดพลาด
+                navigate("/nouserad");
+                return;
             }
 
             const data = await response.json();

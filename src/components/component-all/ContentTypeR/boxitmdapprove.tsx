@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Stack, Grid } from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
 import { FormLabel, Input, Select, Option, IconButton, Sheet, styled, SelectStaticProps, Button, Box } from '@mui/joy';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import { ApproveAlert } from '../Alert/alert';
@@ -130,48 +131,59 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
 
     return (
        
-            <Grid container spacing={1}>
-                <Grid item xs={6} component="div">
-                    <FormLabel>IT Manager Approve</FormLabel>
-                    <Input 
-                        variant="outlined" 
+        <Grid container spacing={1}>
+        <Grid item xs={6} component="div">
+            <FormLabel>IT Manager Approve</FormLabel>
+            <Input 
+                variant="outlined" 
+                color="success" 
+                type='text' 
+                placeholder='Manager Name' 
+                value={itmanagerName} 
+                readOnly={true} 
+                onChange={(e) => setITManagerName(e.target.value)} 
+            />
+        </Grid>
+        <Grid item xs={3} component="div">
+            <FormLabel>Status</FormLabel>
+            <Select
+                action={action}
+                value={value1}
+                placeholder="Status"
+                onChange={(_e, newValue) => {
+                    console.log("Selected Value:", newValue);
+                    setValue1(newValue);
+                }}
+                variant="outlined" 
+                color="success"
+                {...(value1 && {
+                    indicator: null,
+                })}
+            >
+                {approveOptions.map(option => (
+                    <Option key={option.id_approve} value={option.id_approve}>
+                        {option.name_approve}
+                    </Option>
+                ))}
+            </Select>
+        </Grid>
+        <Grid item xs={3} component="div">
+            {showSubmitButton && (
+                <>
+                    <FormLabel>Approve</FormLabel>
+                    <Button 
                         color="success" 
-                        type='text' 
-                        placeholder='Manager Name' 
-                        value={itmanagerName} 
-                        readOnly={true} 
-                        onChange={(e) => setITManagerName(e.target.value)} 
-                    />
-                </Grid>
-                <Grid item xs={3} component="div">
-                    <FormLabel>Status</FormLabel>
-                    <Select
-                        action={action}
-                        value={value1}
-                        placeholder="Status"
-                        onChange={(_e, newValue) => {
-                            console.log("Selected Value:", newValue);
-                            setValue1(newValue);
-                        }}
-                        variant="outlined" 
-                        color="success"
-                        {...(value1 && {
-                            
-                            indicator: null,
-                        })}
+                        variant="soft"
+                        onClick={handleSubmit}
                     >
-                        {approveOptions.map(option => (
-                            <Option key={option.id_approve} value={option.id_approve}>
-                                {option.name_approve}
-                            </Option>
-                        ))}
-                    </Select>
-                    <Stack direction={{ xs: 'column', sm: 'row' }}>
-                        {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
-                        {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
-                    </Stack>
-                </Grid>
-            </Grid>
+                        <SaveIcon /> 
+                    </Button>
+                </>
+            )}
+            {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+        </Grid>
+    </Grid>
+    
         
     );    
 };
@@ -268,38 +280,58 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
 
         
         <Grid container spacing={1}>
-            <Grid item xs={6} component="div">
-                <FormLabel>IT Director Approve</FormLabel>
-                <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={itdirectorName} readOnly={true} onChange={(e) => setITDirectorName(e.target.value)} />
-                </Grid>
-                <Grid item xs={3} component="div">
-                <FormLabel>Status</FormLabel>
-                <Select
-                    action={action}
-                    value={value2}
-                    placeholder="Status"
-                    onChange={(_e, newValue) => {
-                        console.log("Selected Value:", newValue);
-                        setValue2(newValue);
-                    }}
-                    variant="outlined" color="warning"
-                    {...(value2 && {
-                        
-                        indicator: null,
-                    })}
+    <Grid item xs={6} component="div">
+        <FormLabel>IT Director Approve</FormLabel>
+        <Input 
+            variant="outlined" 
+            color="warning" 
+            type='text' 
+            placeholder='Director Name' 
+            value={itdirectorName} 
+            readOnly={true} 
+            onChange={(e) => setITDirectorName(e.target.value)} 
+        />
+    </Grid>
+    <Grid item xs={3} component="div">
+        <FormLabel>Status</FormLabel>
+        <Select
+            action={action}
+            value={value2}
+            placeholder="Status"
+            onChange={(_e, newValue) => {
+                console.log("Selected Value:", newValue);
+                setValue2(newValue);
+            }}
+            variant="outlined" 
+            color="warning"
+            {...(value2 && {
+                indicator: null,
+            })}
+        >
+            {approveOptions.map(option => (
+                <Option key={option.id_approve} value={option.id_approve}>
+                    {option.name_approve}
+                </Option>
+            ))}
+        </Select>
+    </Grid>
+    <Grid item xs={3} component="div">
+        {showSubmitButton && (
+            <>
+                <FormLabel>Approve</FormLabel>
+                <Button 
+                    color="warning" 
+                    variant="soft"
+                    onClick={handleSubmit}
                 >
-                    {approveOptions.map(option => (
-                        <Option key={option.id_approve} value={option.id_approve}>
-                            {option.name_approve}
-                        </Option>
-                    ))}
-                </Select>
-            </Grid>
-            {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
-            {showAlert && <ApproveAlert onClose={function (): void {
-                throw new Error('Function not implemented.');
-            }} />}
-        </Grid>
+                    <SaveIcon />
+                </Button>
+            </>
+        )}
+        {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+    </Grid>
+</Grid>
+
         
 
     );

@@ -10,7 +10,6 @@ import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
-import AdbIcon from '@mui/icons-material/Adb';
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from '@mui/icons-material/Person';
 import { useNavigate, NavigateFunction } from 'react-router-dom';

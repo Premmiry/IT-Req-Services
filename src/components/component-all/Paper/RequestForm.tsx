@@ -402,9 +402,9 @@ export default function RequestForm() {
                                     padding: 2,
                                     borderRadius: 2,
                                     marginTop: 4,
-                                    border: '1px dashed', 
-                                    borderColor: 'lightblue', 
-                                    
+                                    border: '1px dashed',
+                                    borderColor: 'lightblue',
+
                                     // boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
                                 }}
                             >
@@ -416,7 +416,7 @@ export default function RequestForm() {
                                         fontWeight: 'bold',
                                         fontSize: 20,
                                         color: '#1976d2',
-                                        textAlign: 'center',
+                                        textAlign: 'left',
                                         textDecoration: 'underline',
                                         textDecorationThickness: 2,
                                         textUnderlineOffset: 6,
@@ -542,9 +542,34 @@ export default function RequestForm() {
                     }
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                            <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
-                                {isEditMode ? 'Update' : 'บันทึก'}
-                            </Button>
+                            {
+                                userData && (
+                                    (
+                                        // Condition 1: status_id = 2 and position is m or d and not type 2
+                                        (status_id === 2 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2) ||
+
+                                        // Condition 2: status_id = 3 and position is d and not type 2
+                                        (status_id === 3 && userData.position === 'd' && selectedTypeId !== 2) ||
+
+                                        // Condition 3: status_id = 4 and position is m or d and not type 2 and is IT staff
+                                        (status_id === 4 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2 && isITStaff) ||
+
+                                        // Condition 4: status_id = 5 and position is d and not type 2 and is IT staff
+                                        (status_id === 5 && userData.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
+
+                                        // Condition 6: status_id = 1 or not in edit mode
+                                        (status_id === 1 || !isEditMode)
+                                    ) && (
+                                        <Button
+                                            color="primary"
+                                            startDecorator={<SaveIcon />}
+                                            onClick={handleSubmit}
+                                        >
+                                            {isEditMode ? 'Update' : 'บันทึก'}
+                                        </Button>
+                                    )
+                                )
+                            }
                             <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
                                 ย้อนกลับ
                             </Button>

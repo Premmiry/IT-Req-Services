@@ -139,7 +139,7 @@ export default function ListRequest() {
         {
             field: 'name',
             headerName: 'หัวข้อ Request',
-            width: 700,
+            width: 660,
             renderCell: (params: GridRenderCellParams) => (
                 <span
                     style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}

@@ -228,12 +228,12 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         }
     }, []);
 
-    // Fetch requests when dependencies change
-    useEffect(() => {
-        if (userData?.username && admin) {
-            fetchRequests();
-        }
-    }, [userData, admin, fetchRequests]);
+  // Fetch requests when dependencies change
+  useEffect(() => {
+    if (userData?.username && admin && tab !== undefined) {
+        fetchRequests();
+    }
+}, [userData, admin, tab, fetchRequests]);
 
     return (
         <Container maxWidth="xl">
@@ -323,7 +323,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     boxShadow: 24,
                     p: 4,
                 }}>
-                    {selectedRequestId && <RequestDetail id={selectedRequestId} />}
+                    {selectedRequestId && <RequestDetail id={selectedRequestId} onClose={handleCloseModal} />}
                 </Box>
             </Modal>
 
