@@ -26,6 +26,22 @@ interface ListRequestITProps {
     tab: number;
 }
 
+const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 800,
+    maxHeight: '1000vh',
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+    overflowY: 'auto',
+    // เพิ่ม z-index เพื่อให้แน่ใจว่า Modal อยู่ด้านบนสุด
+    zIndex: 1300
+};
+
 export default function ListRequestIT({ tab }: ListRequestITProps) {
     const navigate = useNavigate();
     const [rows, setRows] = useState<RequestData[]>([]);
@@ -93,7 +109,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 method: 'DELETE',
             });
             if (!response.ok) throw new Error('Network response was not ok');
-            
+
             setRows(prevRows => prevRows.filter(row => row.id !== selectedId));
             setSuccessAlert(true);
             setTimeout(() => setSuccessAlert(false), 3000);
@@ -120,12 +136,12 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     // แยก fetchRequests ออกมาและใช้ useCallback
     const fetchRequests = useCallback(async () => {
         if (!userData?.username || tab === undefined) return;
-    
+
         setIsLoading(true);
         try {
             const response = await fetch(`${URLAPI}/it-requests?tab=${tab}`);
             if (!response.ok) throw new Error('Network response was not ok');
-            
+
             const { data } = await response.json();
             const mappedData: RequestData[] = data.map((item: any) => ({
                 id: item.id,
@@ -243,10 +259,10 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     <Typography variant="h4" component="h1">
                         Request List IT
                     </Typography>
-                    <Button 
-                        variant="contained" 
-                        color="primary" 
-                        startIcon={<AddIcon />} 
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
                         onClick={handleRequest}
                     >
                         Request
@@ -293,7 +309,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     </Button>
                 </DialogActions>
             </Dialog>
-
+            
             <Modal
                 open={modalOpen}
                 onClose={handleCloseModal}
@@ -309,7 +325,14 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     bgcolor: 'background.paper',
                     boxShadow: 24,
                     p: 4,
-                }}>
+                    zIndex: 1300
+                }}
+                    role="dialog"
+                    aria-modal="true"
+                    // ลบ aria-hidden หรือตั้งค่าเป็น false
+                    aria-labelledby="request-detail-modal-title"
+                    aria-describedby="request-detail-modal-description"
+                >
                     {selectedRequestId && <RequestDetail id={selectedRequestId} onClose={handleCloseModal} />}
                 </Box>
             </Modal>

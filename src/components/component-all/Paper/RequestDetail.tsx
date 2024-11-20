@@ -17,7 +17,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AssigneeDepSelector from '../Select/AssigneeDepSelector';
 import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
 import UAT from '../ContentTypeR/boxUAT'; // นำเข้า PrioritySelector
-import { SelectPriority } from '../Select/select-priority';
+import { SelectPriority } from '../Select/select-priority'; 
+import DateWork from '../DatePicker/datework';
 
 // ฟังก์ชันสุ่มสี
 type ChipColor = 'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'info' | 'default';
@@ -78,6 +79,8 @@ interface RequestData {
     it_d_status?: string;
     itdapp?: string;
     it_d_note?: string;
+    id_priority?: number | null;
+    name_priority?: string | null;
 }
 
 interface FileInfo {
@@ -719,11 +722,18 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                         </Stack>
                         <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
                             <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
+                                ระยะเวลาที่ทำ
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <DateWork req_id={requestData.id} />
+                            </Box>
+                        </Stack>
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+                            <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
                                 ระดับความสำคัญ
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <SelectPriority id={requestData.id} id_priority={requestData.id_priority} />
-                                    
+                                <SelectPriority id={requestData.id} id_priority={requestData?.id_priority ?? null} />
                             </Box>
                         </Stack>
                     </Box>

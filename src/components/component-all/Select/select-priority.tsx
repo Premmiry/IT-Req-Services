@@ -1,23 +1,15 @@
-// src/components/component-all/Paper/Priority/index.tsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { FormLabel, Select, Option, SelectStaticProps, Button, Grid } from '@mui/joy';
-
+import React, { useState, useEffect } from 'react';
+import { Select, MenuItem, FormControl, InputLabel, Grid, SelectChangeEvent } from '@mui/material';
 import URLAPI from '../../../URLAPI';
 
-// Types
 interface PriorityOption {
     id_priority: number;
     name_priority: string;
 }
 
-interface PrioritySelected {
-    priority: string | null;
-    req_id: string | null;
-}
-
 interface PriorityProps {
-    prioritySelected: PrioritySelected;
-    onPriorityChange?: (priority: string) => void;
+    id: number;
+    id_priority: number | null;
 }
 
 const usePriorityOptions = () => {
@@ -35,7 +27,6 @@ const usePriorityOptions = () => {
                 }
                 const data = await response.json();
                 setPriorityOptions(data);
-                console.log(data);
             } catch (error) {
                 console.error('Error:', error);
                 setError('Failed to load priorities');
@@ -50,58 +41,67 @@ const usePriorityOptions = () => {
     return { priorityOptions, isLoading, error };
 };
 
-export const SelectPriority: React.FC<PriorityProps> = ({ 
-    prioritySelected, 
-    onPriorityChange 
-}) => {
-    const { priorityOptions, isLoading, error } = usePriorityOptions();
-    const [selectedValue, setSelectedValue] = useState<string | null>(
-        prioritySelected?.priority || null
-    );
-    const action = React.useRef<SelectStaticProps['action']>(null);
+export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority }) => {
+    const { priorityOptions, isLoading } = usePriorityOptions();
+    const [selectedValue, setSelectedValue] = useState<number | ''>(id_priority ?? '');
 
-    const handlePriorityChange = (_event: any, newValue: string | null) => {
+    useEffect(() => {
+        setSelectedValue(id_priority ?? '');
+    }, [id_priority]);
+
+    const handlePriorityChange = async (event: SelectChangeEvent<string>) => {
+        const newValue = parseInt(event.target.value, 10);
         setSelectedValue(newValue);
-        if (onPriorityChange && newValue) {
-            onPriorityChange(newValue);
+
+        if (!newValue) {
+            console.log('Priority is not selected');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${URLAPI}/priority/${id}?id_priority=${newValue}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorMessage = await response.text();
+                console.error('Error:', errorMessage);
+                alert(`Error: ${errorMessage}`);
+                return;
+            }
+
+            const updatedData = await response.json();
+            console.log('Priority updated successfully:', updatedData);
+        } catch (error) {
+            console.error('Error:', error);
         }
     };
 
-
     return (
         <Grid container spacing={1}>
-            <Grid xs={8}>
-                <FormLabel>ระดับความสำคัญ</FormLabel>
-                <Select
-                    action={action}
-                    value={selectedValue}
-                    placeholder="เลือกความสำคัญ"
-                    onChange={handlePriorityChange}
-                    variant="outlined"
-                    color="success"
-                    disabled={isLoading}
-                >
-                    {priorityOptions.map((option) => (
-                        <Option 
-                            key={option.id_priority} 
-                            value={option.name_priority}
-                        >
-                            {option.name_priority}
-                        </Option>
-                    ))}
-                </Select>
-                
-                {/* Debug information */}
-                <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#666' }}>
-                    <pre>
-                        {JSON.stringify({
-                            selectedValue,
-                            totalOptions: priorityOptions.length,
-                            isLoading,
-                            error
-                        }, null, 2)}
-                    </pre>
-                </div>
+            <Grid item xs={12}>
+                <FormControl variant="outlined" fullWidth>
+                    <InputLabel id="priority-label">เลือกความสำคัญ</InputLabel>
+                    <Select
+                        labelId="priority-label"
+                        value={selectedValue === '' ? '' : selectedValue.toString()}
+                        onChange={handlePriorityChange}
+                        label="เลือกความสำคัญ"
+                        disabled={isLoading}
+                    >
+                        <MenuItem value="">
+                            <em>ยังไม่ได้เลือก</em>
+                        </MenuItem>
+                        {priorityOptions.map((option) => (
+                            <MenuItem key={option.id_priority} value={option.id_priority.toString()}>
+                                {option.name_priority}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
             </Grid>
         </Grid>
     );
