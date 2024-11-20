@@ -32,7 +32,6 @@ export const SelectWithApi: React.FC<{
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // const response = await fetch(`http://10.200.240.2:1234/status_a`);
                 const response = await fetch(`${URLAPI}/status_a`);
                 const data = await response.json();
     

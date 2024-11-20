@@ -1,21 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Stack, Grid } from '@mui/material';
-import { FormLabel, Input, Select, Option, IconButton, Sheet, styled, SelectStaticProps, Button, Box } from '@mui/joy';
-import CloseRounded from '@mui/icons-material/CloseRounded';
+import { FormLabel, Input, Select, Option, SelectStaticProps, Button } from '@mui/joy';
 import { ApproveAlert } from '../Alert/alert';
 import { useNavigate } from 'react-router-dom';
 import URLAPI from '../../../URLAPI';
-
-const Item = styled(Sheet)(({ theme }) => ({
-    backgroundColor: '#fff',
-    ...theme.typography['body-sm'],
-    padding: theme.spacing(0.1),
-    textAlign: 'center',
-    color: theme.vars.palette.text.secondary,
-    ...theme.applyStyles('dark', {
-        backgroundColor: theme.palette.background.level1,
-    }),
-}));
 
 const fetchApproveOptions = async () => {
     const response = await fetch(`${URLAPI}/mtapprove`);

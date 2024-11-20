@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Button, Typography, Divider, Grid, Link, Stepper, Step, StepLabel } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import URLAPI from '../../../URLAPI';
@@ -16,13 +16,17 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AssigneeDepSelector from '../Select/AssigneeDepSelector';
 import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
-import UAT from '../ContentTypeR/boxUAT';
+import UAT from '../ContentTypeR/boxUAT'; // นำเข้า PrioritySelector
+import { SelectPriority } from '../Select/select-priority';
 
 // ฟังก์ชันสุ่มสี
-const getRandomColor = (): string => {
-    const colors = ['primary', 'success', 'secondary', 'error', 'warning', 'info']; // สีที่ต้องการ
-    const randomIndex = Math.floor(Math.random() * colors.length); // สุ่มดัชนี
-    return colors[randomIndex]; // คืนค่าสีที่สุ่มได้
+type ChipColor = 'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'info' | 'default';
+
+// แก้ไข function getRandomColor ให้ return type ที่ถูกต้อง
+const getRandomColor = (): ChipColor => {
+    const colors: ChipColor[] = ['primary', 'success', 'secondary', 'error', 'warning', 'info'];
+    const randomIndex = Math.floor(Math.random() * colors.length);
+    return colors[randomIndex];
 };
 
 const style = {
@@ -43,6 +47,7 @@ const style = {
 interface RequestData {
     id: number;
     id_department: number;
+    name_department: string;
     type_id: number | null;
     type: string;
     topic_id: number | null;
@@ -87,20 +92,16 @@ interface AssignedEntity {
     assigned_date: string;
 }
 
-interface ITDepartment {
-    id_department_it: number;
-    name_department_it: string;
-    code_department_it: string;
-}
-
 interface AssignedDepartment extends AssignedEntity {
+    id: number;
     id_req_dep: number;
     req_id: number;
     id_department: number;
-    name_department_it?: string;
+    name_department?: string;
 }
 
 interface AssignedEmployee extends AssignedEntity {
+    id: number;
     id_req_emp: number;
     req_id: number;
     id_emp: number;
@@ -115,20 +116,18 @@ interface RequestDetailProps {
 
 // Component
 const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: RequestDetailProps) => {
-    const { id: paramId } = useParams();
     const navigate = useNavigate();
 
     // State declarations
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [requestData, setRequestData] = useState<RequestData | null>(null);
-    const [departmentName, setDepartmentName] = useState<string>('');
     const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
     const [assignedDepartments, setAssignedDepartments] = useState<AssignedDepartment[]>([]);
     const [assignedEmployees, setAssignedEmployees] = useState<AssignedEmployee[]>([]);
-    const [itDepartments, setItDepartments] = useState<ITDepartment[]>([]);
     const [selectedAssignees, setSelectedAssignees] = useState<any[]>([]);
     const [selectedDepartments, setSelectedDepartments] = useState<any[]>([]);
 
@@ -141,6 +140,12 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         return `${day}/${month}/${buddhistYear}`;
     }, []);
 
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
+
     // Fetch Functions
     const fetchRequestData = useCallback(async () => {
         if (!id) return;
@@ -149,11 +154,13 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
             if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
 
             const { data } = await response.json();
-            if (!data?.[0]) throw new Error('No request data found');
+            console.log("ข้อมูลที่ได้จาก API:", data);
 
-            setRequestData(data[0]);
+            if (data && data.length > 0) {
+                const requestData = data[0];
+                setRequestData(requestData);
+            }
 
-            // Handle files
             if (data[0].files) {
                 try {
                     const parsedFiles = JSON.parse(data[0].files);
@@ -168,50 +175,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
             setError(error instanceof Error ? error.message : 'An error occurred');
         }
     }, [id]);
-
-    const fetchDepartmentName = useCallback(async (departmentId: number) => {
-        try {
-            const response = await fetch(`${URLAPI}/departments?id_dep=${departmentId}`);
-            if (!response.ok) throw new Error('Error fetching department data');
-
-            const data = await response.json();
-            if (data?.[0]?.name_department) {
-                setDepartmentName(data[0].name_department);
-            }
-        } catch (error) {
-            console.error('Error fetching department name:', error);
-        }
-    }, []);
-
-    const fetchITDepartments = useCallback(async (deptIds: number[]) => {
-        try {
-            const uniqueDeptIds = [...new Set(deptIds)];
-
-            const response = await fetch(`${URLAPI}/departments_it`);
-            if (!response.ok) {
-                throw new Error('Error fetching IT departments');
-            }
-
-            const allDepartments = await response.json();
-            const filteredDepartments = allDepartments.filter(
-                (dept: ITDepartment) => uniqueDeptIds.includes(dept.id_department_it)
-            );
-
-            const missingIds = uniqueDeptIds.filter(
-                (id) => !filteredDepartments.some((dept: ITDepartment) => dept.id_department_it === id)
-            );
-
-            if (missingIds.length > 0) {
-                console.warn('Missing departments for IDs:', missingIds);
-            }
-
-            setItDepartments(filteredDepartments);
-            // console.log('Filtered IT Departments:', filteredDepartments);
-
-        } catch (error) {
-            console.error('Error fetching IT departments:', error);
-        }
-    }, []);
 
     const fetchAssignments = useCallback(async () => {
         if (!id) return;
@@ -240,15 +203,12 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                 console.warn('employees ไม่เป็น array');
             }
 
-            const departmentIds = departments.map((dept) => parseInt(dept.id_department));
-            await fetchITDepartments(departmentIds);
-
             setAssignedDepartments(departments);
             setAssignedEmployees(employees);
         } catch (error) {
             console.error('Error fetching assignments:', error);
         }
-    }, [id, fetchITDepartments]);
+    }, [id]);
 
     // Effects
     useEffect(() => {
@@ -269,64 +229,13 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         fetchAllData();
     }, [fetchRequestData, fetchAssignments]);
 
-    useEffect(() => {
-        if (requestData?.id_department) {
-            fetchDepartmentName(requestData.id_department);
-        }
-    }, [requestData?.id_department, fetchDepartmentName]);
-
-    useEffect(() => {
-        if (assignedDepartments.length > 0) {
-            const deptIds = assignedDepartments.map((dept) => Number(dept.id_department));
-            fetchITDepartments(deptIds);
-        }
-    }, [assignedDepartments, fetchITDepartments]);
-
-    useEffect(() => {
-        if (assignedDepartments.length > 0 && itDepartments.length > 0) {
-            const needsUpdate = assignedDepartments.some((dept) => !dept.name_department_it);
-
-            if (needsUpdate) {
-                const updatedDepartments = assignedDepartments.map((dept) => {
-                    const matchingDept = itDepartments.find(
-                        (itDept) => itDept.id_department_it === Number(dept.id_department)
-                    );
-
-                    if (dept.name_department_it) {
-                        return dept;
-                    }
-
-                    return {
-                        ...dept,
-                        name_department_it: matchingDept?.name_department_it || 'Unnamed Department'
-                    };
-                });
-
-                setAssignedDepartments(updatedDepartments);
-            }
-        }
-    }, [itDepartments]);
-
-    useEffect(() => {
-        console.log('Debug Data:', {
-            assignedDepartments: assignedDepartments.map((d) => ({
-                id: d.id_department,
-                mapped_name: d.name_department_it
-            })),
-            itDepartments: itDepartments.map((d) => ({
-                id: d.id_department_it,
-                name: d.name_department_it
-            }))
-        });
-    }, [assignedDepartments, itDepartments]);
-
     // Handlers
     const handleEdit = () => navigate(`/edit-request/${id}`);
 
     const handleRemoveDepartment = async (id_req_dep: number) => {
         try {
             const response = await fetch(`${URLAPI}/assign_department/${id_req_dep}`, {
-                method: 'DELETE',
+                method: 'DELETE'
             });
 
             if (!response.ok) {
@@ -345,7 +254,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
     const handleRemoveEmployee = async (id_req_emp: number) => {
         try {
             const response = await fetch(`${URLAPI}/assign_employee/${id_req_emp}`, {
-                method: 'DELETE',
+                method: 'DELETE'
             });
 
             if (!response.ok) {
@@ -366,7 +275,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
             setAssignedDepartments((prevDepartments) => [
                 ...prevDepartments,
                 ...selectedDepartments.filter((department) =>
-                    !prevDepartments.some((deptId) => deptId.id_department_it === department.id)
+                    !prevDepartments.some((deptId) => deptId.id_department === department.id)
                 )
             ]);
         }
@@ -456,7 +365,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 <Typography gutterBottom component="div">
                                     แผนก:{" "}
                                     <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>
-                                        {departmentName || 'Loading...'}
+                                        {requestData.name_department || 'Loading...'}
                                     </Box>
                                 </Typography>
                                 <Typography gutterBottom component="div">
@@ -475,12 +384,13 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                     รายละเอียด: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.detail_req}</Box>
                                 </Typography>
                             </Stack>
+
                             <Box sx={{ p: 1 }}>
                                 {(requestData?.m_name || requestData?.d_name) && (
                                     <Grid container spacing={2} justifyContent="center" alignItems="center">
                                         <Grid item xs={12} sm={6} md={8}>
                                             <Stack spacing={2} sx={{ width: '100%' }}>
-                                                <Stepper size="sm" activeStep={-1} sx={{
+                                                <Stepper activeStep={-1} sx={{
                                                     '.MuiStepLabel-root': {
                                                         fontSize: '0.8rem', // ลดขนาดฟอนต์ของ StepLabel
                                                         display: 'flex',
@@ -491,7 +401,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                                     {requestData.m_name && (
                                                         <Step>
                                                             <StepLabel
-                                                                variant="solid"
                                                                 color="neutral"
                                                                 StepIconComponent={() => (
                                                                     <CheckCircleIcon sx={{ color: 'primary.main', fontSize: '1.5rem' }} />
@@ -578,14 +487,9 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                     )}
                                 </Grid>
                             </Box>
-
-
-
                         </Stack>
                     </Box>
-
                     <Divider />
-
                     <Box sx={{ p: 1 }}>
                         <Typography gutterBottom variant="body2">เอกสารแนบ</Typography>
                         <Stack direction="column">
@@ -616,16 +520,14 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                         </Stack>
                     </Box>
                 </Card>
-
                 <br />
                 <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-
                     <Box sx={{ p: 2 }}>
                         {(requestData?.it_m_name || requestData?.it_d_name) && (
                             <Grid container spacing={2} justifyContent="center" alignItems="center">
                                 <Grid item xs={12} sm={6} md={8}>
                                     <Stack spacing={2} sx={{ width: '100%' }}>
-                                        <Stepper size="sm" activeStep={-1} sx={{
+                                        <Stepper activeStep={-1} sx={{
                                             '.MuiStepLabel-root': {
                                                 fontSize: '0.8rem', // ลดขนาดฟอนต์ของ StepLabel
                                                 display: 'flex',
@@ -636,7 +538,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                             {requestData.it_m_name && (
                                                 <Step>
                                                     <StepLabel
-                                                        variant="solid"
                                                         color="neutral"
                                                         StepIconComponent={() => (
                                                             <CheckCircleIcon sx={{ color: 'warning.main', fontSize: '1.5rem' }} />
@@ -662,7 +563,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 </Grid>
                             </Grid>
                         )}
-
                         <Grid container spacing={2} justifyContent="center">
                             {requestData?.it_m_name && (
                                 <Grid item xs={12} sm={6} md={4}>
@@ -702,8 +602,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                     </List>
                                 </Grid>
                             )}
-
-
                             {requestData?.it_d_name && (
                                 <Grid item xs={12} sm={6} md={4}>
                                     <List >
@@ -746,9 +644,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                             )}
                         </Grid>
                     </Box>
-
                     <Divider />
-
                     <Box sx={{ p: 1 }}>
                         {/* Section: มอบหมายงานแผนก */}
                         <Stack direction="row" spacing={2} alignItems="center">
@@ -761,46 +657,40 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                     requestId={requestData.id}
                                     selectedAssigneesDep={selectedDepartments}
                                     onAssigneeDepChange={setSelectedDepartments}
+                                    setAssignedDepartments={setAssignedDepartments} // ส่งฟังก์ชันนี้ไป
                                 />
 
                                 {assignedDepartments.length > 0 ? (
-                                    assignedDepartments.map((dept, index) => (
-                                        <Chip
-                                            key={index}
-                                            icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                                            label={dept.name_department_it}
-                                            onClick={() => console.info(`You clicked the Chip for ${dept.name_department_it}`)}
-                                            onDelete={() => handleRemoveDepartment(dept.id_req_dep)}
-                                            size="small"
-                                            color={getRandomColor()}
-                                            variant="outlined"
-                                            sx={{
-                                                '& .MuiChip-deleteIcon': {
-                                                    color: '#f44336',
-                                                    ml: '4px'
-                                                }
-                                            }}
-                                        />
-                                    ))
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                        {assignedDepartments.map((dept, index) => (
+                                            <Chip
+                                                key={index}
+                                                color={getRandomColor()}
+                                                deleteIcon={<DeleteIcon />}
+                                                variant="outlined"
+                                                icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
+                                                label={dept.name_department}
+                                                onClick={() => console.info(`You clicked the Chip for ${dept.name_department}`)}
+                                                onDelete={isITStaff ? () => handleRemoveDepartment(dept.id_req_dep) : undefined}
+                                            />
+                                        ))}
+                                    </Box>
                                 ) : (
                                     <Typography color="text.secondary">No departments assigned</Typography>
                                 )}
                             </Box>
                         </Stack>
-
                         {/* Section: ผู้รับผิดชอบ */}
                         <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
                             <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
                                 ผู้รับผิดชอบ
                             </Typography>
-
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                                 <AssigneeEmpSelector
                                     requestId={requestData.id}
                                     selectedAssignees={selectedAssignees}
                                     onAssigneeChange={setSelectedAssignees}
                                 />
-
                                 {assignedEmployees.length > 0 ? (
                                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                         {assignedEmployees.map((emp, index) => (
@@ -811,7 +701,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                                 avatar={<Avatar alt={emp.emp_name} src="" />}
                                                 label={emp.emp_name}
                                                 onClick={() => console.info(`You clicked the Chip for ${emp.emp_name}`)}
-                                                onDelete={() => handleRemoveEmployee(emp.id_req_emp)}
+                                                onDelete={isITStaff ? () => handleRemoveEmployee(emp.id_req_emp) : undefined}
                                                 deleteIcon={<DeleteIcon />}
                                                 sx={{
                                                     '& .MuiChip-deleteIcon': {
@@ -827,20 +717,30 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 )}
                             </Box>
                         </Stack>
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+                            <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
+                                ระดับความสำคัญ
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <SelectPriority id={requestData.id} id_priority={requestData.id_priority} />
+                                    
+                            </Box>
+                        </Stack>
                     </Box>
-
+                </Card>
+                <br />
+                <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+                    <Box sx={{ p: 2 }}>
+                        {requestData.status_id === 5 && requestData.type_id === 3 ? (
+                            <>
+                                <UAT id={requestData.id} username={userData.username} department={userData.id_department} status={requestData.status_id} onClose={onClose} />
+                            </>
+                        ) : (
+                            <Typography variant="h6">Confirm งาน</Typography>
+                        )}
+                    </Box>
                 </Card>
             </Box>
-
-            {requestData.status_id === 5 && requestData.type_id === 3 ? (
-                <Box sx={{ mt: 2 }}>
-                    <Typography variant="h6">UAT</Typography>
-                    <UAT id={requestData.id} username={userData.username} department={userData.id_department} status={requestData.status_id} onClose={onClose} />
-                </Box>
-            ) : (
-                <Typography variant="h6">Confirm งาน</Typography>
-            )}
-
             {!isModal && (
 
                 <Button

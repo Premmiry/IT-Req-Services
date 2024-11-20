@@ -1,21 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Stack } from '@mui/material';
-import { FormLabel, Input, Select, Option, IconButton, Sheet, styled, SelectStaticProps, Button, Grid } from '@mui/joy';
-import CloseRounded from '@mui/icons-material/CloseRounded';
+import { FormLabel, Input, Select, Option, SelectStaticProps, Button, Grid } from '@mui/joy';
 import { ApproveAlert } from '../Alert/alert';
 import { useNavigate } from 'react-router-dom';
 import URLAPI from '../../../URLAPI';
 
-const Item = styled(Sheet)(({ theme }) => ({
-    backgroundColor: '#fff',
-    ...theme.typography['body-sm'],
-    padding: theme.spacing(0.1),
-    textAlign: 'center',
-    color: theme.vars.palette.text.secondary,
-    ...theme.applyStyles('dark', {
-        backgroundColor: theme.palette.background.level1,
-    }),
-}));
 
 const fetchApproveOptions = async () => {
     const response = await fetch(`${URLAPI}/mtapprove`);
@@ -130,12 +118,12 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
 
     return (
         <Grid container spacing={1}>
-                <Grid item xs={8} component="div">
+                <Grid xs={8} component="div">
                 <FormLabel>Manager Approve</FormLabel>
                 <Input variant="outlined" color="success" type='text' placeholder='Manager Name' value={managerName} readOnly={true} onChange={(e) => setManagerName(e.target.value)} />
             </Grid>
 
-            <Grid item xs={4} component="div">
+            <Grid xs={4} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -254,12 +242,12 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
 
     return (
         <Grid container spacing={1}>
-            <Grid item xs={8} component="div">
+            <Grid xs={8} component="div">
                 <FormLabel>Director Approve</FormLabel>
                 <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly={true} onChange={(e) => setDirectorName(e.target.value)} />
             </Grid>
 
-            <Grid item xs={4} component="div">
+            <Grid xs={4} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}

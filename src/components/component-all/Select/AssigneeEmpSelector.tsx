@@ -1,31 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Chip,
-    Avatar,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Typography,
-    Box,
-    List,
-    ListItem,
-    ListItemAvatar,
-    ListItemText,
-    TextField,
-    Stack,
+    Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List, ListItem,
+    ListItemAvatar, ListItemText, TextField, Stack
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import URLAPI from '../../../URLAPI';
 
-const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChange }) => {
+interface Employee {
+    id : number;
+    id_emp: number;
+    emp_name: string;
+    // เพิ่มฟิลด์อื่นๆ ที่จำเป็นต้องใช้
+}
+
+interface AssigneeEmpSelectorProps {
+    requestId: number;
+    selectedAssignees: Employee[];
+    onAssigneeChange: (assignees: Employee[]) => void;
+}
+
+const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, selectedAssignees, onAssigneeChange }) => {
     const [open, setOpen] = useState(false);
-    const [employees, setEmployees] = useState([]);
+    const [employees, setEmployees] = useState<Employee[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [userData, setUserData] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [userData, setUserData] = useState<any | null>(null);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -33,6 +33,12 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
             setUserData(JSON.parse(storedUserData));
         }
     }, []);
+
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
 
     const fetchEmployees = useCallback(async () => {
         if (!userData) {
@@ -44,6 +50,7 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
         try {
             const response = await fetch(`${URLAPI}/employee`);
             if (!response.ok) throw new Error('Failed to fetch employees');
+            
             const data = await response.json();
             setEmployees(data);
         } catch (error) {
@@ -68,7 +75,7 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
         setSearchQuery('');
     };
 
-    const handleSelectEmployee = async (employee) => {
+    const handleSelectEmployee = async (employee: Employee) => {
         if (!userData) {
             console.error('User data is not available');
             return;
@@ -92,48 +99,42 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
             if (!response.ok) throw new Error('Error assigning employee');
     
             // Directly update the selectedAssignees
-            onAssigneeChange((prevAssignees) => [...prevAssignees, { ...employee, id: employee.id_emp }]);
+            onAssigneeChange([...selectedAssignees, { ...employee, id: employee.id_emp }]);
+    
             handleClose();
         } catch (error) {
             console.error('Error adding employee:', error);
         }
     };
-    
-    
-
-    const handleRemoveEmployee = async (employee) => {
-        try {
-            const response = await fetch(`${URLAPI}/assign_employee/${employee.id}`, {
-                method: 'DELETE'
-            });
-            if (!response.ok) throw new Error('Error removing employee');
-            onAssigneeChange(selectedAssignees.filter((emp) => emp.id !== employee.id));
-        } catch (error) {
-            console.error('Error removing employee:', error);
-        }
-    };
 
     const filteredEmployees = employees.filter((employee) =>
-        employee.emp_name.toLowerCase().includes(searchQuery.toLowerCase())
+        employee.emp_name.toLowerCase().includes(searchQuery.toLowerCase()) && employee.id_emp
     );
+
+    const randomColor = () => {
+        const colors = ['#FF8A80', '#FFD180', '#FF9E80', '#E1BEE7', '#BBDEFB', '#C5E1A5'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    };
 
     return (
         <Box>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                <Chip
-                    icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
-                    label="Add Employee"
-                    onClick={handleClickOpen}
-                    size="small"
-                    sx={{
-                        backgroundColor: 'transparent',
-                        height: '24px',
-                        cursor: 'pointer',
-                        '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
-                        '& .MuiChip-icon': { color: '#1976d2', ml: '4px' },
-                        '&:hover': { backgroundColor: '#e3f2fd' }
-                    }}
-                />
+                {isITStaff && (
+                    <Chip
+                        icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
+                        label="Add Employee :   "
+                        onClick={handleClickOpen}
+                        size="small"
+                        sx={{
+                            backgroundColor: 'transparent',
+                            height: '24px',
+                            cursor: 'pointer',
+                            '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
+                            '& .MuiChip-icon': { color: '#1976d2', ml: '4px' },
+                            '&:hover': { backgroundColor: '#e3f2fd' }
+                        }}
+                    />
+                )}
             </Stack>
 
             <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>
@@ -161,7 +162,7 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
                                 {filteredEmployees.map((employee) => (
                                     <ListItem button key={employee.id_emp} onClick={() => handleSelectEmployee(employee)}>
                                         <ListItemAvatar>
-                                            <Avatar>{employee.emp_name[0]?.toUpperCase()}</Avatar>
+                                            <Avatar sx={{ bgcolor: randomColor() }}>{employee.emp_name[0]?.toUpperCase()}</Avatar>
                                         </ListItemAvatar>
                                         <ListItemText primary={employee.emp_name} />
                                     </ListItem>
@@ -176,8 +177,6 @@ const AssigneeEmpSelector = ({ requestId, selectedAssignees = [], onAssigneeChan
                     </Button>
                 </DialogActions>
             </Dialog>
-
-           
         </Box>
     );
 };

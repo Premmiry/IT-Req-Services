@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Autocomplete, Box, Button, FormLabel, IconButton, Input, Select, Stack, Textarea, Typography } from '@mui/joy';
+import { Box, Button, Typography } from '@mui/joy';
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
@@ -15,7 +15,6 @@ import { SaveAlert } from '../Alert/alert';
 import { BoxDirectorApprove, BoxManagerApprove } from '../ContentTypeR/boxmdapprove';
 import { BoxITDirectorApprove, BoxITManagerApprove } from '../ContentTypeR/boxitmdapprove';
 import URLAPI from '../../../URLAPI';
-import { CloseRounded } from '@mui/icons-material';
 
 interface ProgramOption {
     key: number;
@@ -58,9 +57,10 @@ export default function RequestForm() {
     const [managerApprove, setManagerApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
     const [directorApprove, setDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
     const [itmanagerApprove, setITManagerApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
+    const [itdirectorApprove, setITDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
     const [itmanagerNote, setITManagerNote] = useState<string>('');
     const [itdirectorNote, setITDirectorNote] = useState<string>('');
-    const [itdirectorApprove, setITDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
+    
 
     useEffect(() => {
         if (isEditMode) {
@@ -179,28 +179,29 @@ export default function RequestForm() {
 
     const generateRsCode = useCallback(async (selectedTypeId: number | null): Promise<string> => {
         const getFallbackCode = (prefix: string) => {
-            const timestamp = Date.now(); // Millisecond timestamp
-            return `${prefix}-${timestamp}`;
+            const currentYearBE = new Date().getFullYear() + 543; // แปลงปี ค.ศ. เป็น พ.ศ.
+            const shortYear = String(currentYearBE).slice(-2); // เอาเฉพาะ 2 หลักสุดท้ายของ พ.ศ.
+            return `${prefix}${shortYear}/001`; // ใช้รูปแบบ Prefix+Year/001
         };
-
+    
         try {
             const response = await fetch(`${URLAPI}/generatecode`);
             if (!response.ok) {
                 throw new Error('Failed to fetch data from API');
             }
-
+    
             const data = await response.json();
             if (data && data.length > 0) {
                 const { years, total_requests } = data[0];
                 const incrementedTotal = total_requests + 1; // เพิ่มค่า total_requests ขึ้น 1
                 const formattedTotal = String(incrementedTotal).padStart(3, '0'); // Padding เป็น 3 หลัก
                 const dateCode = `${years}/${formattedTotal}`;
-
+    
                 // กำหนด prefix ตามประเภทที่เลือก
                 const prefix = selectedTypeId === 1 ? 'IT' :
                     selectedTypeId === 2 ? 'IS' :
                         selectedTypeId === 3 ? 'DEV' : 'UNK';
-
+    
                 return `${prefix}${dateCode}`; // Generate รหัสที่ไม่ซ้ำโดยเพิ่มเลข request ขึ้น 1
             } else {
                 throw new Error('No data received from the API');
@@ -212,7 +213,7 @@ export default function RequestForm() {
                     selectedTypeId === 3 ? 'DEV' : 'UNK';
             return getFallbackCode(prefix);
         }
-    }, []);
+    }, []);    
 
 
     const validateForm = useCallback(() => {
@@ -230,10 +231,10 @@ export default function RequestForm() {
 
     const handleSubmit = useCallback(async () => {
         if (!validateForm()) return;
-
+    
         try {
             const formData = new FormData();
-
+    
             const rsCodeToUse = isEditMode ? rsCode : await generateRsCode(selectedTypeId);
             formData.append('rs_code', rsCodeToUse);
             formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
@@ -251,10 +252,10 @@ export default function RequestForm() {
             formData.append('title_req', title);
             formData.append('detail_req', details);
             formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
-
+    
             if (uploadedFiles.length > 0) {
                 const existingFiles: ExistingFileInfo[] = [];
-
+    
                 uploadedFiles.forEach((file) => {
                     if (file instanceof File) {
                         formData.append('new_files', file);
@@ -267,14 +268,14 @@ export default function RequestForm() {
                         });
                     }
                 });
-
+    
                 if (existingFiles.length > 0) {
                     formData.append('existing_files', JSON.stringify(existingFiles));
                 }
             }
-
+    
             console.log('Form Data:', formData);
-
+    
             const response = await fetch(
                 isEditMode ? `${URLAPI}/it-requests/${id}` : `${URLAPI}/it-requests`,
                 {
@@ -282,19 +283,19 @@ export default function RequestForm() {
                     body: formData,
                 }
             );
-
+    
             if (!response.ok) {
                 const errorBody = await response.text();
                 console.error('Error response body:', errorBody);
                 throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
             }
-
+    
             const result = await response.json();
             console.log(isEditMode ? 'IT request updated successfully:' : 'IT request created successfully:', result);
-
+    
             setSuccessAlert(true);
             clearForm();
-
+    
             setTimeout(() => {
                 setSuccessAlert(false);
                 if (userData?.id_section === 28 || userData?.id_division_competency === 86 || userData?.id_section_competency === 28) {
@@ -395,16 +396,16 @@ export default function RequestForm() {
                         </Grid>
                     </Grid>
                     {
-                        userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff) && status_id === 1) && (
+                        userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
                             <Box
                                 sx={{
                                     backgroundColor: '#fff',
                                     padding: 2,
                                     borderRadius: 2,
                                     marginTop: 4,
-                                    border: '1px dashed', 
-                                    borderColor: 'lightblue', 
-                                    
+                                    border: '1px dashed',
+                                    borderColor: 'lightblue',
+
                                     // boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
                                 }}
                             >
@@ -416,7 +417,7 @@ export default function RequestForm() {
                                         fontWeight: 'bold',
                                         fontSize: 20,
                                         color: '#1976d2',
-                                        textAlign: 'center',
+                                        textAlign: 'left',
                                         textDecoration: 'underline',
                                         textDecorationThickness: 2,
                                         textUnderlineOffset: 6,
@@ -445,38 +446,9 @@ export default function RequestForm() {
                                                 />
                                             )}
 
-                                            <Typography variant="h6" sx={{ mt: 2, fontWeight: 'bold' }}>
-                                                IT Manager Note
-                                            </Typography>
-                                            <Textarea
-                                                minRows={4}
-                                                placeholder="Type in here…"
-                                                variant="soft"
-                                                color="success"
+                                            <ITManagerTextarea
                                                 value={itmanagerNote}
                                                 onChange={(e) => setITManagerNote(e.target.value)}
-                                                sx={{
-                                                    mt: 1,
-                                                    borderBottom: '2px solid',
-                                                    borderColor: 'neutral.outlinedBorder',
-                                                    borderRadius: 2,
-                                                    '&:hover': {
-                                                        borderColor: 'neutral.outlinedHoverBorder',
-                                                    },
-                                                    '&::before': {
-                                                        border: '1px solid var(--Textarea-focusedHighlight)',
-                                                        transform: 'scaleX(0)',
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: '-2px',
-                                                        top: 'unset',
-                                                        transition: 'transform .15s cubic-bezier(0.1,0.9,0.2,1)',
-                                                        borderRadius: 0,
-                                                    },
-                                                    '&:focus-within::before': {
-                                                        transform: 'scaleX(1)',
-                                                    },
-                                                }}
                                             />
                                         </Box>
                                     </Grid>
@@ -500,38 +472,9 @@ export default function RequestForm() {
                                                 />
                                             )}
 
-                                            <Typography variant="h6" sx={{ mt: 2, fontWeight: 'bold' }}>
-                                                IT Director Note
-                                            </Typography>
-                                            <Textarea
-                                                minRows={4}
-                                                placeholder="Type in here…"
-                                                variant="soft"
-                                                color="warning"
+                                            <ITDirectorTextarea
                                                 value={itdirectorNote}
                                                 onChange={(e) => setITDirectorNote(e.target.value)}
-                                                sx={{
-                                                    mt: 1,
-                                                    borderBottom: '2px solid',
-                                                    borderColor: 'neutral.outlinedBorder',
-                                                    borderRadius: 2,
-                                                    '&:hover': {
-                                                        borderColor: 'neutral.outlinedHoverBorder',
-                                                    },
-                                                    '&::before': {
-                                                        border: '1px solid var(--Textarea-focusedHighlight)',
-                                                        transform: 'scaleX(0)',
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: '-2px',
-                                                        top: 'unset',
-                                                        transition: 'transform .15s cubic-bezier(0.1,0.9,0.2,1)',
-                                                        borderRadius: 0,
-                                                    },
-                                                    '&:focus-within::before': {
-                                                        transform: 'scaleX(1)',
-                                                    },
-                                                }}
                                             />
                                         </Box>
                                     </Grid>
@@ -542,9 +485,34 @@ export default function RequestForm() {
                     }
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                            <Button color="primary" startDecorator={<SaveIcon />} onClick={handleSubmit}>
-                                {isEditMode ? 'Update' : 'บันทึก'}
-                            </Button>
+                            {
+                                userData && (
+                                    (
+                                        // Condition 1: status_id = 2 and position is m or d and not type 2
+                                        (status_id === 2 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2) ||
+
+                                        // Condition 2: status_id = 3 and position is d and not type 2
+                                        (status_id === 3 && userData.position === 'd' && selectedTypeId !== 2) ||
+
+                                        // Condition 3: status_id = 4 and position is m or d and not type 2 and is IT staff
+                                        (status_id === 4 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2 && isITStaff) ||
+
+                                        // Condition 4: status_id = 5 and position is d and not type 2 and is IT staff
+                                        (status_id === 5 && userData.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
+
+                                        // Condition 6: status_id = 1 or not in edit mode
+                                        (status_id === 1 || !isEditMode)
+                                    ) && (
+                                        <Button
+                                            color="primary"
+                                            startDecorator={<SaveIcon />}
+                                            onClick={handleSubmit}
+                                        >
+                                            {isEditMode ? 'Update' : 'บันทึก'}
+                                        </Button>
+                                    )
+                                )
+                            }
                             <Button sx={{ ml: 2 }} color="danger" startDecorator={<ReplyIcon />} onClick={handleCancel}>
                                 ย้อนกลับ
                             </Button>

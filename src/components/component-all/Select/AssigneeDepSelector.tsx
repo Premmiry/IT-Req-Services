@@ -1,31 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-    Chip,
-    Avatar,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
-    Typography,
-    Box,
-    List,
-    ListItem,
-    ListItemAvatar,
-    ListItemText,
-    TextField,
-    Stack,
-} from '@mui/material';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List,
+ListItem, ListItemAvatar, ListItemText, TextField, Stack } from '@mui/material';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import URLAPI from '../../../URLAPI';
 
-const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeDepChange }) => {
+interface Department {
+    id: number;
+    id_department_it: number;
+    name_department_it: string;
+    // เพิ่มฟิลด์อื่นๆ ที่จำเป็นต้องใช้
+}
+
+// types.ts
+interface AssignedDepartment {
+    id: number;
+    id_req_dep: number;
+    req_id: number;
+    id_department: number;
+    name_department?: string;
+    user_assigned: string;
+    assigned_date: string;
+}
+
+interface AssigneeDepSelectorProps {
+    requestId: number;
+    selectedAssigneesDep: Department[];
+    onAssigneeDepChange: (departments: Department[]) => void;
+    setAssignedDepartments: React.Dispatch<React.SetStateAction<AssignedDepartment[]>>; // รับฟังก์ชันนี้
+}
+
+const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, selectedAssigneesDep, onAssigneeDepChange , setAssignedDepartments  }) => {
     const [open, setOpen] = useState(false);
-    const [departments, setDepartments] = useState([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [userData, setUserData] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [userData, setUserData] = useState<any | null>(null);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -33,6 +43,12 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
             setUserData(JSON.parse(storedUserData));
         }
     }, []);
+
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
 
     const fetchDepartments = useCallback(async () => {
         if (!userData) {
@@ -53,7 +69,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
         } finally {
             setLoading(false);
         }
-    }, [userData]);
+    }, [URLAPI, userData]);
 
     const handleClickOpen = () => {
         if (userData) {
@@ -69,52 +85,61 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
         setSearchQuery('');
     };
 
-    const handleSelectDepartment = async (department: number) => {
+    const handleSelectDepartment = async (department: Department) => {
         if (!userData) {
             console.error('User data is not available');
             return;
         }
-
+    
         if (!department.id_department_it) {
             console.error('Department ID is missing');
             return; // Skip if department doesn't have an ID
         }
-
+    
         if (selectedAssigneesDep.some((a) => a.id_department_it === department.id_department_it)) {
             console.log('Department already assigned');
             return;
         }
-
+    
         try {
             const response = await fetch(
                 `${URLAPI}/assign_department/${requestId}?id_department=${department.id_department_it}&username=${userData.username}`,
                 { method: 'POST' }
             );
             if (!response.ok) throw new Error('Error assigning department');
-
+    
             // Directly update the selectedAssigneesDep
-            onAssigneeDepChange((prevAssignees) => [...prevAssignees, { ...department, id: department.id_department_it }]);
+            onAssigneeDepChange([...selectedAssigneesDep, { ...department, id: department.id_department_it }]);
+    
+            // Update assignedDepartments in RequestDetail.tsx
+            setAssignedDepartments((prevDepartments: AssignedDepartment[]) => [
+                ...prevDepartments,
+                {
+                    id: department.id_department_it,
+                    id_req_dep: department.id_department_it,
+                    req_id: requestId,
+                    id_department: department.id_department_it,
+                    name_department: department.name_department_it,
+                    user_assigned: userData.username, // add the missing properties
+                    assigned_date: new Date().toISOString(), // add the missing properties
+                }
+            ]);
+    
             handleClose();
         } catch (error) {
             console.error('Error adding department:', error);
         }
     };
 
-    const handleRemoveDepartment = async (department) => {
-        try {
-            const response = await fetch(`${URLAPI}/assign_department/${department.id_department_it}`, {
-                method: 'DELETE'
-            });
-            if (!response.ok) throw new Error('Error removing department');
-            onAssigneeDepChange(selectedAssigneesDep.filter((dep) => dep.id_department_it !== department.id_department_it));
-        } catch (error) {
-            console.error('Error removing department:', error);
-        }
+    const filteredDepartments = departments.filter((department) =>
+        department.name_department_it.toLowerCase().includes(searchQuery.toLowerCase()) && department.id_department_it
+    );
+
+    const randomColor = () => {
+        const colors = ['#FF8A80', '#FFD180', '#FF9E80', '#E1BEE7', '#BBDEFB', '#C5E1A5'];
+        return colors[Math.floor(Math.random() * colors.length)];
     };
 
-    const filteredDepartments = departments.filter((department) =>
-        department.name_department_it.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     return (
         <Box>
@@ -138,18 +163,19 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
             <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>
                 <DialogTitle>Select department</DialogTitle>
                 <DialogContent>
-                    <Box sx={{ mb: 2, mt: 1 }}>
-                        <TextField
-                            autoFocus
-                            placeholder="ค้นหาชื่อแผนก..."
-                            variant="outlined"
-                            size="small"
-                            fullWidth
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </Box>
-
+                    {isITStaff && (
+                        <Box sx={{ mb: 2, mt: 1 }}>
+                            <TextField
+                                autoFocus
+                                placeholder="ค้นหาชื่อแผนก..."
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </Box>
+                    )}
                     <Box>
                         {loading && <Typography variant="body2">Loading...</Typography>}
                         {error && <Typography variant="body2" color="error">{error}</Typography>}
@@ -160,7 +186,7 @@ const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeD
                                 {filteredDepartments.map((department) => (
                                     <ListItem button key={department.id_department_it} onClick={() => handleSelectDepartment(department)}>
                                         <ListItemAvatar>
-                                            <Avatar>{department.name_department_it[0]?.toUpperCase()}</Avatar>
+                                            <Avatar sx={{ bgcolor: randomColor() }}>{department.name_department_it[0]?.toUpperCase()}</Avatar>
                                         </ListItemAvatar>
                                         <ListItemText primary={department.name_department_it} />
                                     </ListItem>

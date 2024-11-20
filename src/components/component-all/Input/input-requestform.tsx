@@ -1,7 +1,6 @@
 import React from 'react';
-import { Box , FormLabel } from '@mui/material';
-import { Textarea , Input } from '@mui/joy';
-
+import { Box, FormLabel } from '@mui/material';
+import { Textarea, Input } from '@mui/joy';
 
 interface InputProps {
   label?: string;
@@ -10,6 +9,10 @@ interface InputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   type?: 'text' | 'textarea';
+}
+
+interface StyledTextareaProps extends InputProps {
+  color?: 'success' | 'warning';
 }
 
 const InputComponent: React.FC<InputProps> = ({ 
@@ -47,6 +50,50 @@ const InputComponent: React.FC<InputProps> = ({
   </Box>
 );
 
+const StyledTextarea: React.FC<StyledTextareaProps> = ({
+  label = '',
+  id = '',
+  placeholder = '',
+  value,
+  onChange,
+  color = 'success'
+}) => (
+  <Box sx={{ mt: 2 }}>
+    <FormLabel>{label}</FormLabel>
+    <Textarea
+      id={id}
+      minRows={4}
+      placeholder={placeholder}
+      variant="soft"
+      color={color}
+      value={value}
+      onChange={onChange}
+      sx={{
+        mt: 1,
+        borderBottom: '2px solid',
+        borderColor: 'neutral.outlinedBorder',
+        borderRadius: 2,
+        '&:hover': {
+          borderColor: 'neutral.outlinedHoverBorder',
+        },
+        '&::before': {
+          border: '1px solid var(--Textarea-focusedHighlight)',
+          transform: 'scaleX(0)',
+          left: 0,
+          right: 0,
+          bottom: '-2px',
+          top: 'unset',
+          transition: 'transform .15s cubic-bezier(0.1,0.9,0.2,1)',
+          borderRadius: 0,
+        },
+        '&:focus-within::before': {
+          transform: 'scaleX(1)',
+        },
+      }}
+    />
+  </Box>
+);
+
 export const NameInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
   <InputComponent {...props} id={props.id || "name_req"} label={props.label || "ชื่อผู้ร้องขอ"} placeholder={props.placeholder || "ชื่อ-นามสกุล..."} />
 );
@@ -72,9 +119,23 @@ export const DirectorInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
 );
 
 export const ITManagerTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
-  <InputComponent {...props} id={props.id || "it_manager"} label={props.label || "IT Manager"} placeholder={props.placeholder || "IT Manager..."} type="textarea" />
+  <StyledTextarea 
+    {...props} 
+    id={props.id || "it_manager_note"} 
+    label={props.label || "IT Manager Note"} 
+    placeholder={props.placeholder || "Type in here…"} 
+    color="success"
+  />
 );
 
 export const ITDirectorTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
-  <InputComponent {...props} id={props.id || "it_director"} label={props.label || "IT Director"} placeholder={props.placeholder || "IT Director..."} type="textarea" />
+  <StyledTextarea 
+    {...props} 
+    id={props.id || "it_director_note"} 
+    label={props.label || "IT Director Note"} 
+    placeholder={props.placeholder || "Type in here…"} 
+    color="warning"
+  />
 );
+
+export default InputComponent;
