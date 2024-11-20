@@ -117,51 +117,51 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
     }, [value1, itmanagerApprove, itmanagerName, it_m_note, id_division_competency, navigate]);
 
     return (
-       
-            <Grid container spacing={1}>
-                <Grid item xs={6} component="div">
-                    <FormLabel>IT Manager Approve</FormLabel>
-                    <Input 
-                        variant="outlined" 
-                        color="success" 
-                        type='text' 
-                        placeholder='Manager Name' 
-                        value={itmanagerName} 
-                        readOnly={true} 
-                        onChange={(e) => setITManagerName(e.target.value)} 
-                    />
-                </Grid>
-                <Grid item xs={3} component="div">
-                    <FormLabel>Status</FormLabel>
-                    <Select
-                        action={action}
-                        value={value1}
-                        placeholder="Status"
-                        onChange={(_e, newValue) => {
-                            console.log("Selected Value:", newValue);
-                            setValue1(newValue);
-                        }}
-                        variant="outlined" 
-                        color="success"
-                        {...(value1 && {
-                            
-                            indicator: null,
-                        })}
-                    >
-                        {approveOptions.map(option => (
-                            <Option key={option.id_approve} value={option.id_approve}>
-                                {option.name_approve}
-                            </Option>
-                        ))}
-                    </Select>
-                    <Stack direction={{ xs: 'column', sm: 'row' }}>
-                        {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
-                        {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
-                    </Stack>
-                </Grid>
+
+        <Grid container spacing={1}>
+            <Grid item xs={6} component="div">
+                <FormLabel>IT Manager Approve</FormLabel>
+                <Input
+                    variant="outlined"
+                    color="success"
+                    type='text'
+                    placeholder='Manager Name'
+                    value={itmanagerName}
+                    readOnly={true}
+                    onChange={(e) => setITManagerName(e.target.value)}
+                />
             </Grid>
-        
-    );    
+            <Grid item xs={3} component="div">
+                <FormLabel>Status</FormLabel>
+                <Select
+                    action={action}
+                    value={value1}
+                    placeholder="Status"
+                    onChange={(_e, newValue) => {
+                        console.log("Selected Value:", newValue);
+                        setValue1(newValue);
+                    }}
+                    variant="outlined"
+                    color="success"
+                    {...(value1 && {
+
+                        indicator: null,
+                    })}
+                >
+                    {approveOptions.map(option => (
+                        <Option key={option.id_approve} value={option.id_approve}>
+                            {option.name_approve}
+                        </Option>
+                    ))}
+                </Select>
+                <Stack direction={{ xs: 'column', sm: 'row' }}>
+                    {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
+                    {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+                </Stack>
+            </Grid>
+        </Grid>
+
+    );
 };
 
 export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_competency, it_d_note }: { itdirectorApprove: ApproveProps, it_m_name: string | null, id_section_competency: number, it_d_note: string | null }) => {
@@ -254,13 +254,13 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
 
     return (
 
-        
+
         <Grid container spacing={1}>
             <Grid item xs={6} component="div">
                 <FormLabel>IT Director Approve</FormLabel>
                 <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={itdirectorName} readOnly={true} onChange={(e) => setITDirectorName(e.target.value)} />
-                </Grid>
-                <Grid item xs={3} component="div">
+            </Grid>
+            <Grid item xs={3} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -272,7 +272,7 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                     }}
                     variant="outlined" color="warning"
                     {...(value2 && {
-                        
+
                         indicator: null,
                     })}
                 >
@@ -288,7 +288,7 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                 throw new Error('Function not implemented.');
             }} />}
         </Grid>
-        
+
 
     );
 };

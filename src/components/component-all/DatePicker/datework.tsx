@@ -7,11 +7,14 @@ import URLAPI from '../../../URLAPI';
 
 interface DateWorkProps {
     req_id: number;
+    date_start?: Date | null;
+    date_end?: Date | null;
+    
 }
 
-const DateWork: React.FC<DateWorkProps> = ({ req_id }) => {
-    const [dateStart, setDateStart] = useState<Dayjs | null>(null);
-    const [dateEnd, setDateEnd] = useState<Dayjs | null>(null);
+const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => {
+    const [dateStart, setDateStart] = useState<Dayjs | null>(date_start ? dayjs(date_start) : null);
+    const [dateEnd, setDateEnd] = useState<Dayjs | null>(date_end ? dayjs(date_end) : null);
     const [isLoading, setIsLoading] = useState(false);
 
     const updateDateWork = async (field: 'date_start' | 'date_end', value: Dayjs | null) => {

@@ -81,6 +81,8 @@ interface RequestData {
     it_d_note?: string;
     id_priority?: number | null;
     name_priority?: string | null;
+    date_start?: Date | null;
+    date_end?: Date | null;
 }
 
 interface FileInfo {
@@ -725,7 +727,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 ระยะเวลาที่ทำ
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <DateWork req_id={requestData.id} />
+                                <DateWork req_id={requestData.id} date_start={requestData.date_start} date_end={requestData.date_end} />
                             </Box>
                         </Stack>
                         <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>

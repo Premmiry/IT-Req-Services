@@ -26,21 +26,21 @@ interface ListRequestITProps {
     tab: number;
 }
 
-const style = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: 800,
-    maxHeight: '1000vh',
-    bgcolor: 'background.paper',
-    border: '2px solid #000',
-    boxShadow: 24,
-    p: 4,
-    overflowY: 'auto',
-    // เพิ่ม z-index เพื่อให้แน่ใจว่า Modal อยู่ด้านบนสุด
-    zIndex: 1300
-};
+// const style = {
+//     position: 'absolute',
+//     top: '50%',
+//     left: '50%',
+//     transform: 'translate(-50%, -50%)',
+//     width: 800,
+//     maxHeight: '1000vh',
+//     bgcolor: 'background.paper',
+//     border: '2px solid #000',
+//     boxShadow: 24,
+//     p: 4,
+//     overflowY: 'auto',
+//     // เพิ่ม z-index เพื่อให้แน่ใจว่า Modal อยู่ด้านบนสุด
+//     zIndex: 1300
+// };
 
 export default function ListRequestIT({ tab }: ListRequestITProps) {
     const navigate = useNavigate();

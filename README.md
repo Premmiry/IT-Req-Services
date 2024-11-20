@@ -37,3 +37,7 @@ export default {
 sudo docker image build -f Dockerfile -t vite_react .
 sudo docker build -t vite_app .
 sudo docker-compose -f docker-compose.yml -p serve up
+
+
+## fixed package.json
+// "postinstall": "chmod +x node_modules/.bin/vite",
