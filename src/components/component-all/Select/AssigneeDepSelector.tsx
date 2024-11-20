@@ -18,8 +18,19 @@ import {
 } from '@mui/material';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import URLAPI from '../../../URLAPI';
+import { Department } from '../../component-all/Paper/RequestDetail'; // Adjust the import path as needed
 
-const AssigneeDepSelector = ({ requestId, selectedAssigneesDep = [], onAssigneeDepChange }) => {
+interface AssigneeDepSelectorProps {
+    requestId: number;
+    selectedAssigneesDep: Department[];
+    onAssigneeDepChange: (departments: Department[]) => void;
+}
+
+const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({
+    requestId,
+    selectedAssigneesDep,
+    onAssigneeDepChange,
+}) => {
     const [open, setOpen] = useState(false);
     const [departments, setDepartments] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');

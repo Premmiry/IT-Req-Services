@@ -25,7 +25,7 @@ export default function Fileupload({ onFilesChange, reqId, initialFiles = [] }: 
         const fetchExistingFiles = async () => {
             if (!reqId) return;
             try {
-                const response = await fetch(`${URLAPI}/it-requests/images?req_id=${reqId}`);
+                const response = await fetch(`${URLAPI}/it-requests/files?req_id=${reqId}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch existing files');
                 }

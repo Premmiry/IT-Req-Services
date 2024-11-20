@@ -247,7 +247,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                 console.warn('employees ไม่เป็น array');
             }
 
-            const departmentIds = departments.map((dept) => parseInt(dept.id_department));
+            const departmentIds = departments.map((dept) => dept.id_department);
             await fetchITDepartments(departmentIds);
 
             setAssignedDepartments(departments);
@@ -373,7 +373,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
             setAssignedDepartments((prevDepartments) => [
                 ...prevDepartments,
                 ...selectedDepartments.filter((department) =>
-                    !prevDepartments.some((deptId) => deptId.id_department_it === department.id)
+                    !prevDepartments.some((deptId) => deptId.id_department === department.id)
                 )
             ]);
         }
@@ -384,7 +384,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
             setAssignedEmployees((prevEmployees) => [
                 ...prevEmployees,
                 ...selectedAssignees.filter((assignee) =>
-                    !prevEmployees.some((emp) => emp.id === assignee.id)
+                    !prevEmployees.some((emp) => emp.id_req_emp === assignee.id)
                 )
             ]);
         }
@@ -499,8 +499,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                                     {requestData.m_name && (
                                                         <Step>
                                                             <StepLabel
-                                                                variant="solid"
-                                                                color="neutral"
                                                                 StepIconComponent={() => (
                                                                     <CheckCircleIcon sx={{ color: 'primary.main', fontSize: '1.5rem' }} />
                                                                 )}
@@ -644,8 +642,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                             {requestData.it_m_name && (
                                                 <Step>
                                                     <StepLabel
-                                                        variant="solid"
-                                                        color="neutral"
                                                         StepIconComponent={() => (
                                                             <CheckCircleIcon sx={{ color: 'warning.main', fontSize: '1.5rem' }} />
                                                         )}

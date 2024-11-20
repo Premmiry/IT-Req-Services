@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Container, Typography, Button, Chip } from '@mui/material';
+import { Box, Container, Typography, Button, Chip, Modal } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import URLAPI from '../../../URLAPI';
+import RequestDetail from '../Paper/RequestDetail';
 
 // แยก Type Colors และ Status Colors ออกมาเป็น Constants
 const TYPE_COLORS = {
@@ -49,6 +50,10 @@ export default function ListRequest() {
     const [rows, setRows] = useState<RowData[]>([]);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
+
+    // State for Modal
+    const [modalOpen, setModalOpen] = useState<boolean>(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
 
     // แยกฟังก์ชัน formatDate ออกมาเป็น memoized function
     const formatDate = useCallback((dateString: string) => {
@@ -143,7 +148,7 @@ export default function ListRequest() {
             renderCell: (params: GridRenderCellParams) => (
                 <span
                     style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                    onClick={() => navigate(`/edit-request/${params.row.id}`)}
+                    onClick={() => handleOpenModal(params.row.id)}
                 >
                     {params.value}
                 </span>
@@ -180,7 +185,7 @@ export default function ListRequest() {
             headerName: 'วันที่ Request',
             width: 100,
         },
-    ], [navigate, getTypeColor, getStatusColor]);
+    ], [getTypeColor, getStatusColor]);
 
     // Load initial data
     useEffect(() => {
@@ -201,6 +206,16 @@ export default function ListRequest() {
             fetchRequests();
         }
     }, [userData, admin, fetchRequests]);
+
+    // Handlers for Modal
+    const handleOpenModal = useCallback((id: number) => {
+        setSelectedRequestId(id);
+        setModalOpen(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setModalOpen(false);
+    }, []);
 
     return (
         <Container maxWidth="xl">
@@ -234,6 +249,40 @@ export default function ListRequest() {
                     />
                 </Box>
             </Box>
+
+            {/* Modal for Request Detail */}
+            <Modal
+                open={modalOpen}
+                onClose={handleCloseModal}
+                aria-labelledby="request-detail-modal-title"
+                aria-describedby="request-detail-modal-description"
+                role="dialog"
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }}
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: {
+                        xs: '90%',    // ใช้ความกว้าง 90% ของหน้าจอสำหรับขนาดเล็ก (มือถือ)
+                        sm: '80%',    // สำหรับแท็บเล็ตเล็ก
+                        md: '70%',    // สำหรับแท็บเล็ตและเดสก์ท็อปขนาดกลาง
+                        lg: '60%',    // สำหรับเดสก์ท็อปขนาดใหญ่
+                        xl: '50%',    // สำหรับจอขนาดใหญ่มาก
+                    },
+                    maxWidth: '800px',  // กำหนดขีดจำกัดความกว้างสูงสุดให้กับ Modal
+                    bgcolor: 'background.paper',
+                    boxShadow: 24,
+                    p: 4,
+                }}>
+                    {selectedRequestId && <RequestDetail id={selectedRequestId} onClose={handleCloseModal} />}
+                </Box>
+            </Modal>
         </Container>
     );
 }
