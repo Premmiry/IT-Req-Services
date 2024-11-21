@@ -9,6 +9,7 @@ import NoUser from './components/component-all/Login/NoUser';
 import RequestDetail from './components/component-all/Paper/RequestDetail';
 import UAT from './components/component-all/ContentTypeR/boxUAT';
 import { SelectPriority } from './components/component-all/Select/select-priority'
+import Boxsubtask from './components/component-all/Paper/SubtaskList';
 function App() {
   return (
     <UserProvider>
@@ -50,6 +51,7 @@ function App() {
         <Route path="/nouseryh" element={<NoUser type="YH" />} />
         <Route path="/boxUAT/:id" element={<UAT id={0} username={''} department={0} status={0} />} />
         <Route path="/priority/:id" element={<SelectPriority id={0} id_priority={0} />} />
+        <Route path="/subtask" element={<Boxsubtask />} />
       </Routes>
       <br />
       {/* <Footer /> */}

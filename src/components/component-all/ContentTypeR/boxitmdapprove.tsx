@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Stack, Grid } from '@mui/material';
+import { Stack, Grid, Box, FormGroup } from '@mui/material';
 import { FormLabel, Input, Select, Option, SelectStaticProps, Button } from '@mui/joy';
 import { ApproveAlert } from '../Alert/alert';
 import { useNavigate } from 'react-router-dom';
 import URLAPI from '../../../URLAPI';
+import CheckboxITApprove from '../Checkbox/checkbox_it_approve';
 
 const fetchApproveOptions = async () => {
     const response = await fetch(`${URLAPI}/mtapprove`);
@@ -18,6 +19,7 @@ interface ApproveProps {
     status: string | null;
     req_id: string | null;
     it_m_name?: string | null; // Make id_section_competency optional
+    level_job: number | null;
 }
 
 interface UserData {
@@ -41,6 +43,7 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
     const [value1, setValue1] = React.useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [itmanagerName, setITManagerName] = useState<string>(itmanagerApprove?.name || '');
+    const [levelJob, setLevelJob] = useState<number | null>(itmanagerApprove?.level_job ?? null);
     const [showSubmitButton, setShowSubmitButton] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const action: SelectStaticProps['action'] = React.useRef(null);
@@ -50,9 +53,10 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
         return {
             name: itmanagerApprove?.name,
             req_id: itmanagerApprove?.req_id,
-            status: itmanagerApprove?.status
+            status: itmanagerApprove?.status,
+            level_job: itmanagerApprove?.level_job
         };
-    }, [itmanagerApprove?.name, itmanagerApprove?.req_id, itmanagerApprove?.status]);
+    }, [itmanagerApprove?.name, itmanagerApprove?.req_id, itmanagerApprove?.status, itmanagerApprove?.level_job]);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -63,6 +67,7 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
             } else if (memoizedITManagerApprove.name) {
                 setITManagerName(memoizedITManagerApprove.name);
                 setValue1(memoizedITManagerApprove.status ? parseInt(memoizedITManagerApprove.status) : null);
+                setLevelJob(memoizedITManagerApprove.level_job);
             }
 
             const shouldShowSubmitButton = Boolean(memoizedITManagerApprove.req_id) &&
@@ -71,6 +76,11 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
             setShowSubmitButton(shouldShowSubmitButton);
         }
     }, [memoizedITManagerApprove]);
+
+    const handleChangeCheck = () => (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(event.target.value, 10);
+        setLevelJob(value);
+    };
 
     const handleSubmit = useCallback(async () => {
         if (!value1) {
@@ -83,8 +93,13 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
             return;
         }
 
+        if (!levelJob) {
+            alert('Level Job cannot be empty');
+            return;
+        }
+
         try {
-            const response = await fetch(`${URLAPI}/it_m_approve/${itmanagerApprove.req_id}?name=${encodeURIComponent(itmanagerName)}&status=${encodeURIComponent(value1)}&note=${encodeURIComponent(it_m_note ?? '')}`, {
+            const response = await fetch(`${URLAPI}/it_m_approve/${itmanagerApprove.req_id}?name=${encodeURIComponent(itmanagerName)}&status=${encodeURIComponent(value1)}&note=${encodeURIComponent(it_m_note ?? '')}&level_job=${encodeURIComponent(levelJob)}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -117,7 +132,6 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
     }, [value1, itmanagerApprove, itmanagerName, it_m_note, id_division_competency, navigate]);
 
     return (
-
         <Grid container spacing={1}>
             <Grid item xs={6} component="div">
                 <FormLabel>IT Manager Approve</FormLabel>
@@ -144,7 +158,6 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
                     variant="outlined"
                     color="success"
                     {...(value1 && {
-
                         indicator: null,
                     })}
                 >
@@ -159,12 +172,22 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
                     {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
                 </Stack>
             </Grid>
+            <Grid item xs={6}>
+                <Box sx={{ mt: 1 }}>
+                    <FormGroup
+                        aria-label="position"
+                        row
+                        id={`checkbox_group`}
+                    >
+                        <CheckboxITApprove levelJob={levelJob} onChange={handleChangeCheck()} />
+                    </FormGroup>
+                </Box>
+            </Grid>
         </Grid>
-
     );
 };
 
-export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_competency, it_d_note }: { itdirectorApprove: ApproveProps, it_m_name: string | null, id_section_competency: number, it_d_note: string | null }) => {
+export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_competency, it_d_note, levelJob }: { itdirectorApprove: ApproveProps, it_m_name: string | null, id_section_competency: number, it_d_note: string | null, levelJob: number | null }) => {
     const [value2, setValue2] = React.useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [itdirectorName, setITDirectorName] = useState<string>(itdirectorApprove?.name || '');
@@ -210,9 +233,14 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
             return;
         }
 
+        if (!levelJob) {
+            alert('Level Job cannot be empty');
+            return;
+        }
+
         try {
             if (!it_m_name) {
-                const response = await fetch(`${URLAPI}/it_m_approve/${itdirectorApprove.req_id}?name=${encodeURIComponent(itdirectorName)}&status=${encodeURIComponent(value2)}&note=${encodeURIComponent(it_d_note ?? '')}`, {
+                const response = await fetch(`${URLAPI}/it_m_approve/${itdirectorApprove.req_id}?name=${encodeURIComponent(itdirectorName)}&status=${encodeURIComponent(value2)}&note=${encodeURIComponent(it_d_note ?? '')}&level_job=${encodeURIComponent(levelJob ?? '')}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -250,11 +278,9 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
         } catch (error) {
             console.error('Error updating director approval:', error);
         }
-    }, [value2, itdirectorApprove, itdirectorName, it_d_note, id_section_competency, navigate, it_m_name]);
+    }, [value2, itdirectorApprove, itdirectorName, it_d_note, id_section_competency, navigate, it_m_name, levelJob]);
 
     return (
-
-
         <Grid container spacing={1}>
             <Grid item xs={6} component="div">
                 <FormLabel>IT Director Approve</FormLabel>
@@ -272,7 +298,6 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                     }}
                     variant="outlined" color="warning"
                     {...(value2 && {
-
                         indicator: null,
                     })}
                 >
@@ -288,7 +313,5 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                 throw new Error('Function not implemented.');
             }} />}
         </Grid>
-
-
     );
 };

@@ -12,23 +12,11 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import LocalOfferIcon from '@mui/icons-material/LocalOffer';
-import DeleteIcon from '@mui/icons-material/Delete';
 import AssigneeDepSelector from '../Select/AssigneeDepSelector';
 import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
 import UAT from '../ContentTypeR/boxUAT'; // นำเข้า PrioritySelector
 import { SelectPriority } from '../Select/select-priority';
 import DateWork from '../DatePicker/datework';
-
-// ฟังก์ชันสุ่มสี
-type ChipColor = 'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'info' | 'default';
-
-// แก้ไข function getRandomColor ให้ return type ที่ถูกต้อง
-const getRandomColor = (): ChipColor => {
-    const colors: ChipColor[] = ['primary', 'success', 'secondary', 'error', 'warning', 'info'];
-    const randomIndex = Math.floor(Math.random() * colors.length);
-    return colors[randomIndex];
-};
 
 const style = {
     position: 'absolute',
@@ -177,8 +165,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
 
     // Handlers
     const handleEdit = () => navigate(`/edit-request/${id}`);
-
-    
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -542,8 +528,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
 
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                                 <AssigneeDepSelector requestId={requestData.id}/>
-
-                                
                             </Box>
                         </Stack>
                         {/* Section: ผู้รับผิดชอบ */}

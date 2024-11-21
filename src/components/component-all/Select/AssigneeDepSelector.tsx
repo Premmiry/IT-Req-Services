@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Chip, Avatar, Dialog, DialogTitle, DialogContent, 
     DialogActions, Button, Typography, Box, List,
@@ -226,7 +226,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId }) 
                             deleteIcon={<DeleteIcon />}
                             variant="outlined"
                             icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                            label={`${dept.name_department} (${dept.user_assigned})`}
+                            label={`${dept.name_department}`}
                             onDelete={() => handleRemoveDepartment(dept.id_req_dep)}
                         />
                     ))}
