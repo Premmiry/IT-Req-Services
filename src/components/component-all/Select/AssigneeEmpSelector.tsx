@@ -25,6 +25,7 @@ interface Employee {
     name_department?: string;
     position?: string;
     phone?: string;
+    nickname?: string;
 }
 
 interface AssignedEmployee {
@@ -309,7 +310,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText 
-                                    primary={employee.emp_name} 
+                                    primary={employee.nickname} 
                                     secondary={employee.name_department || 'N/A'} 
                                 />
                             </MenuItem>
