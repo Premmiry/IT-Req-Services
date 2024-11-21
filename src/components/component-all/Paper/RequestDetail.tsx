@@ -17,7 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AssigneeDepSelector from '../Select/AssigneeDepSelector';
 import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
 import UAT from '../ContentTypeR/boxUAT'; // นำเข้า PrioritySelector
-import { SelectPriority } from '../Select/select-priority'; 
+import { SelectPriority } from '../Select/select-priority';
 import DateWork from '../DatePicker/datework';
 
 // ฟังก์ชันสุ่มสี
@@ -92,27 +92,6 @@ interface FileInfo {
     file_new_name: string;
 }
 
-interface AssignedEntity {
-    user_assigned: string;
-    assigned_date: string;
-}
-
-interface AssignedDepartment extends AssignedEntity {
-    id: number;
-    id_req_dep: number;
-    req_id: number;
-    id_department: number;
-    name_department?: string;
-}
-
-interface AssignedEmployee extends AssignedEntity {
-    id: number;
-    id_req_emp: number;
-    req_id: number;
-    id_emp: number;
-    emp_name?: string;
-}
-
 interface RequestDetailProps {
     id: number;
     isModal?: boolean;
@@ -131,10 +110,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
     const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
-    const [assignedDepartments, setAssignedDepartments] = useState<AssignedDepartment[]>([]);
-    const [assignedEmployees, setAssignedEmployees] = useState<AssignedEmployee[]>([]);
-    const [selectedAssignees, setSelectedAssignees] = useState<any[]>([]);
-    const [selectedDepartments, setSelectedDepartments] = useState<any[]>([]);
+
 
     // Helper function to format dates
     const formatDate = useCallback((dateString: string): string => {
@@ -181,40 +157,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         }
     }, [id]);
 
-    const fetchAssignments = useCallback(async () => {
-        if (!id) return;
-
-        try {
-            const [departmentsRes, employeesRes] = await Promise.all([
-                fetch(`${URLAPI}/assigned_department/${id}`),
-                fetch(`${URLAPI}/assigned_employee/${id}`)
-            ]);
-
-            if (!departmentsRes.ok || !employeesRes.ok) {
-                throw new Error('Error fetching assignments');
-            }
-
-            let departments: AssignedDepartment[] = await departmentsRes.json();
-            let employees: AssignedEmployee[] = await employeesRes.json();
-
-            console.log(departments, employees);
-
-            if (!Array.isArray(departments)) {
-                departments = [];
-                console.warn('departments ไม่เป็น array');
-            }
-            if (!Array.isArray(employees)) {
-                employees = [];
-                console.warn('employees ไม่เป็น array');
-            }
-
-            setAssignedDepartments(departments);
-            setAssignedEmployees(employees);
-        } catch (error) {
-            console.error('Error fetching assignments:', error);
-        }
-    }, [id]);
-
     // Effects
     useEffect(() => {
         const fetchAllData = async () => {
@@ -222,7 +164,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
             try {
                 await Promise.all([
                     fetchRequestData(),
-                    fetchAssignments()
                 ]);
             } catch (error) {
                 setError(error instanceof Error ? error.message : 'An error occurred');
@@ -232,70 +173,12 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         };
 
         fetchAllData();
-    }, [fetchRequestData, fetchAssignments]);
+    }, [fetchRequestData]);
 
     // Handlers
     const handleEdit = () => navigate(`/edit-request/${id}`);
 
-    const handleRemoveDepartment = async (id_req_dep: number) => {
-        try {
-            const response = await fetch(`${URLAPI}/assign_department/${id_req_dep}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to remove department');
-            }
-
-            setAssignedDepartments((prevDepartments) =>
-                prevDepartments.filter((department) => department.id_req_dep !== id_req_dep)
-            );
-            console.log(`Department with id_req_dep ${id_req_dep} removed successfully.`);
-        } catch (error) {
-            console.error('Error removing department:', error);
-        }
-    };
-
-    const handleRemoveEmployee = async (id_req_emp: number) => {
-        try {
-            const response = await fetch(`${URLAPI}/assign_employee/${id_req_emp}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to remove employee');
-            }
-
-            setAssignedEmployees((prevEmployees) =>
-                prevEmployees.filter((employee) => employee.id_req_emp !== id_req_emp)
-            );
-            console.log(`Employee with id_req_emp ${id_req_emp} removed successfully.`);
-        } catch (error) {
-            console.error('Error removing employee:', error);
-        }
-    };
-
-    useEffect(() => {
-        if (selectedDepartments.length > 0) {
-            setAssignedDepartments((prevDepartments) => [
-                ...prevDepartments,
-                ...selectedDepartments.filter((department) =>
-                    !prevDepartments.some((deptId) => deptId.id_department === department.id)
-                )
-            ]);
-        }
-    }, [selectedDepartments]);
-
-    useEffect(() => {
-        if (selectedAssignees.length > 0) {
-            setAssignedEmployees((prevEmployees) => [
-                ...prevEmployees,
-                ...selectedAssignees.filter((assignee) =>
-                    !prevEmployees.some((emp) => emp.id === assignee.id)
-                )
-            ]);
-        }
-    }, [selectedAssignees]);
+    
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -658,31 +541,9 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                             </Typography>
 
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <AssigneeDepSelector
-                                    requestId={requestData.id}
-                                    selectedAssigneesDep={selectedDepartments}
-                                    onAssigneeDepChange={setSelectedDepartments}
-                                    setAssignedDepartments={setAssignedDepartments} // ส่งฟังก์ชันนี้ไป
-                                />
+                                <AssigneeDepSelector requestId={requestData.id}/>
 
-                                {assignedDepartments.length > 0 ? (
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                        {assignedDepartments.map((dept, index) => (
-                                            <Chip
-                                                key={index}
-                                                color={getRandomColor()}
-                                                deleteIcon={<DeleteIcon />}
-                                                variant="outlined"
-                                                icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                                                label={dept.name_department}
-                                                onClick={() => console.info(`You clicked the Chip for ${dept.name_department}`)}
-                                                onDelete={isITStaff ? () => handleRemoveDepartment(dept.id_req_dep) : undefined}
-                                            />
-                                        ))}
-                                    </Box>
-                                ) : (
-                                    <Typography color="text.secondary">No departments assigned</Typography>
-                                )}
+                                
                             </Box>
                         </Stack>
                         {/* Section: ผู้รับผิดชอบ */}
@@ -691,35 +552,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                                 ผู้รับผิดชอบ
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <AssigneeEmpSelector
-                                    requestId={requestData.id}
-                                    selectedAssignees={selectedAssignees}
-                                    onAssigneeChange={setSelectedAssignees}
-                                />
-                                {assignedEmployees.length > 0 ? (
-                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                        {assignedEmployees.map((emp, index) => (
-                                            <Chip
-                                                key={index}
-                                                color="primary"
-                                                variant="outlined"
-                                                avatar={<Avatar alt={emp.emp_name} src="" />}
-                                                label={emp.emp_name}
-                                                onClick={() => console.info(`You clicked the Chip for ${emp.emp_name}`)}
-                                                onDelete={isITStaff ? () => handleRemoveEmployee(emp.id_req_emp) : undefined}
-                                                deleteIcon={<DeleteIcon />}
-                                                sx={{
-                                                    '& .MuiChip-deleteIcon': {
-                                                        color: '#f44336',
-                                                        ml: '4px'
-                                                    }
-                                                }}
-                                            />
-                                        ))}
-                                    </Box>
-                                ) : (
-                                    <Typography color="text.secondary">No employees assigned</Typography>
-                                )}
+                                <AssigneeEmpSelector requestId={requestData.id} />
                             </Box>
                         </Stack>
                         <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>

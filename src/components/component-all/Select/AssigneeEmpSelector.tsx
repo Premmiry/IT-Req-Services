@@ -1,32 +1,95 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List, ListItem,
-    ListItemAvatar, ListItemText, TextField, Stack
+    Chip, 
+    Avatar, 
+    Dialog, 
+    DialogTitle, 
+    DialogContent, 
+    DialogActions, 
+    Button, 
+    Typography, 
+    Box, 
+    List, 
+    ListItem,
+    ListItemAvatar, 
+    ListItemText, 
+    TextField, 
+    Stack, 
+    Snackbar, 
+    Alert
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import DeleteIcon from '@mui/icons-material/Delete';
 import URLAPI from '../../../URLAPI';
+// URL Configuration
 
+// TypeScript Interfaces
 interface Employee {
-    id : number;
+    id: number;
     id_emp: number;
     emp_name: string;
-    // เพิ่มฟิลด์อื่นๆ ที่จำเป็นต้องใช้
+    department?: string;
+    position?: string;
+}
+
+interface AssignedEntity {
+    user_assigned: string;
+    assigned_date: string;
+}
+
+interface AssignedEmployee extends AssignedEntity {
+    id: number;
+    id_req_emp: number;
+    req_id: number;
+    id_emp: number;
+    emp_name?: string;
+    department?: string;
+    position?: string;
 }
 
 interface AssigneeEmpSelectorProps {
     requestId: number;
-    selectedAssignees: Employee[];
-    onAssigneeChange: (assignees: Employee[]) => void;
+    readOnly?: boolean;
 }
 
-const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, selectedAssignees, onAssigneeChange }) => {
+// Main Component
+const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ 
+    requestId, 
+    readOnly = false
+}) => {
+    // State Management
     const [open, setOpen] = useState(false);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
+    const [assignedEmployees, setAssignedEmployees] = useState<AssignedEmployee[]>([]);
 
+    // Notification State
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+
+    // Utility Functions
+    const showNotification = (message: string, severity: 'success' | 'error' = 'success') => {
+        setSnackbarMessage(message);
+        setSnackbarSeverity(severity);
+        setSnackbarOpen(true);
+    };
+
+    const handleSnackbarClose = () => {
+        setSnackbarOpen(false);
+    };
+
+    // User Authentication Check
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
+
+    // Lifecycle and Data Fetching
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
         if (storedUserData) {
@@ -34,15 +97,33 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, se
         }
     }, []);
 
-    const isITStaff = useMemo(() => {
-        return userData?.id_section === 28 ||
-            userData?.id_division_competency === 86 ||
-            userData?.id_section_competency === 28;
-    }, [userData]);
+    useEffect(() => {
+        if (userData && requestId) {
+            fetchAssignments();
+        }
+    }, [userData, requestId]);
 
+    // Fetch Assigned Employees
+    const fetchAssignments = useCallback(async () => {
+        try {
+            const response = await fetch(`${URLAPI}/assigned_employee/${requestId}`);
+            if (!response.ok) {
+                throw new Error('Error fetching assignments');
+            }
+
+            const employees: AssignedEmployee[] = await response.json();
+            setAssignedEmployees(Array.isArray(employees) ? employees : []);
+            showNotification('Assignments fetched successfully');
+        } catch (error) {
+            console.error('Error fetching assignments:', error);
+            showNotification('Failed to fetch assignments', 'error');
+        }
+    }, [requestId]);
+
+    // Fetch All Employees
     const fetchEmployees = useCallback(async () => {
         if (!userData) {
-            console.error('User data is not available');
+            showNotification('User data is not available', 'error');
             return;
         }
         setLoading(true);
@@ -50,23 +131,24 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, se
         try {
             const response = await fetch(`${URLAPI}/employee`);
             if (!response.ok) throw new Error('Failed to fetch employees');
-            
+
             const data = await response.json();
             setEmployees(data);
+            setLoading(false);
         } catch (error) {
-            setError('Error fetching employees');
-            console.error('Error fetching employees:', error);
-        } finally {
+            showNotification('Error fetching employees', 'error');
             setLoading(false);
         }
-    }, [URLAPI, userData]);
+    }, [userData]);
 
+    // Dialog Handlers
     const handleClickOpen = () => {
+        if (readOnly) return;
         if (userData) {
             setOpen(true);
             fetchEmployees();
         } else {
-            console.error('User data is not available');
+            showNotification('User data is not available', 'error');
         }
     };
 
@@ -75,38 +157,60 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, se
         setSearchQuery('');
     };
 
+    // Employee Selection and Removal
     const handleSelectEmployee = async (employee: Employee) => {
+        if (readOnly) return;
+
         if (!userData) {
-            console.error('User data is not available');
+            showNotification('User data is not available', 'error');
             return;
         }
-    
-        if (!employee.id_emp) {
-            console.error('Employee ID is missing');
-            return; // Skip if employee doesn't have an ID
-        }
-    
-        if (selectedAssignees.some((a) => a.id_emp === employee.id_emp)) {
-            console.log('Employee already assigned');
+
+        // Check for duplicate employee
+        const isDuplicate = assignedEmployees.some(emp => emp.id_emp === employee.id_emp);
+        if (isDuplicate) {
+            showNotification('This employee is already assigned', 'error');
+            handleClose();
             return;
         }
-    
+
         try {
             const response = await fetch(
                 `${URLAPI}/assign_employee/${requestId}?id_emp=${employee.id_emp}&username=${userData.username}`,
                 { method: 'POST' }
             );
             if (!response.ok) throw new Error('Error assigning employee');
-    
-            // Directly update the selectedAssignees
-            onAssigneeChange([...selectedAssignees, { ...employee, id: employee.id_emp }]);
-    
+
+            // Fetch updated assignments
+            await fetchAssignments();
+            showNotification('Employee assigned successfully');
             handleClose();
         } catch (error) {
-            console.error('Error adding employee:', error);
+            showNotification('Failed to assign employee', 'error');
         }
     };
 
+    const handleRemoveEmployee = async (id_req_emp: number) => {
+        if (readOnly) return;
+
+        try {
+            const response = await fetch(`${URLAPI}/assign_employee/${id_req_emp}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to remove employee');
+            }
+
+            // Fetch updated assignments
+            await fetchAssignments();
+            showNotification('Employee removed successfully');
+        } catch (error) {
+            showNotification('Failed to remove employee', 'error');
+        }
+    };
+
+    // UI Helpers
     const filteredEmployees = employees.filter((employee) =>
         employee.emp_name.toLowerCase().includes(searchQuery.toLowerCase()) && employee.id_emp
     );
@@ -117,67 +221,135 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, se
     };
 
     return (
-        <Box>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                {isITStaff && (
-                    <Chip
-                        icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
-                        label="Add Employee :   "
-                        onClick={handleClickOpen}
-                        size="small"
-                        sx={{
-                            backgroundColor: 'transparent',
-                            height: '24px',
-                            cursor: 'pointer',
-                            '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
-                            '& .MuiChip-icon': { color: '#1976d2', ml: '4px' },
-                            '&:hover': { backgroundColor: '#e3f2fd' }
-                        }}
-                    />
-                )}
+        <>
+            <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+                <Box>
+                    {!readOnly && isITStaff && (
+                        <Chip
+                            icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
+                            label="เพิ่มเจ้าหน้าที่"
+                            onClick={handleClickOpen}
+                            size="small"
+                            sx={{
+                                backgroundColor: 'transparent',
+                                height: '24px',
+                                cursor: 'pointer',
+                                '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
+                                '& .MuiChip-icon': { color: '#1976d2', ml: '4px' },
+                                '&:hover': { backgroundColor: '#e3f2fd' }
+                            }}
+                        />
+                    )}
+
+                    {assignedEmployees.length > 0 ? (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                            {assignedEmployees.map((emp) => (
+                                <Chip
+                                    key={emp.id_req_emp}
+                                    color="primary"
+                                    variant="outlined"
+                                    avatar={
+                                        <Avatar sx={{ bgcolor: randomColor() }}>
+                                            {emp.emp_name?.[0]?.toUpperCase()}
+                                        </Avatar>
+                                    }
+                                    label={`${emp.emp_name} (${emp.department || 'N/A'})`}
+                                    onDelete={
+                                        !readOnly && isITStaff 
+                                            ? () => handleRemoveEmployee(emp.id_req_emp) 
+                                            : undefined
+                                    }
+                                    deleteIcon={
+                                        !readOnly && isITStaff 
+                                            ? <DeleteIcon /> 
+                                            : undefined
+                                    }
+                                    sx={{
+                                        '& .MuiChip-deleteIcon': {
+                                            color: '#f44336',
+                                            ml: '4px'
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </Box>
+                    ) : (
+                        <Typography color="text.secondary">ยังไม่มีเจ้าหน้าที่ ที่ได้รับมอบหมาย</Typography>
+                    )}
+
+                    {/* Employee Selection Dialog */}
+                    <Dialog 
+                        open={open} 
+                        onClose={handleClose} 
+                        PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}
+                    >
+                        <DialogTitle>เลือกพนักงาน</DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mb: 2, mt: 1 }}>
+                                <TextField
+                                    autoFocus
+                                    placeholder="ค้นหาชื่อพนักงาน..."
+                                    variant="outlined"
+                                    size="small"
+                                    fullWidth
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </Box>
+
+                            <Box>
+                                {loading && <Typography variant="body2">กำลังโหลด...</Typography>}
+                                {error && <Typography variant="body2" color="error">{error}</Typography>}
+                                {filteredEmployees.length === 0 && !loading && !error ? (
+                                    <Typography variant="body2">ไม่พบพนักงาน</Typography>
+                                ) : (
+                                    <List>
+                                        {filteredEmployees.map((employee) => (
+                                            <ListItem 
+                                                component={Button}
+                                                key={employee.id_emp} 
+                                                onClick={() => handleSelectEmployee(employee)}
+                                            >
+                                                <ListItemAvatar>
+                                                    <Avatar sx={{ bgcolor: randomColor() }}>
+                                                        {employee.emp_name?.[0]?.toUpperCase()}
+                                                    </Avatar>
+                                                </ListItemAvatar>
+                                                <ListItemText 
+                                                    primary={employee.emp_name} 
+                                                    secondary={`${employee.department || 'N/A'} | ${employee.position || 'N/A'}`} 
+                                                />
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                )}
+                            </Box>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={handleClose} color="primary">
+                                ปิด
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                </Box>
             </Stack>
 
-            <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>
-                <DialogTitle>Select Employee</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mb: 2, mt: 1 }}>
-                        <TextField
-                            autoFocus
-                            placeholder="ค้นหาชื่อพนักงาน..."
-                            variant="outlined"
-                            size="small"
-                            fullWidth
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </Box>
-
-                    <Box>
-                        {loading && <Typography variant="body2">Loading...</Typography>}
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        {filteredEmployees.length === 0 && !loading && !error ? (
-                            <Typography variant="body2">No employees available</Typography>
-                        ) : (
-                            <List>
-                                {filteredEmployees.map((employee) => (
-                                    <ListItem button key={employee.id_emp} onClick={() => handleSelectEmployee(employee)}>
-                                        <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: randomColor() }}>{employee.emp_name[0]?.toUpperCase()}</Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText primary={employee.emp_name} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} color="primary">
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Box>
+            {/* Notification Snackbar */}
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={3000}
+                onClose={handleSnackbarClose}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert 
+                    onClose={handleSnackbarClose} 
+                    severity={snackbarSeverity} 
+                    sx={{ width: '100%' }}
+                >
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
+        </>
     );
 };
 
