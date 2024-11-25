@@ -1,32 +1,82 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List, ListItem,
-    ListItemAvatar, ListItemText, TextField, Stack
+    Avatar,
+    AvatarGroup,
+    Menu,
+    MenuItem,
+    Typography,
+    Box,
+    ListItemAvatar,
+    ListItemText,
+    TextField,
+    Snackbar,
+    Alert,
+    IconButton,
+    Tooltip
 } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import CloseIcon from '@mui/icons-material/Close';
 import URLAPI from '../../../URLAPI';
 
+// Interfaces
 interface Employee {
-    id : number;
+    id: number;
     id_emp: number;
     emp_name: string;
-    // เพิ่มฟิลด์อื่นๆ ที่จำเป็นต้องใช้
+    name_department?: string;
+    position?: string;
+    phone?: string;
+}
+
+interface AssignedEmployee {
+    id: number;
+    id_req_emp: number;
+    req_id: number;
+    id_emp: number;
+    emp_name?: string;
+    name_department?: string;
+    position?: string;
+    user_assigned: string;
+    assigned_date: string;
 }
 
 interface AssigneeEmpSelectorProps {
     requestId: number;
-    selectedAssignees: Employee[];
-    onAssigneeChange: (assignees: Employee[]) => void;
+    readOnly?: boolean;
 }
 
-const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, selectedAssignees, onAssigneeChange }) => {
-    const [open, setOpen] = useState(false);
+const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
+    requestId,
+    readOnly = false
+}) => {
+    // State Management
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
+    const [assignedEmployees, setAssignedEmployees] = useState<AssignedEmployee[]>([]);
 
+    // Notification State
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+
+    // Utility Functions
+    const showNotification = (message: string, severity: 'success' | 'error' = 'success') => {
+        setSnackbarMessage(message);
+        setSnackbarSeverity(severity);
+        setSnackbarOpen(true);
+    };
+
+    // User Authentication Check
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
+
+    // Lifecycle Hooks
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
         if (storedUserData) {
@@ -34,150 +84,273 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({ requestId, se
         }
     }, []);
 
-    const isITStaff = useMemo(() => {
-        return userData?.id_section === 28 ||
-            userData?.id_division_competency === 86 ||
-            userData?.id_section_competency === 28;
-    }, [userData]);
+    useEffect(() => {
+        if (userData && requestId) {
+            fetchAssignments();
+        }
+    }, [userData, requestId]);
 
+    // Fetch Assignments
+    const fetchAssignments = useCallback(async () => {
+        try {
+            const response = await fetch(`${URLAPI}/assigned_employee/${requestId}`);
+            if (!response.ok) {
+                throw new Error('Error fetching assignments');
+            }
+
+            const employees: AssignedEmployee[] = await response.json();
+            setAssignedEmployees(Array.isArray(employees) ? employees : []);
+            // showNotification('Assignments fetched successfully');
+        } catch (error) {
+            console.error('Error fetching assignments:', error);
+            showNotification('เรียกข้อมูลงานไม่สำเร็จ', 'error');
+        }
+    }, [requestId]);
+
+    // Fetch Employees
     const fetchEmployees = useCallback(async () => {
         if (!userData) {
-            console.error('User data is not available');
+            showNotification('ไม่มีข้อมูลผู้ใช้', 'error');
             return;
         }
         setLoading(true);
-        setError(null);
         try {
             const response = await fetch(`${URLAPI}/employee`);
             if (!response.ok) throw new Error('Failed to fetch employees');
-            
+
             const data = await response.json();
             setEmployees(data);
         } catch (error) {
-            setError('Error fetching employees');
-            console.error('Error fetching employees:', error);
+            showNotification('Error fetching employees', 'error');
         } finally {
             setLoading(false);
         }
-    }, [URLAPI, userData]);
+    }, [userData]);
 
-    const handleClickOpen = () => {
-        if (userData) {
-            setOpen(true);
-            fetchEmployees();
-        } else {
-            console.error('User data is not available');
-        }
+    // Menu Handlers
+    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+        if (readOnly || !userData) return;
+        setAnchorEl(event.currentTarget);
+        fetchEmployees();
     };
 
-    const handleClose = () => {
-        setOpen(false);
+    const handleCloseMenu = () => {
+        setAnchorEl(null);
         setSearchQuery('');
     };
 
+    // Employee Selection
     const handleSelectEmployee = async (employee: Employee) => {
+        if (readOnly) return;
+
         if (!userData) {
-            console.error('User data is not available');
+            showNotification('User data is not available', 'error');
             return;
         }
-    
-        if (!employee.id_emp) {
-            console.error('Employee ID is missing');
-            return; // Skip if employee doesn't have an ID
-        }
-    
-        if (selectedAssignees.some((a) => a.id_emp === employee.id_emp)) {
-            console.log('Employee already assigned');
+
+        const isDuplicate = assignedEmployees.some(emp => emp.id_emp === employee.id_emp);
+        if (isDuplicate) {
+            showNotification('พนักงานคนนี้ได้รับมอบหมายแล้ว !!!', 'error');
+            handleCloseMenu();
             return;
         }
-    
+
         try {
             const response = await fetch(
                 `${URLAPI}/assign_employee/${requestId}?id_emp=${employee.id_emp}&username=${userData.username}`,
                 { method: 'POST' }
             );
             if (!response.ok) throw new Error('Error assigning employee');
-    
-            // Directly update the selectedAssignees
-            onAssigneeChange([...selectedAssignees, { ...employee, id: employee.id_emp }]);
-    
-            handleClose();
+
+            await fetchAssignments();
+            showNotification('พนักงานที่ได้รับมอบหมายเรียบร้อยแล้ว');
+            handleCloseMenu();
         } catch (error) {
-            console.error('Error adding employee:', error);
+            showNotification('ไม่สามารถมอบหมายพนักงานได้', 'error');
         }
     };
 
-    const filteredEmployees = employees.filter((employee) =>
-        employee.emp_name.toLowerCase().includes(searchQuery.toLowerCase()) && employee.id_emp
-    );
+    // Employee Removal
+    const handleRemoveEmployee = async (id_req_emp: number) => {
+        if (readOnly) return;
 
+        try {
+            const response = await fetch(`${URLAPI}/assign_employee/${id_req_emp}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('ไม่สามารถลบพนักงานได้');
+            }
+
+            await fetchAssignments();
+            showNotification('ลบพนักงานเรียบร้อยแล้ว');
+        } catch (error) {
+            showNotification('ไม่สามารถลบพนักงานได้', 'error');
+        }
+    };
+
+    // Utility Functions
     const randomColor = () => {
         const colors = ['#FF8A80', '#FFD180', '#FF9E80', '#E1BEE7', '#BBDEFB', '#C5E1A5'];
         return colors[Math.floor(Math.random() * colors.length)];
     };
 
+    // Filtering Employees
+    const filteredEmployees = employees.filter((employee) =>
+        employee.emp_name.toLowerCase().includes(searchQuery.toLowerCase()) && employee.id_emp
+    );
+
     return (
-        <Box>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                {isITStaff && (
-                    <Chip
-                        icon={<PersonAddIcon sx={{ fontSize: 16 }} />}
-                        label="Add Employee :   "
-                        onClick={handleClickOpen}
-                        size="small"
+        <>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, flexWrap: 'wrap' }}>
+                {/* Add Employee Trigger */}
+                {!readOnly && isITStaff && (
+                    <Typography
+                        onClick={handleOpenMenu}
                         sx={{
-                            backgroundColor: 'transparent',
-                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
                             cursor: 'pointer',
+                            color: 'primary.main',
                             '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
                             '& .MuiChip-icon': { color: '#1976d2', ml: '4px' },
                             '&:hover': { backgroundColor: '#e3f2fd' }
                         }}
-                    />
-                )}
-            </Stack>
+                    >
+                        <PersonAddIcon sx={{ mr: 2, fontSize: 20 }} />
 
-            <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>
-                <DialogTitle>Select Employee</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mb: 2, mt: 1 }}>
+                    </Typography>
+                )}
+                {/* Assigned Employees Avatar Group */}
+                {assignedEmployees.length > 0 ? (
+                    <AvatarGroup
+                        max={4}
+                        sx={{ mr: 2 }}
+                        total={assignedEmployees.length}
+                    >
+                        {assignedEmployees.slice(0, 4).map((emp) => (
+                            <Box
+                                key={emp.id_req_emp}
+                                sx={{
+                                    position: 'relative',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    '&:hover .remove-button': {
+                                        visibility: 'visible',
+                                    }
+                                }}
+                            >
+                                <Tooltip title={emp.emp_name || ''} arrow>
+                                    <Avatar
+                                        sx={{
+                                            bgcolor: randomColor(),
+                                            width: 32,
+                                            height: 32,
+                                            fontSize: '0.875rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {emp.emp_name?.[0]?.toUpperCase()}
+                                    </Avatar>
+                                </Tooltip>
+                                {!readOnly && isITStaff && (
+                                    <IconButton
+                                        className="remove-button"
+                                        size="small"
+                                        onClick={() => handleRemoveEmployee(emp.id_req_emp)}
+                                        sx={{
+                                            position: 'absolute',
+                                            top: -8,
+                                            right: -8,
+                                            backgroundColor: 'error.main',
+                                            color: 'white',
+                                            width: 16,
+                                            height: 16,
+                                            visibility: 'hidden',
+                                            '&:hover': {
+                                                backgroundColor: 'error.dark'
+                                            }
+                                        }}
+                                    >
+                                        <CloseIcon sx={{ fontSize: 12 }} />
+                                    </IconButton>
+                                )}
+                            </Box>
+                        ))}
+                    </AvatarGroup>
+                ) : (
+                    <Typography color="text.secondary" fontSize="0.777rem">
+                        No Assignees
+                    </Typography>
+                )}
+
+                {/* Employee Selection Menu */}
+                <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleCloseMenu}
+                    PaperProps={{
+                        sx: {
+                            width: 300,
+                            maxHeight: 400
+                        }
+                    }}
+                >
+                    <Box sx={{ p: 2 }}>
                         <TextField
-                            autoFocus
                             placeholder="ค้นหาชื่อพนักงาน..."
                             variant="outlined"
                             size="small"
                             fullWidth
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            sx={{ mb: 2 }}
                         />
                     </Box>
 
-                    <Box>
-                        {loading && <Typography variant="body2">Loading...</Typography>}
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        {filteredEmployees.length === 0 && !loading && !error ? (
-                            <Typography variant="body2">No employees available</Typography>
-                        ) : (
-                            <List>
-                                {filteredEmployees.map((employee) => (
-                                    <ListItem button key={employee.id_emp} onClick={() => handleSelectEmployee(employee)}>
-                                        <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: randomColor() }}>{employee.emp_name[0]?.toUpperCase()}</Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText primary={employee.emp_name} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} color="primary">
-                        Close
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Box>
+                    {loading ? (
+                        <MenuItem disabled>กำลังโหลด...</MenuItem>
+                    ) : filteredEmployees.length === 0 ? (
+                        <MenuItem disabled>ไม่พบพนักงาน</MenuItem>
+                    ) : (
+                        filteredEmployees.map((employee) => (
+                            <MenuItem
+                                key={employee.id_emp}
+                                onClick={() => handleSelectEmployee(employee)}
+                            >
+                                <ListItemAvatar>
+                                    <Avatar sx={{ bgcolor: randomColor() }}>
+                                        {employee.emp_name?.[0]?.toUpperCase()}
+                                    </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText
+                                    primary={employee.emp_name}
+                                    secondary={employee.name_department || 'N/A'}
+                                />
+                            </MenuItem>
+                        ))
+                    )}
+                </Menu>
+            </Box>
+
+            {/* Notification Snackbar */}
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={3000}
+                onClose={() => setSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert
+                    onClose={() => setSnackbarOpen(false)}
+                    severity={snackbarSeverity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
+        </>
     );
 };
 
