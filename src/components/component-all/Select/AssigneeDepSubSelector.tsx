@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List,
-ListItem, ListItemAvatar, ListItemText, TextField, Stack, Snackbar, Alert } from '@mui/material';
+import {
+    Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List,
+    ListItem, ListItemAvatar, ListItemText, TextField, Stack, Snackbar, Alert,
+    IconButton
+} from '@mui/material';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import DeleteIcon from '@mui/icons-material/Delete';
 import URLAPI from '../../../URLAPI';
@@ -51,7 +54,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
 
     const fetchAssignments = useCallback(async (id: number) => {
         try {
-            const response = await fetch(`${URLAPI}/assigned_department/${id}`);
+            const response = await fetch(`${URLAPI}/assigned_department_sub/${id}`);
             if (!response.ok) {
                 throw new Error('Error fetching assignments');
             }
@@ -121,7 +124,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
 
         try {
             const response = await fetch(
-                `${URLAPI}/assign_department/${requestId}?id_department=${department.id_department_it}&username=${userData.username}`,
+                `${URLAPI}/assign_department_sub/${requestId}?id_department=${department.id_department_it}&username=${userData.username}`,
                 { method: 'POST' }
             );
             if (!response.ok) throw new Error('Error assigning department');
@@ -149,7 +152,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
     const handleRemoveDepartment = async (id_req_dep: number) => {
         if (readOnly) return;
         try {
-            const response = await fetch(`${URLAPI}/assign_department/${id_req_dep}`, {
+            const response = await fetch(`${URLAPI}/assign_department_sub/${id_req_dep}`, {
                 method: 'DELETE'
             });
 
@@ -216,106 +219,109 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
 
     return (
         <>
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 ,  flexWrap: 'wrap'}}>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                {!readOnly && isITStaff && (
-                    <Chip
-                        icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                        // label="Tags"
-                        onClick={handleClickOpen}
-                        size="small"
-                        sx={{
-                            backgroundColor: 'transparent',
-                            height: '24px',
-                            cursor: 'pointer',
-                            '& .MuiChip-label': { px: 1, fontSize: '0.75rem' },
-                            '& .MuiChip-icon': { color: '#1976d2', ml: '4px' },
-                            '&:hover': { backgroundColor: '#e3f2fd' }
-                        }}
-                    />
-                )}
-            </Stack>
-            {assignedDepartments.length > 0 ? (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {assignedDepartments.map((dept) => (
-                        <Chip
-                            key={dept.id_req_dep}
-                            color="primary"
-                            variant="outlined"
-                            icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                            label={`${dept.name_department}`}
-                            onDelete={
-                                !readOnly && isITStaff
-                                    ? () => handleRemoveDepartment(dept.id_req_dep)
-                                    : undefined
-                            }
-                            deleteIcon={
-                                !readOnly && isITStaff
-                                    ? <DeleteIcon />
-                                    : undefined
-                            }
-                            sx={{
-                                backgroundColor: randomColor(dept.id_department),
-                                '& .MuiChip-deleteIcon': {
-                                    color: '#f44336',
-                                    ml: '4px'
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, flexWrap: 'wrap' }}>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                {assignedDepartments.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {assignedDepartments.map((dept) => (
+                            <Chip
+                                key={dept.id_req_dep}
+                                color="primary"
+                                variant="outlined"
+                                icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
+                                label={`${dept.name_department}`}
+                                onDelete={
+                                    !readOnly && isITStaff
+                                        ? () => handleRemoveDepartment(dept.id_req_dep)
+                                        : undefined
                                 }
-                            }}
-                        />
-                    ))}
-                </Box>
-            ) : (
-                <Typography 
-                color="text.secondary"
-                fontSize="0.777rem"
-                >No Tags</Typography>
-            )}
-
-            <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>
-                <DialogTitle>เลือกแผนก</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mb: 2, mt: 1 }}>
-                        <TextField
-                            autoFocus
-                            placeholder="ค้นหาแผนก..."
-                            variant="outlined"
+                                deleteIcon={
+                                    !readOnly && isITStaff
+                                        ? <DeleteIcon />
+                                        : undefined
+                                }
+                                sx={{
+                                    backgroundColor: randomColor(dept.id_department),
+                                    '& .MuiChip-deleteIcon': {
+                                        color: '#f44336',
+                                        ml: '4px'
+                                    }
+                                }}
+                            />
+                        ))}
+                    </Box>
+                ) : (
+                    <Typography
+                        color="text.secondary"
+                        fontSize="0.777rem"
+                    ></Typography>
+                )}
+                    {!readOnly && isITStaff && (
+                        <IconButton
+                            onClick={handleClickOpen}
                             size="small"
-                            fullWidth
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </Box>
-                    <Box>
-                        {loading && <Typography variant="body2">Loading...</Typography>}
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        {filteredDepartments.length === 0 && !loading && !error ? (
-                            <Typography variant="body2">ไม่พบแผนก</Typography>
-                        ) : (
-                            <List>
-                                {filteredDepartments.map((department) => (
-                                    <ListItem
-                                        component={Button}
-                                        key={department.id_department_it}
-                                        onClick={() => handleSelectDepartment(department)}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: randomColor(department.id_department_it) }}>
-                                                {department.name_department_it[0]?.toUpperCase()}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText primary={department.name_department_it} />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} color="primary">
-                        ปิด
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                            color="primary"
+                            sx={{
+                                ml: 1,
+                                borderRadius: '7px',
+                                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+                                backgroundColor: '#fff',
+                                transition: 'all 0.3s ease',
+                                
+                            }}
+                            >
+                                <LocalOfferIcon  />
+                        </IconButton>
+
+                    )}
+                </Stack>
+                
+
+                <Dialog open={open} onClose={handleClose} PaperProps={{ sx: { width: '100%', maxWidth: 500 } }}>
+                    <DialogTitle>เลือกแผนก</DialogTitle>
+                    <DialogContent>
+                        <Box sx={{ mb: 2, mt: 1 }}>
+                            <TextField
+                                autoFocus
+                                placeholder="ค้นหาแผนก..."
+                                variant="outlined"
+                                size="small"
+                                fullWidth
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </Box>
+                        <Box>
+                            {loading && <Typography variant="body2">Loading...</Typography>}
+                            {error && <Typography variant="body2" color="error">{error}</Typography>}
+                            {filteredDepartments.length === 0 && !loading && !error ? (
+                                <Typography variant="body2">ไม่พบแผนก</Typography>
+                            ) : (
+                                <List>
+                                    {filteredDepartments.map((department) => (
+                                        <ListItem
+                                            component={Button}
+                                            key={department.id_department_it}
+                                            onClick={() => handleSelectDepartment(department)}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar sx={{ bgcolor: randomColor(department.id_department_it) }}>
+                                                    {department.name_department_it[0]?.toUpperCase()}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText primary={department.name_department_it} />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            )}
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleClose} color="primary">
+                            ปิด
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </Box>
 
             <Snackbar

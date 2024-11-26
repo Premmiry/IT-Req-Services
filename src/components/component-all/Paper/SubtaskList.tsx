@@ -45,16 +45,16 @@ export default function Boxsubtask() {
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
                     <Tab label="Subtask" {...a11yProps(0)} />
-                    <Tab label="Item Two" {...a11yProps(1)} />
+                    {/* <Tab label="Item Two" {...a11yProps(1)} /> */}
                     {/*<Tab label="Item Three" {...a11yProps(2)} /> */}
                 </Tabs>
             </Box>
             <CustomTabPanel value={value} index={0}>
-                <SUBTASK id={0} username='' department={0} status={0} />
+                <SUBTASK req_id={15} />
             </CustomTabPanel>
-            <CustomTabPanel value={value} index={1}>
+            {/* <CustomTabPanel value={value} index={1}>
                 Item Two
-            </CustomTabPanel>
+            </CustomTabPanel> */}
             {/*<CustomTabPanel value={value} index={2}>
                 Item Three
             </CustomTabPanel> */}

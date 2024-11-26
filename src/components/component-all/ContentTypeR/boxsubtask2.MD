@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { IconButton, Select, MenuItem, TextField, Snackbar, Alert, Typography } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
+import { IconButton, Select, MenuItem, TextField, Snackbar, Alert } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import {
@@ -11,8 +11,6 @@ import {
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import URLAPI from '../../../URLAPI';
-import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
-import AssigneeDepSelector from '../Select/AssigneeDepSubSelector';
 
 interface SubtaskProps {
     req_id: number;
@@ -46,8 +44,6 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [editingRowId, setEditingRowId] = useState<number | null>(null);
-    const [hoveredRowId, setHoveredRowId] = useState<number | null>(null);
 
     const fetchSubtasks = async () => {
         try {
@@ -104,7 +100,6 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             id_priority: null // Set default priority
         };
         setRows([...rows, newRow]);
-        setEditingRowId(newRow.id); // Set the new row to be in editing mode
     };
 
     const updateSubtask = async (row: SubtaskData, field: keyof SubtaskData, value: string | null) => {
@@ -287,7 +282,7 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
         setSnackbarOpen(true);
     };
 
-    const columns: GridColDef[] = [
+    const columns = [
         {
             field: 'id',
             headerName: 'No.',
@@ -297,74 +292,29 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             field: 'name',
             headerName: 'Name',
             width: 300,
-            renderCell: (params: any) => {
-
-                const isEditing = editingRowId === params.row.id;
-                const isHovered = hoveredRowId === params.row.id;
-                const isNewRow = params.row.sub_id === 0;
-                return (
-                    <>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                width: '100%',
-                                marginTop: '5px',
-                                transition: 'all 0.3s ease',
-                            }}
-                            onMouseEnter={() => setHoveredRowId(params.row.id)}
-                            onMouseLeave={() => setHoveredRowId(null)}
-                        >
-                            {isEditing ? (
-                                <TextField
-                                    value={params.row.name || ''}
-                                    onChange={(e) => {
-                                        const updatedRows = rows.map(row => row.id === params.row.id ? { ...row, name: e.target.value } : row
-                                        );
-                                        setRows(updatedRows);
-                                    }}
-                                    size="small"
-                                    fullWidth />
-                            ) : (
-                                <Typography variant="body1">{params.row.name}</Typography>
-                            )}
-                            {isHovered && (
-                                <div style={{ marginLeft: '5px' ,
-                                pointerEvents: isNewRow ? 'none' : 'auto',
-                                opacity: isNewRow ? 0.5 : 1,
-                                }}>
-                                    <AssigneeDepSelector
-                                        requestId={params.row.sub_id}
-                                        readOnly={isNewRow} />
-                                </div>
-                            )}
-
-                            {isHovered && (
-                                <IconButton
-                                    onClick={() => {
-                                        if (isEditing) {
-                                            handleSaveRow(params.row);
-                                            setEditingRowId(null);
-                                        } else {
-                                            setEditingRowId(params.row.id);
-                                        }
-                                    }}
-                                    size="small"
-                                    color="primary"
-                                    sx={{
-                                        ml: 1,
-                                        borderRadius: '7px',
-                                        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
-                                        backgroundColor: '#fff',
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    {isEditing ? <SaveIcon /> : <EditIcon />}
-                                </IconButton>
-                            )}
-                        </div></>
-                );
-            },
+            renderCell: (params: any) => (
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', marginTop: '5px' }}>
+                    <TextField
+                        value={params.row.name || ''}
+                        onChange={(e) => {
+                            const updatedRows = rows.map(row =>
+                                row.id === params.row.id ? { ...row, name: e.target.value } : row
+                            );
+                            setRows(updatedRows);
+                        }}
+                        size="small"
+                        fullWidth
+                    />
+                    <IconButton
+                        onClick={() => handleSaveRow(params.row)}
+                        size="small"
+                        color="primary"
+                        sx={{ ml: 1 }}
+                    >
+                        {params.row.sub_id ? <EditIcon /> : <SaveIcon />}
+                    </IconButton>
+                </div>
+            ),
         },
         {
             field: 'startdate',
@@ -417,6 +367,12 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             renderCell: (params: any) => (
                 <Select
                     value={params.row.status}
+                    // onChange={(e) => {
+                    //     const updatedRows = rows.map(row =>
+                    //         row.id === params.row.id ? { ...row, status: e.target.value as number } : row
+                    //     );
+                    //     setRows(updatedRows);
+                    // }}
                     onChange={(e) => handleStatusChange(params.row, e.target.value as number)}
                     size="small"
                     fullWidth
@@ -432,10 +388,16 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
         {
             field: 'id_priority',
             headerName: `Priority`,
-            width: 130,
+            width: 150,
             renderCell: (params: any) => (
                 <Select
                     value={params.row.id_priority || ''}
+                    // onChange={(e) => {
+                    //     const updatedRows = rows.map(row =>
+                    //         row.id === params.row.id ? { ...row, id_priority: e.target.value as number } : row
+                    //     );
+                    //     setRows(updatedRows);
+                    // }}
                     onChange={(e) => handlePriorityChange(params.row, e.target.value as number)}
                     size="small"
                     fullWidth
@@ -452,30 +414,9 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             ),
         },
         {
-            field: 'assignee',
-            headerName: 'Assignee',
-            width: 150,
-            renderCell: (params: any) => {
-                const isNewRow = params.row.sub_id === 0;
-                return (
-                    <div style={{
-                        width: '100%',
-                        pointerEvents: isNewRow ? 'none' : 'auto',
-                        opacity: isNewRow ? 0.5 : 1,
-                    }}>
-                        <AssigneeEmpSelector
-                            requestId={params.row.sub_id}
-                            readOnly={isNewRow}
-                            typedata="subtask"
-                        />
-                    </div>
-                );
-            },
-        },
-        {
             field: 'actions',
             headerName: 'Actions',
-            width: 80,
+            width: 120,
             renderCell: (params: any) => (
                 <div>
                     <IconButton
@@ -499,7 +440,7 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             <div>
                 <div style={{ marginBottom: '1rem' }}>
                     <IconButton onClick={handleAddRow} color="primary">
-                        <AddIcon /> <Typography sx={{ ml: 1 }}>Add Subtask</Typography>
+                        <AddIcon />
                     </IconButton>
                 </div>
                 <div style={{ height: 400, width: '100%' }}>
