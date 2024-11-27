@@ -413,7 +413,7 @@ export default function RequestForm() {
                         </Grid>
                     </Grid>
                     {
-                        userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
+                        userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
                             <Box
                                 sx={{
                                     backgroundColor: '#fff',

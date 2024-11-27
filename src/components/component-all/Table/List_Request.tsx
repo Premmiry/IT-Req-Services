@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Container, Typography, Button, Chip } from '@mui/material';
+import { Box, Container, Typography, Button, Chip, Modal } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import URLAPI from '../../../URLAPI';
+import RequestDetail from '../Paper/RequestDetail';
 
 // แยก Type Colors และ Status Colors ออกมาเป็น Constants
 const TYPE_COLORS = {
@@ -50,6 +51,10 @@ export default function ListRequest() {
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
 
+    // State for Modal
+    const [modalOpen, setModalOpen] = useState<boolean>(false);
+    const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+
     // แยกฟังก์ชัน formatDate ออกมาเป็น memoized function
     const formatDate = useCallback((dateString: string) => {
         const date = new Date(dateString);
@@ -73,11 +78,11 @@ export default function ListRequest() {
         if (!userData?.username) return null;
 
         let apiUrl = `${URLAPI}/it-requests`;
-        
+
         if (admin === 'USER') {
             const { position, id_department, id_division_competency, id_section_competency } = userData;
             const params = new URLSearchParams();
-            
+
             params.append('position', position);
             if (position === 's' || position === 'h') {
                 params.append('department', id_department);
@@ -87,10 +92,10 @@ export default function ListRequest() {
                 params.append('section_competency', id_section_competency);
                 params.append('division_competency', id_division_competency);
             }
-            
+
             return `${apiUrl}?${params.toString()}`;
         }
-        
+
         return apiUrl;
     }, [userData, admin]);
 
@@ -102,7 +107,7 @@ export default function ListRequest() {
         try {
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('Network response was not ok');
-            
+
             const { data } = await response.json();
             const mappedData = data.map((item: any) => ({
                 id: item.id,
@@ -114,7 +119,7 @@ export default function ListRequest() {
                 assignee: item.assign_name || '',
                 datecreated: formatDate(item.created_at),
             }));
-            
+
             setRows(mappedData);
         } catch (error) {
             console.error('Error fetching requests:', error);
@@ -143,7 +148,7 @@ export default function ListRequest() {
             renderCell: (params: GridRenderCellParams) => (
                 <span
                     style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                    onClick={() => navigate(`/edit-request/${params.row.id}`)}
+                    onClick={() => handleOpenModal(params.row.id)}
                 >
                     {params.value}
                 </span>
@@ -186,7 +191,7 @@ export default function ListRequest() {
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
         const storedAdmin = sessionStorage.getItem('admin');
-        
+
         if (storedUserData) {
             setUserData(JSON.parse(storedUserData));
         }
@@ -202,6 +207,16 @@ export default function ListRequest() {
         }
     }, [userData, admin, fetchRequests]);
 
+    // Handlers for Modal
+    const handleOpenModal = useCallback((id: number) => {
+        setSelectedRequestId(id);
+        setModalOpen(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setModalOpen(false);
+    }, []);
+
     return (
         <Container maxWidth="xl">
             <Box sx={{ my: 4 }}>
@@ -209,10 +224,10 @@ export default function ListRequest() {
                     <Typography variant="h4" component="h1">
                         Request List
                     </Typography>
-                    <Button 
-                        variant="contained" 
-                        color="primary" 
-                        startIcon={<AddIcon />} 
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        startIcon={<AddIcon />}
                         onClick={() => navigate('/request')}
                     >
                         Request
@@ -234,6 +249,39 @@ export default function ListRequest() {
                     />
                 </Box>
             </Box>
+            {/* Modal for Request Detail */}
+            <Modal
+                open={modalOpen}
+                onClose={handleCloseModal}
+                aria-labelledby="request-detail-modal-title"
+                aria-describedby="request-detail-modal-description"
+                role="dialog"
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }}
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: {
+                        xs: '90%',    // ใช้ความกว้าง 90% ของหน้าจอสำหรับขนาดเล็ก (มือถือ)
+                        sm: '80%',    // สำหรับแท็บเล็ตเล็ก
+                        md: '70%',    // สำหรับแท็บเล็ตและเดสก์ท็อปขนาดกลาง
+                        lg: '60%',    // สำหรับเดสก์ท็อปขนาดใหญ่
+                        xl: '50%',    // สำหรับจอขนาดใหญ่มาก
+                    },
+                    maxWidth: '800px',  // กำหนดขีดจำกัดความกว้างสูงสุดให้กับ Modal
+                    bgcolor: 'background.paper',
+                    boxShadow: 24,
+                    p: 4,
+                }}>
+                    {selectedRequestId && <RequestDetail id={selectedRequestId} onClose={handleCloseModal} />}
+                </Box>
+            </Modal>
         </Container>
     );
 }

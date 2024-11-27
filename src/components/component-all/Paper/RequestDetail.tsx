@@ -12,11 +12,15 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import Avatar from '@mui/material/Avatar';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import AssigneeDepSelector from '../Select/AssigneeDepSelector';
 import AssigneeEmpSelector from '../Select/AssigneeEmpSelector';
 import UAT from '../ContentTypeR/boxUAT'; // นำเข้า PrioritySelector
 import { SelectPriority } from '../Select/select-priority';
 import DateWork from '../DatePicker/datework';
+import SUBTASK from '../ContentTypeR/boxsubtask';
+import ThumbUpAltIcon from '@mui/icons-material/ThumbUpAlt';
+import BackspaceIcon from '@mui/icons-material/Backspace';
 
 const style = {
     position: 'absolute',
@@ -84,10 +88,11 @@ interface RequestDetailProps {
     id: number;
     isModal?: boolean;
     onClose?: () => void;
+    readOnly?: boolean;  // Add this
 }
 
 // Component
-const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: RequestDetailProps) => {
+const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose, readOnly = false }: RequestDetailProps) => {
     const navigate = useNavigate();
 
     // State declarations
@@ -96,9 +101,16 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [requestData, setRequestData] = useState<RequestData | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
+    // const [userData, setUserData] = useState<any | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
 
+
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
 
     // Helper function to format dates
     const formatDate = useCallback((dateString: string): string => {
@@ -108,12 +120,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         const month = String(date.getMonth() + 1).padStart(2, '0');
         return `${day}/${month}/${buddhistYear}`;
     }, []);
-
-    const isITStaff = useMemo(() => {
-        return userData?.id_section === 28 ||
-            userData?.id_division_competency === 86 ||
-            userData?.id_section_competency === 28;
-    }, [userData]);
 
     // Fetch Functions
     const fetchRequestData = useCallback(async () => {
@@ -136,6 +142,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                     setUploadedFiles(Array.isArray(parsedFiles) ? parsedFiles : []);
                 } catch (e) {
                     console.error('Error parsing files:', e);
+                    setUploadedFiles([]);
                 }
             }
 
@@ -165,6 +172,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
 
     // Handlers
     const handleEdit = () => navigate(`/edit-request/${id}`);
+
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -210,26 +218,307 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
         );
     }
 
+    const statusColors = {
+        'Request': '#2196F3',
+        'Manager Approve': '#7abf7d',
+        'Manager Unapprove': '#7abf7d',
+        'Director Approve': '#7abf7d',
+        'Director Unapprove': '#7abf7d',
+        'IT Manager Approve': '#fcba58',
+        'IT Manager Unapprove': '#fcba58',
+        'IT Director Approve': '#fcba58',
+        'IT Director Unapprove': '#fcba58',
+        'Wait For Assigned': '#B0BEC5',
+        'In Progress': '#3a08a6',
+        'Complete': '#4CAF50',
+        'Cancel': '#F44336'
+    };
+
+    const getStatusColor = (status: string) => {
+        return statusColors[status as keyof typeof statusColors] || '#000000';
+    };
+
+    const handleConfirmJob = async () => {
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${requestData.id}?change=complete`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json", // ถ้ามี token ให้ใส่ตรงนี้
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Job confirmed successfully:", data);
+            alert("Job confirmed successfully!"); // แจ้งเตือนเมื่อสำเร็จ
+            if (onClose) {
+                onClose();
+            }
+        } catch (error) {
+            console.error("Failed to confirm job:", error);
+            alert("Failed to confirm job. Please try again.");
+        }
+    };
+
+    const handleCancelJob = async () => {
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${requestData.id}?change=cancel`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json", // ถ้ามี token ให้ใส่ตรงนี้
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log("Job canceled successfully:", data);
+            alert("Job canceled successfully!"); // แจ้งเตือนเมื่อสำเร็จ
+            if (onClose) {
+                onClose();
+            }
+        } catch (error) {
+            console.error("Failed to cancel job:", error);
+            alert("Failed to cancel job. Please try again.");
+        }
+    }
+
+
     return (
         <Box sx={style}>
             <Typography variant="h5" gutterBottom>
-                {requestData.rs_code} : {requestData.topic} {requestData.id_program ? requestData.program_name : requestData.title_req}
+                {requestData.rs_code} : {requestData.topic} {requestData.id_program ? requestData.program_name : requestData.title_req} 
             </Typography>
 
             <Box>
+
+                <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+                    <Box sx={{ p: 2 }}>
+                        {(requestData?.it_m_name || requestData?.it_d_name) && (
+                            <Grid container spacing={2} justifyContent="center" alignItems="center">
+                                <Grid item xs={12} sm={6} md={8}>
+                                    <Stack spacing={2} sx={{ width: '100%' }}>
+                                        <Stepper activeStep={-1} sx={{
+                                            '.MuiStepLabel-root': {
+                                                fontSize: '0.8rem', // ลดขนาดฟอนต์ของ StepLabel
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            },
+                                        }}>
+                                            {requestData.it_m_name && (
+                                                <Step>
+                                                    <StepLabel
+                                                        color="neutral"
+                                                        StepIconComponent={() => (
+                                                            <CheckCircleIcon sx={{ color: 'warning.main', fontSize: '1.5rem' }} />
+                                                        )}
+                                                    >
+                                                        Manager
+                                                    </StepLabel>
+                                                </Step>
+                                            )}
+                                            {requestData.it_d_name && (
+                                                <Step>
+                                                    <StepLabel
+                                                        StepIconComponent={() => (
+                                                            <CheckCircleIcon sx={{ color: 'success.main', fontSize: '1.5rem' }} />
+                                                        )}
+                                                    >
+                                                        Director
+                                                    </StepLabel>
+                                                </Step>
+                                            )}
+                                        </Stepper>
+                                    </Stack>
+                                </Grid>
+                            </Grid>
+                        )}
+                        <Grid container spacing={2} justifyContent="center">
+                            {requestData?.it_m_name && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <List >
+                                        <ListItem alignItems="center" sx={{ padding: 0.1 }}>
+                                            <ListItemAvatar>
+                                                <Avatar alt="Manager"
+                                                    src=""
+                                                    sx={{
+                                                        width: 20,
+                                                        height: 20,
+                                                        bgcolor: 'warning.main',
+                                                    }} />
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <>
+                                                        <span>{requestData.it_m_name} : </span>
+                                                        <span style={{ color: 'green' }}>{requestData.itmapp}</span>
+                                                    </>
+                                                }
+                                                secondary={
+                                                    <React.Fragment>
+                                                        <Typography
+                                                            component="span"
+                                                            variant="body2"
+                                                            sx={{ color: 'text.primary', display: 'inline' }}
+                                                        >
+                                                            Note:
+                                                        </Typography>
+                                                        {requestData.it_m_note && <> {requestData.it_m_note} </>}
+                                                    </React.Fragment>
+                                                }
+                                            />
+                                        </ListItem>
+                                        <Divider variant="inset" component="li" />
+                                    </List>
+                                </Grid>
+                            )}
+                            {requestData?.it_d_name && (
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <List >
+                                        <ListItem alignItems="center" sx={{ padding: 0.1 }}>
+                                            <ListItemAvatar>
+                                                <Avatar alt="Manager"
+                                                    src=""
+                                                    sx={{
+                                                        width: 20,
+                                                        height: 20,
+                                                        bgcolor: 'success.main',
+                                                    }} />
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <>
+                                                        <span>{requestData.it_d_name} : </span>
+                                                        <span style={{ color: 'green' }}>{requestData.itdapp}</span>
+
+                                                    </>
+                                                }
+
+                                                secondary={
+                                                    <React.Fragment>
+                                                        <Typography
+                                                            component="span"
+                                                            variant="body2"
+                                                            sx={{ color: 'text.primary', display: 'inline' }}
+                                                        >
+                                                            Note:
+                                                        </Typography>
+                                                        {requestData.it_d_note && <> {requestData.it_d_note} </>}
+                                                    </React.Fragment>
+                                                }
+                                            />
+                                        </ListItem>
+                                        <Divider variant="inset" component="li" />
+                                    </List>
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
+                    <Divider />
+                    <Box sx={{ p: 1 }}>
+
+                        <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={3}
+                            sx={{
+                                p: 1,
+                                bgcolor: '#ffffff'
+                            }}
+                        >
+
+
+                            {/* Dates */}
+                            <Box>
+                                <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                    Dates
+                                </Typography>
+                                <DateWork
+                                    req_id={requestData.id}
+                                    date_start={requestData.date_start}
+                                    date_end={requestData.date_end}
+                                />
+                            </Box>
+
+                            {/* Assignees */}
+                            <Box>
+                                <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                    Assignees
+                                </Typography>
+                                <Stack direction="row" spacing={1}>
+
+                                    <AssigneeEmpSelector requestId={requestData.id} />
+                                </Stack>
+                            </Box>
+
+                            {/* Priority */}
+                            <Box>
+                                <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                    Priority
+                                </Typography>
+                                <SelectPriority
+                                    id={requestData.id}
+                                    id_priority={requestData?.id_priority ?? null}
+                                />
+                            </Box>
+                        </Stack>
+
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+
+                            {/* Status */}
+                            <Box>
+                                <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                    Status
+                                </Typography>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Chip
+                                        label={requestData.status_name}
+                                        style={{ backgroundColor: getStatusColor(requestData.status_name), color: '#fff' }}
+                                        size="medium"
+                                        icon={requestData.status_name === 'Complete' ? <CheckCircleIcon /> : <RadioButtonCheckedSharpIcon />}
+                                    />
+                                </Stack>
+                            </Box>
+
+                            {/* Assignees */}
+                            <Box>
+                                <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                    Tags
+                                </Typography>
+                                <Stack direction="row" spacing={1}>
+                                    <AssigneeDepSelector requestId={requestData.id} />
+
+                                </Stack>
+                            </Box>
+                        </Stack>
+                    </Box>
+                </Card>
+                <br />
                 <Card variant="outlined" sx={{ maxWidth: 1200 }}>
                     <Box sx={{ p: 2 }}>
                         <Stack direction="column">
                             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography gutterBottom component="div">
-                                    ชื่อผู้ร้องขอ:{" "}
-                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>
+                                    Requestor:{" "}
+                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "primary.main" }}>
                                         {requestData.name_req}
                                     </Box>
                                 </Typography>
                                 <Typography gutterBottom component="div">
-                                    วันที่ร้องขอ:{" "}
-                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>
+                                    Request Date:{" "}
+                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "warning.main" }}>
                                         {formatDate(requestData.created_at)}
                                     </Box>
                                 </Typography>
@@ -237,14 +526,14 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
 
                             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography gutterBottom component="div">
-                                    แผนก:{" "}
-                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>
+                                    Department:{" "}
+                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "primary.main" }}>
                                         {requestData.name_department || 'Loading...'}
                                     </Box>
                                 </Typography>
                                 <Typography gutterBottom component="div">
-                                    เบอร์ติดต่อ:{" "}
-                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>
+                                    Tel:{" "}
+                                    <Box component="span" sx={{ fontSize: "0.875rem", color: "warning.main" }}>
                                         {requestData.phone}
                                     </Box>
                                 </Typography>
@@ -252,10 +541,10 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
 
                             <Stack direction="column" spacing={0.5}>
                                 <Typography gutterBottom component="div">
-                                    ประเภท: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.type}</Box>
+                                    Request Type: <Box component="span" sx={{ fontSize: "0.875rem", color: "primary.main" }}>{requestData.type}</Box>
                                 </Typography>
                                 <Typography gutterBottom component="div">
-                                    รายละเอียด: <Box component="span" sx={{ fontSize: "0.875rem", color: "blue" }}>{requestData.detail_req}</Box>
+                                    Detail: <Box component="span" sx={{ fontSize: "0.875rem", color: "info.main" }}>{requestData.detail_req}</Box>
                                 </Typography>
                             </Stack>
 
@@ -365,7 +654,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                     </Box>
                     <Divider />
                     <Box sx={{ p: 1 }}>
-                        <Typography gutterBottom variant="body2">เอกสารแนบ</Typography>
+                        <Typography gutterBottom variant="body2">Attached Files</Typography>
                         <Stack direction="column">
                             {uploadedFiles.length > 0 ? (
                                 <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -395,180 +684,60 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ id, isModal, onClose }: R
                     </Box>
                 </Card>
                 <br />
-                <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-                    <Box sx={{ p: 2 }}>
-                        {(requestData?.it_m_name || requestData?.it_d_name) && (
-                            <Grid container spacing={2} justifyContent="center" alignItems="center">
-                                <Grid item xs={12} sm={6} md={8}>
-                                    <Stack spacing={2} sx={{ width: '100%' }}>
-                                        <Stepper activeStep={-1} sx={{
-                                            '.MuiStepLabel-root': {
-                                                fontSize: '0.8rem', // ลดขนาดฟอนต์ของ StepLabel
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            },
-                                        }}>
-                                            {requestData.it_m_name && (
-                                                <Step>
-                                                    <StepLabel
-                                                        color="neutral"
-                                                        StepIconComponent={() => (
-                                                            <CheckCircleIcon sx={{ color: 'warning.main', fontSize: '1.5rem' }} />
-                                                        )}
-                                                    >
-                                                        Manager
-                                                    </StepLabel>
-                                                </Step>
-                                            )}
-                                            {requestData.it_d_name && (
-                                                <Step>
-                                                    <StepLabel
-                                                        StepIconComponent={() => (
-                                                            <CheckCircleIcon sx={{ color: 'success.main', fontSize: '1.5rem' }} />
-                                                        )}
-                                                    >
-                                                        Director
-                                                    </StepLabel>
-                                                </Step>
-                                            )}
-                                        </Stepper>
-                                    </Stack>
-                                </Grid>
-                            </Grid>
-                        )}
-                        <Grid container spacing={2} justifyContent="center">
-                            {requestData?.it_m_name && (
-                                <Grid item xs={12} sm={6} md={4}>
-                                    <List >
-                                        <ListItem alignItems="center" sx={{ padding: 0.1 }}>
-                                            <ListItemAvatar>
-                                                <Avatar alt="Manager"
-                                                    src=""
-                                                    sx={{
-                                                        width: 20,
-                                                        height: 20,
-                                                        bgcolor: 'warning.main',
-                                                    }} />
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={
-                                                    <>
-                                                        <span>{requestData.it_m_name} : </span>
-                                                        <span style={{ color: 'green' }}>{requestData.itmapp}</span>
-                                                    </>
-                                                }
-                                                secondary={
-                                                    <React.Fragment>
-                                                        <Typography
-                                                            component="span"
-                                                            variant="body2"
-                                                            sx={{ color: 'text.primary', display: 'inline' }}
-                                                        >
-                                                            ความเห็น:
-                                                        </Typography>
-                                                        {requestData.it_m_note && <> {requestData.it_m_note} </>}
-                                                    </React.Fragment>
-                                                }
-                                            />
-                                        </ListItem>
-                                        <Divider variant="inset" component="li" />
-                                    </List>
-                                </Grid>
-                            )}
-                            {requestData?.it_d_name && (
-                                <Grid item xs={12} sm={6} md={4}>
-                                    <List >
-                                        <ListItem alignItems="center" sx={{ padding: 0.1 }}>
-                                            <ListItemAvatar>
-                                                <Avatar alt="Manager"
-                                                    src=""
-                                                    sx={{
-                                                        width: 20,
-                                                        height: 20,
-                                                        bgcolor: 'success.main',
-                                                    }} />
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={
-                                                    <>
-                                                        <span>{requestData.it_d_name} : </span>
-                                                        <span style={{ color: 'green' }}>{requestData.itdapp}</span>
 
-                                                    </>
-                                                }
-
-                                                secondary={
-                                                    <React.Fragment>
-                                                        <Typography
-                                                            component="span"
-                                                            variant="body2"
-                                                            sx={{ color: 'text.primary', display: 'inline' }}
-                                                        >
-                                                            ความเห็น:
-                                                        </Typography>
-                                                        {requestData.it_d_note && <> {requestData.it_d_note} </>}
-                                                    </React.Fragment>
-                                                }
-                                            />
-                                        </ListItem>
-                                        <Divider variant="inset" component="li" />
-                                    </List>
-                                </Grid>
-                            )}
-                        </Grid>
-                    </Box>
-                    <Divider />
-                    <Box sx={{ p: 1 }}>
-                        {/* Section: มอบหมายงานแผนก */}
-                        <Stack direction="row" spacing={2} alignItems="center">
-                            <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
-                                มอบหมายงานแผนก
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <AssigneeDepSelector requestId={requestData.id}/>
-                            </Box>
-                        </Stack>
-                        {/* Section: ผู้รับผิดชอบ */}
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
-                            <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
-                                ผู้รับผิดชอบ
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <AssigneeEmpSelector requestId={requestData.id} />
-                            </Box>
-                        </Stack>
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
-                            <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
-                                ระยะเวลาที่ทำ
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <DateWork req_id={requestData.id} date_start={requestData.date_start} date_end={requestData.date_end} />
-                            </Box>
-                        </Stack>
-                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
-                            <Typography gutterBottom variant="body2" sx={{ fontWeight: 'bold', minWidth: 120 }}>
-                                ระดับความสำคัญ
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <SelectPriority id={requestData.id} id_priority={requestData?.id_priority ?? null} />
-                            </Box>
-                        </Stack>
-                    </Box>
-                </Card>
+                {requestData.type_id === 3 ? (
+                    <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+                        <Box sx={{ p: 2 }}>
+                            <UAT id={requestData.id} username={userData.username} department={userData.id_department} status={requestData.status_id ?? 0} onClose={onClose} />
+                        </Box>
+                    </Card>
+                ) : (
+                    null
+                )}
                 <br />
-                <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-                    <Box sx={{ p: 2 }}>
-                        {requestData.status_id === 5 && requestData.type_id === 3 ? (
-                            <>
-                                <UAT id={requestData.id} username={userData.username} department={userData.id_department} status={requestData.status_id} onClose={onClose} />
-                            </>
-                        ) : (
-                            <Typography variant="h6">Confirm งาน</Typography>
-                        )}
-                    </Box>
-                </Card>
+                {!isITStaff && ((requestData.status_id === 6 && requestData.type_id !== 3) || (requestData.status_id === 16 && requestData.type_id === 3)) ? (
+                    <>
+                        <Box sx={{ p: 2 }}>
+                            <Button
+                                color="primary"
+                                startIcon={<ThumbUpAltIcon />}
+                                onClick={handleConfirmJob}
+
+                            >
+                                Complete Job
+                            </Button>
+                        </Box>
+                    </>
+                ) : (
+                    null
+                )}
+                <br />
+
+                {requestData.status_id !== 8 && isITStaff && (
+                    <>
+                        <Box sx={{ p: 2 }}>
+                            <Button
+                                color="error"
+                                startIcon={<BackspaceIcon />}
+                                onClick={handleCancelJob}
+
+                            >
+                                Cancel Job
+                            </Button>
+                        </Box>
+                    </>
+                )}
+                <br />
+                {isITStaff && (
+                    <>
+                        <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+                            <Box sx={{ p: 2 }}>
+                                <SUBTASK req_id={requestData.id} />
+                            </Box>
+                        </Card>
+                    </>
+                )}
+
             </Box>
             {!isModal && (
 

@@ -35,8 +35,9 @@ interface UATRow {
 }
 
 export default function UAT(props: Props) {
+    const [dataUat, setDataUat] = React.useState<any | null>(null);
     const [rows, setRows] = React.useState<UATRow[]>([{
-        id: Date.now(), // ใช้ timestamp แทนการใช้ index
+        id: 0, // ใช้ timestamp แทนการใช้ index
         title: '',
         result: null,
         description: ''
@@ -49,6 +50,8 @@ export default function UAT(props: Props) {
                 throw new Error('Network response was not ok');
             }
             const data = await response.json();
+            setDataUat(data);
+            // console.log(data);
             return data;
         } catch (error) {
             console.error('Error fetching UAT data:', error);
@@ -60,7 +63,7 @@ export default function UAT(props: Props) {
         const uatData = await fetchUATData(props.id);
         if (uatData.length > 0) {
             setRows(uatData.map((data: { id_uat: any; uat_title: any; testresults: any; uat_note: any; }) => ({
-                id: data.id_uat || Date.now(), // ใช้ id_uat ถ้ามี หรือใช้ timestamp ถ้าไม่มี
+                id: data.id_uat || 0, // ใช้ id_uat ถ้ามี หรือใช้ timestamp ถ้าไม่มี
                 title: data.uat_title,
                 result: data.testresults,
                 description: data.uat_note,
@@ -68,7 +71,7 @@ export default function UAT(props: Props) {
             })));
         } else {
             setRows([{
-                id: Date.now(),
+                id: 0,
                 title: '',
                 result: null,
                 description: ''
@@ -463,28 +466,28 @@ export default function UAT(props: Props) {
             })}
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 2 }}>
-                {![7, 8, 17].includes(props.status) && (
-                    <Button
-                        variant="contained"
-                        color="success"
-                        endIcon={<SaveAsIcon />}
-                        sx={{ mr: 2 }}
-                        onClick={handleUpdateUat}
-                    >
-                        ส่ง UAT
-                    </Button>
+                {!dataUat && (![7, 8, 17].includes(props.status)) && (
+                    <>
+                        <Button
+                            variant="contained"
+                            color="success"
+                            endIcon={<SaveAsIcon />}
+                            sx={{ mr: 2 }}
+                            onClick={handleUpdateUat}
+                        >
+                            ส่ง UAT
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            endIcon={<ReplyIcon />}
+                            onClick={handleBack}
+                        >
+                            ไปหน้า List
+                        </Button>
+                    </>
                 )}
-                <Button
-                    variant="contained"
-                    color="secondary"
-                    endIcon={<ReplyIcon />}
-                    onClick={handleBack}
-                >
-                    ไปหน้า List
-                </Button>
             </Box>
-
-
         </Container>
     );
 }

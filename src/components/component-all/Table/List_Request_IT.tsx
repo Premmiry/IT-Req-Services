@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Modal, Box, Container, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material';
+import { Modal, Box, Container, Typography, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, IconButton } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
@@ -9,12 +9,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { SaveAlert } from '../Alert/alert';
 import URLAPI from '../../../URLAPI';
 import RequestDetail from '../Paper/RequestDetail';
+import TaskIcon from '@mui/icons-material/Task';
 
 // แยก Type ออกมาเพื่อความชัดเจน
 interface RequestData {
     id: number;
     req_no: string;
     name: string;
+    status_id: number;
     status: string;
     type_id: number;
     type: string;
@@ -25,22 +27,6 @@ interface RequestData {
 interface ListRequestITProps {
     tab: number;
 }
-
-// const style = {
-//     position: 'absolute',
-//     top: '50%',
-//     left: '50%',
-//     transform: 'translate(-50%, -50%)',
-//     width: 800,
-//     maxHeight: '1000vh',
-//     bgcolor: 'background.paper',
-//     border: '2px solid #000',
-//     boxShadow: 24,
-//     p: 4,
-//     overflowY: 'auto',
-//     // เพิ่ม z-index เพื่อให้แน่ใจว่า Modal อยู่ด้านบนสุด
-//     zIndex: 1300
-// };
 
 export default function ListRequestIT({ tab }: ListRequestITProps) {
     const navigate = useNavigate();
@@ -53,6 +39,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+    const [actionType, setActionType] = useState<'delete' | 'receive' | null>(null);
 
     // แยก utility functions ออกมาและใช้ useMemo เพื่อ cache ค่า
     const formatDate = useCallback((dateString: string) => {
@@ -96,10 +83,47 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         navigate('/request');
     }, [navigate]);
 
-    const handleDeleteClick = useCallback((id: number) => {
+    const handleRecieveClick = useCallback((id: number) => {
         setSelectedId(id);
+        setActionType('receive');
         setOpen(true);
     }, []);
+
+    const handleDeleteClick = useCallback((id: number) => {
+        setSelectedId(id);
+        setActionType('delete');
+        setOpen(true);
+    }, []);
+
+    const handleRecieve = useCallback(async () => {
+        if (!selectedId) return;
+
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${selectedId}?change=inprogress`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            console.log("Job Received Successfully:", data);
+            alert("Job Received Successfully");
+            fetchRequests(); // เรียกฟังก์ชันนี้เพื่ออัปเดต UI หรือรีเฟรชข้อมูล
+        } catch (error) {
+            console.error('Error receiving job:', error);
+            alert("เกิดข้อผิดพลาดในการรับงาน");
+        } finally {
+            setOpen(false);
+        }
+    }, [selectedId]);
 
     const handleConfirmDelete = useCallback(async () => {
         if (!selectedId) return;
@@ -147,6 +171,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 id: item.id,
                 req_no: item.rs_code,
                 name: item.title_req || (item.program_name ? `พัฒนาโปรแกรมต่อเนื่อง (${item.program_name})` : 'พัฒนาโปรแกรมต่อเนื่อง'),
+                status_id: item.status_id,
                 status: item.status_name,
                 type_id: item.type_id,
                 type: item.type,
@@ -162,74 +187,100 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     }, [userData, tab, formatDate]);
 
     // ใช้ useMemo สำหรับ columns definition
-    const columns = useMemo<GridColDef[]>(() => [
-        {
-            field: 'id',
-            headerName: 'No.',
-            width: 55,
-            renderCell: (params: GridRenderCellParams) => (
-                <span>{params.api.getSortedRowIds().indexOf(params.id) + 1}</span>
-            ),
-        },
-        {
-            field: 'name',
-            headerName: 'หัวข้อ Request',
-            width: 740,
-            renderCell: (params: GridRenderCellParams) => (
-                <span
-                    style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                    onClick={() => handleOpenModal(params.row.id)}
-                >
-                    {params.value}
-                </span>
-            ),
-        },
-        {
-            field: 'type',
-            headerName: 'ประเภท',
-            width: 100,
-            renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    style={{ backgroundColor: getTypeColor(params.value), color: '#fff' }}
-                    size="medium"
-                    sx={{ width: 100 }}
-                />
-            ),
-        },
-        {
-            field: 'status',
-            headerName: 'สถานะดำเนินการ',
-            width: 130,
-            renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    style={{ backgroundColor: getStatusColor(params.value), color: '#fff' }}
-                    size="medium"
-                    icon={params.value === 'Complete' ? <CheckCircleIcon /> : <RadioButtonCheckedSharpIcon />}
-                />
-            ),
-        },
-        {
-            field: 'datecreated',
-            headerName: 'วันที่ Request',
-            width: 100,
-        },
-        {
-            field: 'actions',
-            headerName: 'Actions',
-            width: 90,
-            renderCell: (params: GridRenderCellParams) => (
-                <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDeleteClick(params.row.id)}
-                    sx={{ width: 25, justifyContent: 'center' }}
-                />
-            ),
-        },
-    ], [handleOpenModal, getTypeColor, getStatusColor, handleDeleteClick]);
+    const columns = useMemo<GridColDef[]>(() => {
+        const baseColumns: GridColDef[] = [
+            {
+                field: 'id',
+                headerName: 'No.',
+                width: 55,
+                renderCell: (params: GridRenderCellParams) => (
+                    <span>{params.api.getSortedRowIds().indexOf(params.id) + 1}</span>
+                ),
+            },
+            {
+                field: 'name',
+                headerName: 'Name',
+                width: 740,
+                renderCell: (params: GridRenderCellParams) => (
+                    <>
+                        <span
+                            style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
+                            onClick={() => handleOpenModal(params.row.id)}
+                        >
+                            {params.value}
+                        </span>
+                        {admin === 'ADMIN' && (([1, 3].includes(params.row.type_id) && params.row.status_id == 5) 
+                        || (params.row.type_id == 2 && params.row.status_id == 1)) && (
+                            <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleRecieveClick(params.row.id)}
+                            sx={{
+                                ml: 1,
+                                borderRadius: '7px',
+                                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+                                backgroundColor: '#fff',
+                                transition: 'all 0.3s ease',
+                            }}>
+                            <TaskIcon />
+                        </IconButton>
+                        )}
+                    </>
+                ),
+            },
+            {
+                field: 'type',
+                headerName: 'type',
+                width: 100,
+                renderCell: (params: GridRenderCellParams) => (
+                    <Chip
+                        label={params.value}
+                        style={{ backgroundColor: getTypeColor(params.value), color: '#fff' }}
+                        size="medium"
+                        sx={{ width: 100 }}
+                    />
+                ),
+            },
+            {
+                field: 'status',
+                headerName: 'status',
+                width: 130,
+                renderCell: (params: GridRenderCellParams) => (
+                    <Chip
+                        label={params.value}
+                        style={{ backgroundColor: getStatusColor(params.value), color: '#fff' }}
+                        size="medium"
+                        icon={params.value === 'Complete' ? <CheckCircleIcon /> : <RadioButtonCheckedSharpIcon />}
+                    />
+                ),
+            },
+            {
+                field: 'datecreated',
+                headerName: 'RequestDate',
+                width: 120,
+            }
+        ];
+
+        // Conditionally add actions column if admin
+        if (admin === 'ADMIN') {
+            baseColumns.push({
+                field: 'actions',
+                headerName: 'Actions',
+                width: 90,
+                renderCell: (params: GridRenderCellParams) => (
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDeleteClick(params.row.id)}
+                        sx={{ width: 25, justifyContent: 'center' }}
+                    />
+                )
+            });
+        }
+
+        return baseColumns;
+    }, [ handleOpenModal,  getTypeColor,  getStatusColor,  handleDeleteClick,  handleRecieveClick,  admin ]);
 
     // Load user data on mount
     useEffect(() => {
@@ -250,6 +301,12 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
             fetchRequests();
         }
     }, [userData, admin, tab, fetchRequests]);
+
+    useEffect(() => {
+        if (modalOpen === false) {
+            fetchRequests();
+        }
+    }, [modalOpen, fetchRequests]);
 
     return (
         <Container maxWidth="xl">
@@ -293,23 +350,24 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 aria-describedby="alert-dialog-description"
             >
                 <DialogTitle id="alert-dialog-title">
-                    {"Confirm Delete"}
+                    {actionType === 'delete' ? "Confirm Delete" : "Confirm Receive"}
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-description">
-                        คุณต้องการจะลบรายการนี้หรือไม่?
+                        {actionType === 'delete' ? "คุณต้องการจะลบรายการนี้หรือไม่?" : "คุณต้องการจะรับงานนี้ใช่หรือไม่?"}
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
+                    <Button onClick={actionType === 'delete' ? handleConfirmDelete : handleRecieve} color="error" autoFocus>
+                            Confirm
+                    </Button>
                     <Button onClick={handleClose} color="primary">
                         Cancel
                     </Button>
-                    <Button onClick={handleConfirmDelete} color="error" autoFocus>
-                        Confirm
-                    </Button>
+                    
                 </DialogActions>
             </Dialog>
-            
+
             <Modal
                 open={modalOpen}
                 onClose={handleCloseModal}
@@ -329,7 +387,6 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 }}
                     role="dialog"
                     aria-modal="true"
-                    // ลบ aria-hidden หรือตั้งค่าเป็น false
                     aria-labelledby="request-detail-modal-title"
                     aria-describedby="request-detail-modal-description"
                 >

@@ -1,6 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Select, MenuItem, FormControl, InputLabel, Grid, SelectChangeEvent } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+    Box,
+    IconButton,
+    Popover,
+    List,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Typography,
+    Divider
+} from '@mui/material';
 import URLAPI from '../../../URLAPI';
+import CloseIcon from '@mui/icons-material/Close';
+import FlagIcon from '@mui/icons-material/Flag';
+import ClearIcon from '@mui/icons-material/Clear';
 
 interface PriorityOption {
     id_priority: number;
@@ -10,12 +23,27 @@ interface PriorityOption {
 interface PriorityProps {
     id: number;
     id_priority: number | null;
+    readOnly?: boolean;
 }
+
+const priorityConfig = {
+    'Urgent': { color: '#d32f2f', icon: <FlagIcon sx={{ color: '#d32f2f' }} /> },
+    'High': { color: '#f57c00', icon: <FlagIcon sx={{ color: '#f57c00' }} /> },
+    'Normal': { color: '#1976d2', icon: <FlagIcon sx={{ color: '#1976d2' }} /> },
+    'Low': { color: '#757575', icon: <FlagIcon sx={{ color: '#757575' }} /> },
+};
 
 const usePriorityOptions = () => {
     const [priorityOptions, setPriorityOptions] = useState<PriorityOption[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [userData, setUserData] = useState<any | null>(null);
+
+    const isITStaff = useMemo(() => {
+        return userData?.id_section === 28 ||
+            userData?.id_division_competency === 86 ||
+            userData?.id_section_competency === 28;
+    }, [userData]);
 
     useEffect(() => {
         const fetchPriorities = async () => {
@@ -36,30 +64,45 @@ const usePriorityOptions = () => {
         };
 
         fetchPriorities();
+
+        // ดึงข้อมูลผู้ใช้จาก sessionStorage
+        const storedUserData = sessionStorage.getItem('userData');
+        if (storedUserData) {
+            setUserData(JSON.parse(storedUserData));
+        }
     }, []);
 
-    return { priorityOptions, isLoading, error };
+    return { priorityOptions, isLoading, error, isITStaff };
 };
 
-export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority }) => {
-    const { priorityOptions, isLoading } = usePriorityOptions();
-    const [selectedValue, setSelectedValue] = useState<number | ''>(id_priority ?? '');
+export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readOnly = false }) => {
+    const { priorityOptions, isLoading, error, isITStaff } = usePriorityOptions();
+    const [selectedPriority, setSelectedPriority] = useState<PriorityOption | null>(null);
+    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
     useEffect(() => {
-        setSelectedValue(id_priority ?? '');
-    }, [id_priority]);
-
-    const handlePriorityChange = async (event: SelectChangeEvent<string>) => {
-        const newValue = parseInt(event.target.value, 10);
-        setSelectedValue(newValue);
-
-        if (!newValue) {
-            console.log('Priority is not selected');
-            return;
+        if (id_priority && priorityOptions.length > 0) {
+            const priority = priorityOptions.find(p => p.id_priority === id_priority);
+            setSelectedPriority(priority || null);
         }
+    }, [id_priority, priorityOptions]);
+
+    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+        if (!readOnly && isITStaff) {
+            setAnchorEl(event.currentTarget);
+        }
+    };
+
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handlePrioritySelect = async (priority: PriorityOption | null) => {
+        setSelectedPriority(priority);
+        handleClose();
 
         try {
-            const response = await fetch(`${URLAPI}/priority/${id}?id_priority=${newValue}`, {
+            const response = await fetch(`${URLAPI}/priority/${id}?id_priority=${priority?.id_priority || ''}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,35 +117,124 @@ export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority }) => 
             }
 
             const updatedData = await response.json();
-            console.log('Priority updated successfully:', updatedData);
+            console.log('อัปเดตลำดับความสำคัญเรียบร้อยแล้ว:', updatedData);
         } catch (error) {
             console.error('Error:', error);
         }
     };
 
+    if (isLoading) return <div>Loading...</div>;
+    if (error) return <div>{error}</div>;
+
+    const open = Boolean(anchorEl);
+
     return (
-        <Grid container spacing={1}>
-            <Grid item xs={12}>
-                <FormControl variant="outlined" fullWidth>
-                    <InputLabel id="priority-label">เลือกความสำคัญ</InputLabel>
-                    <Select
-                        labelId="priority-label"
-                        value={selectedValue === '' ? '' : selectedValue.toString()}
-                        onChange={handlePriorityChange}
-                        label="เลือกความสำคัญ"
-                        disabled={isLoading}
+        <Box>
+            {/* Selected Priority Display */}
+            <Box
+                onClick={handleClick}
+                sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    cursor: readOnly || !isITStaff ? 'default' : 'pointer',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    backgroundColor: selectedPriority ? '#f5f5f5' : 'transparent',
+                    '&:hover': {
+                        backgroundColor: readOnly || !isITStaff ? 'transparent' : '#f0f0f0'
+                    }
+                }}
+            >
+                <FlagIcon 
+                    sx={{ 
+                        color: selectedPriority 
+                            ? priorityConfig[selectedPriority.name_priority as keyof typeof priorityConfig]?.color 
+                            : '#757575',
+                        fontSize: '20px'
+                    }} 
+                />
+                <Typography variant="body2">
+                    {selectedPriority?.name_priority || 'Priority'}
+                </Typography>
+                {selectedPriority && !readOnly && isITStaff && (
+                    <IconButton
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrioritySelect(null);
+                        }}
                     >
-                        <MenuItem value="">
-                            <em>ยังไม่ได้เลือก</em>
-                        </MenuItem>
+                        <CloseIcon sx={{ fontSize: '16px' }} />
+                    </IconButton>
+                )}
+            </Box>
+
+            {/* Dropdown Menu */}
+            {isITStaff && (
+                <Popover
+                    open={open}
+                    anchorEl={anchorEl}
+                    onClose={handleClose}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                    }}
+                    transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'left',
+                    }}
+                    PaperProps={{
+                        sx: {
+                            width: '200px',
+                            mt: 1,
+                            boxShadow: '0px 2px 8px rgba(0,0,0,0.15)',
+                        }
+                    }}
+                >
+                    <List sx={{ p: 0 }}>
                         {priorityOptions.map((option) => (
-                            <MenuItem key={option.id_priority} value={option.id_priority.toString()}>
-                                {option.name_priority}
-                            </MenuItem>
+                            <ListItemButton
+                                key={option.id_priority}
+                                onClick={() => handlePrioritySelect(option)}
+                                selected={selectedPriority?.id_priority === option.id_priority}
+                                sx={{
+                                    '&:hover': {
+                                        backgroundColor: '#f5f5f5'
+                                    },
+                                    '&.Mui-selected': {
+                                        backgroundColor: '#f0f0f0',
+                                        '&:hover': {
+                                            backgroundColor: '#e0e0e0'
+                                        }
+                                    }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                    {priorityConfig[option.name_priority as keyof typeof priorityConfig]?.icon}
+                                </ListItemIcon>
+                                <ListItemText primary={option.name_priority} />
+                            </ListItemButton>
                         ))}
-                    </Select>
-                </FormControl>
-            </Grid>
-        </Grid>
+                        <Divider />
+                        <ListItemButton
+                            onClick={() => handlePrioritySelect(null)}
+                            sx={{
+                                '&:hover': {
+                                    backgroundColor: '#f5f5f5'
+                                }
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                                <ClearIcon />
+                            </ListItemIcon>
+                            <ListItemText primary="Clear" />
+                        </ListItemButton>
+                    </List>
+                </Popover>
+            )}
+        </Box>
     );
 };
+
+export default SelectPriority;

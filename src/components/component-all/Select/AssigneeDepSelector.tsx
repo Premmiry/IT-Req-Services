@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, List,
-ListItem, ListItemAvatar, ListItemText, TextField, Stack, Snackbar, Alert } from '@mui/material';
+import {
+    Chip, Avatar, Dialog, DialogTitle, DialogContent,
+    DialogActions, Button, Typography, Box, List,
+    ListItem, ListItemAvatar, ListItemText, TextField,
+    Stack, Snackbar, Alert
+} from '@mui/material';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import DeleteIcon from '@mui/icons-material/Delete';
 import URLAPI from '../../../URLAPI';
