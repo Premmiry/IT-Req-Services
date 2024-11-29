@@ -1,6 +1,20 @@
-import { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, TextField, Button, Typography, Container, Paper } from '@mui/material'
+import { 
+    Box, 
+    TextField, 
+    Button, 
+    Typography, 
+    Container, 
+    Paper, 
+    InputAdornment,
+    keyframes 
+} from '@mui/material'
+import { 
+    AccountCircle, 
+    LockRounded, 
+    LoginRounded 
+} from '@mui/icons-material'
 import URLAPI from '../../../URLAPI';
 
 function Login() {
@@ -10,18 +24,30 @@ function Login() {
     const [passwordError, setPasswordError] = useState("")
     const navigate = useNavigate();
 
+    // Create a dynamic gradient animation
+    const gradientAnimation = keyframes`
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    `;
 
-    const onButtonClick = async () => {
+    const validateAndSubmit = useCallback(async () => {
         setUsernameError("")
         setPasswordError("")
 
         if ("" === username) {
-            setUsernameError("Please enter your Username")
+            setUsernameError("กรุณากรอกชื่อผู้ใช้")
             return
         }
 
         if ("" === password) {
-            setPasswordError("Please enter a password")
+            setPasswordError("กรุณากรอกรหัสผ่าน")
             return
         }
 
@@ -35,8 +61,7 @@ function Login() {
             });
 
             if (!response.ok) {
-                // console.error("Error fetching data:", error);
-                setPasswordError("ไม่พบ ข้อมูลผู้ใช้ในระบบ กรุณาติดต่อ 57976 วิค , 57974 เปรม"); // แจ้งให้ผู้ใช้ทราบว่ามีข้อผิดพลาด
+                setPasswordError("ไม่พบ ข้อมูลผู้ใช้ในระบบ กรุณาติดต่อ 57976 วิค , 57974 เปรม");
                 navigate("/nouserad");
                 return;
             }
@@ -45,10 +70,12 @@ function Login() {
 
             sessionStorage.setItem('loginAD', JSON.stringify(data));
             console.log("Login Data stored in sessionStorage:", data);
+            
             if (data.status === "error") {
                 navigate('/nouserad');
                 return;
             }
+            
             const userResponse = await fetch(`${URLAPI}/user_yanhee?user=${username}`, { method: 'GET' });
 
             if (!userResponse.ok) {
@@ -73,6 +100,7 @@ function Login() {
                 } else {
                     sessionStorage.setItem('admin', 'USER');
                 }
+                
                 if (userData.id_section === 28 || userData.id_division_competency === 86 || userData.id_section_competency === 28) {
                     navigate('/request-list-it');
                 }
@@ -81,27 +109,71 @@ function Login() {
                 }
             }
         } catch (error) {
-            // console.error("Error fetching data:", error);
-            setPasswordError("ไม่พบ ข้อมูลผู้ใช้ในระบบ กรุณาติดต่อ 57976 วิค , 57974 เปรม"); // แจ้งให้ผู้ใช้ทราบว่ามีข้อผิดพลาด
+            setPasswordError("ไม่พบ ข้อมูลผู้ใช้ในระบบ กรุณาติดต่อ 57976 วิค , 57974 เปรม");
             navigate("/nouserad");
         }
-    }
+    }, [username, password, navigate]);
+
+    const handleKeyPress = useCallback((event) => {
+        if (event.key === 'Enter') {
+            validateAndSubmit();
+        }
+    }, [validateAndSubmit]);
 
     return (
-        <Container maxWidth="xs" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-            <Paper sx={{ padding: 2, boxShadow: 10 }}>
+        <Box 
+            sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '100vh',
+                background: 'linear-gradient(135deg, #2196F3, #4FC3F7, #81D4FA, #B3E5FC)',
+                backgroundSize: '400% 400%',
+                animation: `${gradientAnimation} 15s ease infinite`,
+            }}
+        >
+            <Paper 
+                elevation={10} 
+                sx={{ 
+                    padding: 4, 
+                    borderRadius: 3,
+                    width: '100%',
+                    maxWidth: '400px',
+                    background: 'rgba(255,255,255,0.9)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                    transition: 'transform 0.3s ease',
+                    '&:hover': {
+                        transform: 'scale(1.02)'
+                    }
+                }}
+            >
                 <Box
                     sx={{
-                        marginTop: 2,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                     }}
                 >
-                    <Typography component="h1" variant="h5">
-                        Login ระบบ IT-Request
+                    <Typography 
+                        component="h1" 
+                        variant="h4" 
+                        sx={{ 
+                            mb: 3, 
+                            fontWeight: 'bold', 
+                            color: '#1976D2',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                            letterSpacing: '0.5px'
+                        }}
+                    >
+                        IT-Request Login
                     </Typography>
-                    <Box component="form" noValidate sx={{ mt: 1 }}>
+                    <Box 
+                        component="form" 
+                        noValidate 
+                        sx={{ width: '100%' }}
+                        onKeyDown={handleKeyPress}
+                    >
                         <TextField
                             margin="normal"
                             required
@@ -115,6 +187,21 @@ function Login() {
                             onChange={(ev) => setUsername(ev.target.value)}
                             error={!!usernameError}
                             helperText={usernameError}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <AccountCircle color="primary" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    '&:hover fieldset': {
+                                        borderColor: 'primary.main',
+                                    },
+                                },
+                            }}
                         />
                         <TextField
                             margin="normal"
@@ -129,18 +216,47 @@ function Login() {
                             onChange={(ev) => setPassword(ev.target.value)}
                             error={!!passwordError}
                             helperText={passwordError}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <LockRounded color="primary" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    '&:hover fieldset': {
+                                        borderColor: 'primary.main',
+                                    },
+                                },
+                            }}
                         />
                         <Button
+                            fullWidth
                             variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
-                            onClick={onButtonClick}
+                            onClick={validateAndSubmit}
+                            endIcon={<LoginRounded />}
+                            sx={{
+                                mt: 3, 
+                                mb: 2, 
+                                py: 1.5,
+                                borderRadius: 2,
+                                background: 'linear-gradient(to right, #2196F3, #4FC3F7)',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    transform: 'translateY(-3px)',
+                                    boxShadow: '0 4px 17px rgba(0, 0, 0, 0.2)',
+                                    background: 'linear-gradient(to right, #1E88E5, #2196F3)',
+                                }
+                            }}
                         >
-                            Submit
+                            เข้าสู่ระบบ
                         </Button>
                     </Box>
                 </Box>
             </Paper>
-        </Container>
+        </Box>
     )
 }
 

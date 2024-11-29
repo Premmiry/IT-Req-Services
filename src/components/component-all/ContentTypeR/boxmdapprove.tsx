@@ -1,9 +1,22 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { FormLabel, Input, Select, Option, SelectStaticProps, Button, Grid } from '@mui/joy';
+import { Stack } from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import { FormLabel, Input, Select, Option, IconButton, Sheet, styled, SelectStaticProps, Button, Grid } from '@mui/joy';
+import CloseRounded from '@mui/icons-material/CloseRounded';
 import { ApproveAlert } from '../Alert/alert';
 import { useNavigate } from 'react-router-dom';
 import URLAPI from '../../../URLAPI';
 
+const Item = styled(Sheet)(({ theme }) => ({
+    backgroundColor: '#fff',
+    ...theme.typography['body-sm'],
+    padding: theme.spacing(0.1),
+    textAlign: 'center',
+    color: theme.vars.palette.text.secondary,
+    ...theme.applyStyles('dark', {
+        backgroundColor: theme.palette.background.level1,
+    }),
+}));
 
 const fetchApproveOptions = async () => {
     const response = await fetch(`${URLAPI}/mtapprove`);
@@ -118,12 +131,12 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
 
     return (
         <Grid container spacing={1}>
-                <Grid xs={8} component="div">
+                <Grid item xs={6} component="div">
                 <FormLabel>Manager Approve</FormLabel>
                 <Input variant="outlined" color="success" type='text' placeholder='Manager Name' value={managerName} readOnly={true} onChange={(e) => setManagerName(e.target.value)} />
             </Grid>
 
-            <Grid xs={4} component="div">
+            <Grid item xs={4} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -146,8 +159,21 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
                     ))}
                 </Select>
             </Grid>
-            {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
+            <Grid item xs={1} component="div">
+            {showSubmitButton && (
+                <>
+                    <FormLabel>Approve</FormLabel>
+                    <Button 
+                        color="success" 
+                        variant="soft"
+                        onClick={handleSubmit}
+                    >
+                        <SaveIcon /> 
+                    </Button>
+                </>
+            )}
             {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+            </Grid>
         </Grid>
     );
 };
@@ -242,12 +268,12 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
 
     return (
         <Grid container spacing={1}>
-            <Grid xs={8} component="div">
+            <Grid item xs={6} component="div">
                 <FormLabel>Director Approve</FormLabel>
                 <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly={true} onChange={(e) => setDirectorName(e.target.value)} />
             </Grid>
 
-            <Grid xs={4} component="div">
+            <Grid item xs={4} component="div">
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -270,8 +296,21 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                     ))}
                 </Select>
             </Grid>
-            {showSubmitButton && <Button  onClick={handleSubmit}>Submit</Button>}
-            {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+            <Grid item xs={1} component="div">
+        {showSubmitButton && (
+            <>
+                <FormLabel>Approve</FormLabel>
+                <Button 
+                    color="warning" 
+                    variant="soft"
+                    onClick={handleSubmit}
+                >
+                    <SaveIcon />
+                </Button>
+            </>
+        )}
+        {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+    </Grid>
         </Grid>
     );
 };

@@ -1,19 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-    Avatar,
-    AvatarGroup,
-    Menu,
-    MenuItem,
-    Typography,
-    Box,
-    ListItemAvatar,
-    ListItemText,
-    TextField,
-    Snackbar,
-    Alert,
-    IconButton,
-    Tooltip
-} from '@mui/material';
+import { Avatar, AvatarGroup, Menu, MenuItem, Typography, Box, ListItemAvatar, ListItemText, TextField, Snackbar, Alert, IconButton, Tooltip } from '@mui/material';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CloseIcon from '@mui/icons-material/Close';
 import URLAPI from '../../../URLAPI';
@@ -43,11 +29,13 @@ interface AssignedEmployee {
 interface AssigneeEmpSelectorProps {
     requestId: number;
     readOnly?: boolean;
+    typedata?: 'main' | 'subtask';
 }
 
 const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
     requestId,
-    readOnly = false
+    readOnly = false,
+    typedata = 'main'
 }) => {
     // State Management
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -62,6 +50,23 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
+    const getApiEndpoint = useCallback(() => {
+        return typedata === 'subtask' 
+            ? `${URLAPI}/assigned_employee_sub/${requestId}`
+            : `${URLAPI}/assigned_employee/${requestId}`;
+    }, [requestId, typedata]);
+
+    const postApiEndpoint = useCallback((empId: number, username: string) => {
+        return typedata === 'subtask'
+            ? `${URLAPI}/assign_employee_sub/${requestId}?id_emp=${empId}&username=${username}`
+            : `${URLAPI}/assign_employee/${requestId}?id_emp=${empId}&username=${username}`;
+    }, [requestId, typedata]);
+
+    const deleteApiEndpoint = useCallback((id_req_emp: number) => {
+        return typedata === 'subtask'
+            ? `${URLAPI}/assign_employee_sub/${id_req_emp}`
+            : `${URLAPI}/assign_employee/${id_req_emp}`;
+    }, [typedata]);
     // Utility Functions
     const showNotification = (message: string, severity: 'success' | 'error' = 'success') => {
         setSnackbarMessage(message);
@@ -93,19 +98,19 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
     // Fetch Assignments
     const fetchAssignments = useCallback(async () => {
         try {
-            const response = await fetch(`${URLAPI}/assigned_employee/${requestId}`);
+            const response = await fetch(getApiEndpoint());
             if (!response.ok) {
                 throw new Error('Error fetching assignments');
             }
 
             const employees: AssignedEmployee[] = await response.json();
             setAssignedEmployees(Array.isArray(employees) ? employees : []);
-            // showNotification('Assignments fetched successfully');
         } catch (error) {
             console.error('Error fetching assignments:', error);
             showNotification('เรียกข้อมูลงานไม่สำเร็จ', 'error');
         }
-    }, [requestId]);
+    }, [getApiEndpoint]);
+
 
     // Fetch Employees
     const fetchEmployees = useCallback(async () => {
@@ -157,7 +162,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
 
         try {
             const response = await fetch(
-                `${URLAPI}/assign_employee/${requestId}?id_emp=${employee.id_emp}&username=${userData.username}`,
+                postApiEndpoint(employee.id_emp, userData.username),
                 { method: 'POST' }
             );
             if (!response.ok) throw new Error('Error assigning employee');
@@ -170,12 +175,12 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
         }
     };
 
-    // Employee Removal
+    // Update handleRemoveEmployee to use the correct endpoint
     const handleRemoveEmployee = async (id_req_emp: number) => {
         if (readOnly) return;
 
         try {
-            const response = await fetch(`${URLAPI}/assign_employee/${id_req_emp}`, {
+            const response = await fetch(deleteApiEndpoint(id_req_emp), {
                 method: 'DELETE'
             });
 

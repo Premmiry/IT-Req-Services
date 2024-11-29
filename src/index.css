@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* File: src/index.css */
 
 /* Reset CSS */

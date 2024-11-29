@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Container, Typography, Button, Chip, Modal } from '@mui/material';
+import { Box, Container, Typography, Button, Chip, Modal, Tooltip, IconButton } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
@@ -7,6 +7,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
 import URLAPI from '../../../URLAPI';
 import RequestDetail from '../Paper/RequestDetail';
+import TaskIcon from "@mui/icons-material/Task";
+import InfoIcon from '@mui/icons-material/Info';
 
 // แยก Type Colors และ Status Colors ออกมาเป็น Constants
 const TYPE_COLORS = {
@@ -139,19 +141,51 @@ export default function ListRequest() {
         {
             field: 'req_no',
             headerName: 'Request No.',
-            width: 155,
+            width: 120,
         },
         {
             field: 'name',
             headerName: 'หัวข้อ Request',
-            width: 700,
+            width: 600,
             renderCell: (params: GridRenderCellParams) => (
+                <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+
                 <span
-                    style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                    onClick={() => handleOpenModal(params.row.id)}
+                style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
+                onClick={() => navigate(`/edit-request/${params.row.id}`)}
                 >
                     {params.value}
                 </span>
+
+                <Tooltip title="View Details" arrow>
+                <IconButton
+                  size="small"
+                  color="warning"
+                  onClick={() => handleOpenModal(params.row.id)}
+                  sx={{
+                    ml: 1,
+                    borderRadius: "7px",
+                    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)",
+                    backgroundColor: "#fff",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <InfoIcon />
+                </IconButton>
+              </Tooltip>
+
+                </div>
+                
+
+
+
             ),
         },
         {
@@ -170,7 +204,7 @@ export default function ListRequest() {
         {
             field: 'status',
             headerName: 'สถานะดำเนินการ',
-            width: 130,
+            width: 190,
             renderCell: (params: GridRenderCellParams) => (
                 <Chip
                     label={params.value}
@@ -217,13 +251,34 @@ export default function ListRequest() {
         setModalOpen(false);
     }, []);
 
+    useEffect(() => {
+        if (modalOpen === false) {
+            fetchRequests();
+        }
+    }, [modalOpen, fetchRequests]);
+
     return (
         <Container maxWidth="xl">
             <Box sx={{ my: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h4" component="h1">
-                        Request List
-                    </Typography>
+                <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              mt: 2,
+              mb: 4,
+              fontWeight: "bold",
+              fontSize: 30,
+              color: "#1976d2",
+              textAlign: "left",
+              textDecorationThickness: 2,
+              textUnderlineOffset: 6,
+              textDecorationColor: "#1976d2",
+              textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            Request List
+          </Typography>
                     <Button
                         variant="contained"
                         color="primary"
