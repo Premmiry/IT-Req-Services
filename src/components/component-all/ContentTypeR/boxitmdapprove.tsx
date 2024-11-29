@@ -18,7 +18,7 @@ interface ApproveProps {
     name: string | null;
     status: string | null;
     req_id: string | null;
-    it_m_name?: string | null; // Make id_section_competency optional
+    it_m_name?: string | null;
     level_job: number | null;
 }
 
@@ -39,7 +39,17 @@ const useApproveOptions = () => {
     return approveOptions;
 };
 
-export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, it_m_note }: { itmanagerApprove: ApproveProps, id_division_competency: number | null, it_m_note: string | null }) => {
+export const BoxITManagerApprove = ({ 
+    itmanagerApprove, 
+    id_division_competency, 
+    it_m_note,
+    onLevelJobChange 
+}: { 
+    itmanagerApprove: ApproveProps, 
+    id_division_competency: number | null, 
+    it_m_note: string | null,
+    onLevelJobChange?: (levelJob: number | null) => void 
+}) => {
     const [value1, setValue1] = React.useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [itmanagerName, setITManagerName] = useState<string>(itmanagerApprove?.name || '');
@@ -48,6 +58,14 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
     const [showAlert, setShowAlert] = useState(false);
     const action: SelectStaticProps['action'] = React.useRef(null);
     const navigate = useNavigate();
+
+    // Update levelJob and call the callback if provided
+    const handleLevelJobChange = (newLevelJob: number | null) => {
+        setLevelJob(newLevelJob);
+        if (onLevelJobChange) {
+            onLevelJobChange(newLevelJob);
+        }
+    };
 
     const memoizedITManagerApprove = useMemo(() => {
         return {
@@ -79,7 +97,8 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
 
     const handleChangeCheck = () => (event: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseInt(event.target.value, 10);
-        setLevelJob(value);
+        handleLevelJobChange(value);
+        console.log('Level Job:', value);
     };
 
     const handleSubmit = useCallback(async () => {
@@ -95,6 +114,7 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
 
         if (!levelJob) {
             alert('Level Job cannot be empty');
+            console.log('Level Job:', levelJob);
             return;
         }
 
@@ -129,7 +149,7 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
         } catch (error) {
             console.error('Error updating manager approval:', error);
         }
-    }, [value1, itmanagerApprove, itmanagerName, it_m_note, id_division_competency, navigate]);
+    }, [value1, itmanagerApprove, itmanagerName, it_m_note, id_division_competency, navigate, levelJob]);
 
     return (
         <Grid container spacing={1}>
@@ -187,14 +207,37 @@ export const BoxITManagerApprove = ({ itmanagerApprove, id_division_competency, 
     );
 };
 
-export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_competency, it_d_note, levelJob }: { itdirectorApprove: ApproveProps, it_m_name: string | null, id_section_competency: number, it_d_note: string | null, levelJob: number | null }) => {
+export const BoxITDirectorApprove = ({ 
+    itdirectorApprove, 
+    it_m_name, 
+    id_section_competency, 
+    it_d_note, 
+    levelJob: initialLevelJob, 
+    onLevelJobChange 
+}: { 
+    itdirectorApprove: ApproveProps, 
+    it_m_name: string | null, 
+    id_section_competency: number, 
+    it_d_note: string | null, 
+    levelJob: number | null,
+    onLevelJobChange?: (levelJob: number | null) => void 
+}) => {
     const [value2, setValue2] = React.useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [itdirectorName, setITDirectorName] = useState<string>(itdirectorApprove?.name || '');
     const [showSubmitButton, setShowSubmitButton] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
+    const [levelJob, setLevelJob] = useState<number | null>(initialLevelJob);
     const action: SelectStaticProps['action'] = React.useRef(null);
     const navigate = useNavigate();
+
+    // Update levelJob and call the callback if provided
+    const handleLevelJobChange = (newLevelJob: number | null) => {
+        setLevelJob(newLevelJob);
+        if (onLevelJobChange) {
+            onLevelJobChange(newLevelJob);
+        }
+    };
 
     const memoizedITDirectorApprove = useMemo(() => {
         return {
@@ -203,6 +246,11 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
             status: itdirectorApprove?.status
         };
     }, [itdirectorApprove?.name, itdirectorApprove?.req_id, itdirectorApprove?.status]);
+
+    useEffect(() => {
+        // Update levelJob when initialLevelJob changes
+        setLevelJob(initialLevelJob);
+    }, [initialLevelJob]);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -284,7 +332,15 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
         <Grid container spacing={1}>
             <Grid item xs={6} component="div">
                 <FormLabel>IT Director Approve</FormLabel>
-                <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={itdirectorName} readOnly={true} onChange={(e) => setITDirectorName(e.target.value)} />
+                <Input 
+                    variant="outlined" 
+                    color="warning" 
+                    type='text' 
+                    placeholder='Director Name' 
+                    value={itdirectorName} 
+                    readOnly={true} 
+                    onChange={(e) => setITDirectorName(e.target.value)} 
+                />
             </Grid>
             <Grid item xs={3} component="div">
                 <FormLabel>Status</FormLabel>
@@ -296,7 +352,8 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                         console.log("Selected Value:", newValue);
                         setValue2(newValue);
                     }}
-                    variant="outlined" color="warning"
+                    variant="outlined" 
+                    color="warning"
                     {...(value2 && {
                         indicator: null,
                     })}
@@ -309,9 +366,7 @@ export const BoxITDirectorApprove = ({ itdirectorApprove, it_m_name, id_section_
                 </Select>
             </Grid>
             {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
-            {showAlert && <ApproveAlert onClose={function (): void {
-                throw new Error('Function not implemented.');
-            }} />}
+            {showAlert && <ApproveAlert onClose={() => {/* Implement onClose function */}} />}
         </Grid>
     );
 };

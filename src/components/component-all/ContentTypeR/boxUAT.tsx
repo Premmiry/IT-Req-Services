@@ -37,7 +37,7 @@ interface UATRow {
 export default function UAT(props: Props) {
     const [dataUat, setDataUat] = React.useState<any | null>(null);
     const [rows, setRows] = React.useState<UATRow[]>([{
-        id: 0, // ใช้ timestamp แทนการใช้ index
+        id: 0,
         title: '',
         result: null,
         description: ''
@@ -63,7 +63,7 @@ export default function UAT(props: Props) {
         const uatData = await fetchUATData(props.id);
         if (uatData.length > 0) {
             setRows(uatData.map((data: { id_uat: any; uat_title: any; testresults: any; uat_note: any; }) => ({
-                id: data.id_uat || 0, // ใช้ id_uat ถ้ามี หรือใช้ timestamp ถ้าไม่มี
+                id: data.id_uat || 0,
                 title: data.uat_title,
                 result: data.testresults,
                 description: data.uat_note,
@@ -309,13 +309,30 @@ export default function UAT(props: Props) {
         }
     };
 
-    const handleBack = () => {
-        if (props.onClose) {
-            props.onClose(); // ปิด modal เมื่อกดปุ่ม handleBack
+    const handleChangeUAT = async () => {
+        try {
+            const response = await fetch(`${URLAPI}/change_status/${props.id}?change=uat`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Error response:", errorText);
+                throw new Error("Network response was not ok");
+            }
+
+            const result = await response.json();
+            console.log("UAT Title updated successfully:", result);
+            alert("UAT Title updated successfully!"); // แจ้งเตือนเมื่อสำเร็จ
+            if (props.onClose) {
+                props.onClose();
+            }
+        } catch (error: any) {
+            console.error('Error updating UAT results:', error);
+            alert(`เกิดข้อผิดพลาดในการบันทึกผลการทดสอบ UAT: ${error.message}`);
         }
     };
-
-
 
     return (
         <Container component="main" sx={{ mb: 4 }} maxWidth="xl">
@@ -466,7 +483,7 @@ export default function UAT(props: Props) {
             })}
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 2 }}>
-                {!dataUat && (![7, 8, 17].includes(props.status)) && (
+                {dataUat && (![7, 8, 17].includes(props.status)) && props.department !== 292 && (
                     <>
                         <Button
                             variant="contained"
@@ -477,17 +494,23 @@ export default function UAT(props: Props) {
                         >
                             ส่ง UAT
                         </Button>
-                        <Button
-                            variant="contained"
-                            color="secondary"
-                            endIcon={<ReplyIcon />}
-                            onClick={handleBack}
-                        >
-                            ไปหน้า List
-                        </Button>
                     </>
                 )}
+                {props.department === 292 && props.status === 6 && (
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        endIcon={<ReplyIcon />}
+                        onClick={handleChangeUAT}
+                    >
+                        ส่งหัวข้อ UAT
+                    </Button>
+                )}
+
+
             </Box>
+
+
         </Container>
     );
 }

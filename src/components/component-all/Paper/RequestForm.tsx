@@ -16,12 +16,17 @@ import { BoxDirectorApprove, BoxManagerApprove } from '../ContentTypeR/boxmdappr
 import { BoxITDirectorApprove, BoxITManagerApprove } from '../ContentTypeR/boxitmdapprove';
 import URLAPI from '../../../URLAPI';
 
-
 interface ApproveProps {
     name: string;
     status: string;
     req_id: string;
     level_job?: number | null;
+}
+
+interface UserApproveProps {
+    name: string;
+    status: string;
+    req_id: string;
 }
 
 interface ProgramOption {
@@ -62,13 +67,13 @@ export default function RequestForm() {
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
-    const [managerApprove, setManagerApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
-    const [directorApprove, setDirectorApprove] = useState<{ name: string, status: string, req_id: string } | null>(null);
+    const [managerApprove, setManagerApprove] = useState<UserApproveProps | null>(null);
+    const [directorApprove, setDirectorApprove] = useState<UserApproveProps | null>(null);
     const [itmanagerApprove, setITManagerApprove] = useState<ApproveProps | null>(null);
     const [itdirectorApprove, setITDirectorApprove] = useState<ApproveProps | null>(null);
     const [itmanagerNote, setITManagerNote] = useState<string>('');
     const [itdirectorNote, setITDirectorNote] = useState<string>('');
-
+    const [levelJob, setLevelJob] = useState<number | null>(null); // State for levelJob
 
     useEffect(() => {
         if (isEditMode) {
@@ -112,6 +117,8 @@ export default function RequestForm() {
                             req_id: id || '',
                             level_job: requestData.level_job || null
                         });
+                        setITDirectorNote(requestData.it_d_note || '');
+                        setLevelJob(requestData.level_job || null); // Set initial levelJob
                         let parsedFiles: ExistingFileInfo[] = [];
                         try {
                             parsedFiles = JSON.parse(requestData.files);
@@ -354,9 +361,23 @@ export default function RequestForm() {
                 {successAlert && <SaveAlert onClose={() => setSuccessAlert(false)} />}
 
                 <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
-                    <Box sx={{ padding: 2 }}>
-                        <h2>{isEditMode ? 'Request Edit' : 'Request Form'}</h2>
-                    </Box>
+                    <Typography
+                        sx={{
+                            mt: 2,
+                            mb: 4,
+                            fontWeight: 'bold',
+                            fontSize: 25,
+                            color: '#1976d2',
+                            textAlign: 'left',
+                            textDecoration: 'underline',
+                            textDecorationThickness: 2,
+                            textUnderlineOffset: 6,
+                            textDecorationColor: '#1976d2',
+                            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                        }}
+                    >
+                        {isEditMode ? 'Request Edit' : 'Request Form'}
+                    </Typography>
                     <hr />
 
                     <Grid container spacing={2}>
@@ -457,6 +478,7 @@ export default function RequestForm() {
                                                 }}
                                                 id_division_competency={userData.id_division_competency}
                                                 it_m_note={itmanagerNote}
+                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
                                             />
                                         ) : (
                                             <BoxITManagerApprove
@@ -468,6 +490,7 @@ export default function RequestForm() {
                                                 }}
                                                 id_division_competency={userData.id_division_competency}
                                                 it_m_note={null}
+                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
                                             />
                                         )}
                                         <ITManagerTextarea
@@ -487,7 +510,7 @@ export default function RequestForm() {
                                                 it_m_name={itmanagerApprove?.name ?? null}
                                                 id_section_competency={userData.id_section_competency}
                                                 it_d_note={itdirectorNote}
-                                                levelJob={itmanagerApprove?.level_job ?? null}
+                                                levelJob={levelJob} // Pass levelJob as prop
                                             />
                                         ) : (
                                             <BoxITDirectorApprove
@@ -500,7 +523,7 @@ export default function RequestForm() {
                                                 it_m_name={null}
                                                 id_section_competency={userData.id_section_competency}
                                                 it_d_note={null}
-                                                levelJob={null}
+                                                levelJob={levelJob} // Pass levelJob as prop
                                             />
                                         )}
                                         <Box sx={{ mb: 9 }}>

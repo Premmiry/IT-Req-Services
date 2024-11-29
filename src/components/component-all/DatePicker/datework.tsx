@@ -38,6 +38,26 @@ const StyledDay = styled(PickersDay)(({ theme }) => ({
 
 const usePriorityOptions = () => {
     const [userData, setUserData] = useState<any | null>(null);
+    const [admin, setAdmin] = useState<string | null>(null);
+
+    useEffect(() => {
+        const storedUserData = sessionStorage.getItem('userData');
+        const storedAdmin = sessionStorage.getItem('admin');
+
+        console.log("Stored UserData:", storedUserData);
+        console.log("Stored Admin:", storedAdmin);
+
+        if (storedUserData) {
+            const userDataParsed = JSON.parse(storedUserData);
+            setUserData(userDataParsed);
+            console.log("UserData:", userDataParsed);
+        }
+
+        if (storedAdmin) {
+            setAdmin(storedAdmin);
+            console.log("Admin:", storedAdmin);
+        }
+    }, []);
 
     const isITStaff = useMemo(() => {
         return userData?.id_section === 28 ||
@@ -60,6 +80,8 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
     const [dateStart, setDateStart] = useState<Dayjs | null>(date_start ? dayjs(date_start) : null);
     const [dateEnd, setDateEnd] = useState<Dayjs | null>(date_end ? dayjs(date_end) : null);
     const [isLoading, setIsLoading] = useState(false);
+
+
 
     const updateDateWork = async (field: 'date_start' | 'date_end', value: Dayjs | null) => {
         if (!value || !isITStaff) return;
@@ -106,10 +128,10 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+            <Grid container spacing={2} sx={{ width: '100%' }}>
+                <Grid item xs={12} sm={5}>
                     <DatePicker
-                        label="วันที่เริ่มต้น (Date Start)"
+                        label="วันที่เริ่มงาน (Date Start)"
                         value={dateStart}
                         onChange={handleDateStartChange}
                         format="DD-MM-YYYY"
@@ -130,9 +152,9 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                         disabled={!isITStaff || isLoading}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={5}>
                     <DatePicker
-                        label="วันที่สิ้นสุด (Date End)"
+                        label="วันที่สิ้นสุดงาน (Date End)"
                         value={dateEnd}
                         onChange={handleDateEndChange}
                         format="DD-MM-YYYY"

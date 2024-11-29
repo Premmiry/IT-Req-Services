@@ -100,22 +100,26 @@ export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readO
     const handlePrioritySelect = async (priority: PriorityOption | null) => {
         setSelectedPriority(priority);
         handleClose();
-
+    
         try {
-            const response = await fetch(`${URLAPI}/priority/${id}?id_priority=${priority?.id_priority || ''}`, {
+            const url = priority 
+                ? `${URLAPI}/priority/${id}?id_priority=${priority.id_priority}`
+                : `${URLAPI}/priority/${id}`;
+    
+            const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-
+    
             if (!response.ok) {
                 const errorMessage = await response.text();
                 console.error('Error:', errorMessage);
                 alert(`Error: ${errorMessage}`);
                 return;
             }
-
+    
             const updatedData = await response.json();
             console.log('อัปเดตลำดับความสำคัญเรียบร้อยแล้ว:', updatedData);
         } catch (error) {
