@@ -13,12 +13,11 @@ import {
   Button,
   Box,
 } from "@mui/joy";
-import CloseRounded from "@mui/icons-material/CloseRounded";
 import { ApproveAlert } from "../Alert/alert";
 import { useNavigate } from "react-router-dom";
 import URLAPI from "../../../URLAPI";
 import CheckboxITApprove from "../Checkbox/checkbox_it_approve";
-import { User } from "lucide-react";
+
 
 const Item = styled(Sheet)(({ theme }) => ({
   backgroundColor: "#fff",
@@ -70,10 +69,12 @@ export const BoxITManagerApprove = ({
   itmanagerApprove,
   id_division_competency,
   it_m_note,
+  onLevelJobChange
 }: {
   itmanagerApprove: ApproveProps;
   id_division_competency: number | null;
   it_m_note: string | null;
+  onLevelJobChange?: (levelJob: number | null) => void 
 }) => {
   const [value1, setValue1] = React.useState<number | null>(null);
   const approveOptions = useApproveOptions();
@@ -89,19 +90,26 @@ export const BoxITManagerApprove = ({
   const action: SelectStaticProps["action"] = React.useRef(null);
   const navigate = useNavigate();
 
+     // Update levelJob and call the callback if provided
+     const handleLevelJobChange = (newLevelJob: number | null) => {
+      setLevelJob(newLevelJob);
+      if (onLevelJobChange) {
+          onLevelJobChange(newLevelJob);
+      }
+  };
+
   const memoizedITManagerApprove = useMemo(() => {
     return {
       name: itmanagerApprove?.name,
       req_id: itmanagerApprove?.req_id,
       status: itmanagerApprove?.status,
-      level_job: itmanagerApprove?.level_job,
+      level_job: itmanagerApprove?.level_job
     };
   }, [
     itmanagerApprove?.name,
     itmanagerApprove?.req_id,
     itmanagerApprove?.status,
-    ,
-    itmanagerApprove?.level_job,
+    itmanagerApprove?.level_job
   ]);
 
   useEffect(() => {
@@ -197,6 +205,7 @@ export const BoxITManagerApprove = ({
     it_m_note,
     id_division_competency,
     navigate,
+    levelJob
   ]);
 
   return (
@@ -253,7 +262,7 @@ export const BoxITManagerApprove = ({
           />
         )}
       </Grid>
-      {userData?.position === "m" && (
+      
         <Grid item xs={6} component="div">
           <FormGroup aria-label="position" row id={`checkbox_group`}>
             <CheckboxITApprove
@@ -262,7 +271,7 @@ export const BoxITManagerApprove = ({
             />
           </FormGroup>
         </Grid>
-      )}
+      
     </Grid>
   );
 };
@@ -272,74 +281,69 @@ export const BoxITDirectorApprove = ({
   it_m_name,
   id_section_competency,
   it_d_note,
-  levelJob,
+  levelJob: initialLevelJob, 
+  onLevelJobChange
 }: {
   itdirectorApprove: ApproveProps;
   it_m_name: string | null;
   id_section_competency: number;
   it_d_note: string | null;
-  levelJob: number | null;
+  levelJob: number | null,
+  onLevelJobChange?: (levelJob: number | null) => void 
 }) => {
   const [value2, setValue2] = React.useState<number | null>(null);
   const approveOptions = useApproveOptions();
-  const [itdirectorName, setITDirectorName] = useState<string>(
-    itdirectorApprove?.name || ""
-  );
+  const [itdirectorName, setITDirectorName] = useState<string>(itdirectorApprove?.name || '');
   const [showSubmitButton, setShowSubmitButton] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const action: SelectStaticProps["action"] = React.useRef(null);
+  const [levelJob, setLevelJob] = useState<number | null>(initialLevelJob);
+  const action: SelectStaticProps['action'] = React.useRef(null);
   const navigate = useNavigate();
-//   const [levelJB, setLevelJB] = useState<number | null>(levelJob);
-  const [levelJB, setLevelJB] = useState<number | null>(
-    itdirectorApprove?.level_job ?? null
-  );
-  const [userData, setUserData] = useState<UserData | null>(null);
 
-  const handleChangeCheck =
-    () => (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseInt(event.target.value, 10);
-      setLevelJB(value);
-      console.log("Level Job:", value);
-    };
+  // Update levelJob and call the callback if provided
+  const handleLevelJobChange = (newLevelJob: number | null) => {
+      setLevelJob(newLevelJob);
+      if (onLevelJobChange) {
+          onLevelJobChange(newLevelJob);
+      }
+  };
 
   const memoizedITDirectorApprove = useMemo(() => {
     return {
       name: itdirectorApprove?.name,
       req_id: itdirectorApprove?.req_id,
-      status: itdirectorApprove?.status,
-      level_job: itdirectorApprove?.level_job,
+      status: itdirectorApprove?.status
     };
   }, [
     itdirectorApprove?.name,
     itdirectorApprove?.req_id,
-    itdirectorApprove?.status,
-    itdirectorApprove?.level_job,
+    itdirectorApprove?.status
   ]);
 
   useEffect(() => {
-    const storedUserData = sessionStorage.getItem("userData");
-    if (storedUserData) {
+    // Update levelJob when initialLevelJob changes
+    setLevelJob(initialLevelJob);
+}, [initialLevelJob]);
+
+
+
+useEffect(() => {
+  const storedUserData = sessionStorage.getItem('userData');
+  if (storedUserData) {
       const userData: UserData = JSON.parse(storedUserData);
-      setUserData(userData);
-      if (userData.position === "d" && !memoizedITDirectorApprove.name) {
-        setITDirectorName(userData.name_employee);
+      if (userData.position === 'd' && !memoizedITDirectorApprove.name) {
+          setITDirectorName(userData.name_employee);
       } else if (memoizedITDirectorApprove.name) {
-        setITDirectorName(memoizedITDirectorApprove.name);
-        setValue2(
-          memoizedITDirectorApprove.status
-            ? parseInt(memoizedITDirectorApprove.status)
-            : null
-        );
-        setLevelJB(memoizedITDirectorApprove.level_job);
+          setITDirectorName(memoizedITDirectorApprove.name);
+          setValue2(memoizedITDirectorApprove.status ? parseInt(memoizedITDirectorApprove.status) : null);
       }
 
-      const shouldShowSubmitButton =
-        Boolean(memoizedITDirectorApprove.req_id) &&
-        !memoizedITDirectorApprove.status &&
-        userData.position === "d";
+      const shouldShowSubmitButton = Boolean(memoizedITDirectorApprove.req_id) &&
+          !memoizedITDirectorApprove.status &&
+          userData.position === 'd';
       setShowSubmitButton(shouldShowSubmitButton);
-    }
-  }, [memoizedITDirectorApprove]);
+  }
+}, [memoizedITDirectorApprove]);
 
   const handleSubmit = useCallback(async () => {
     if (!value2) {
@@ -352,16 +356,15 @@ export const BoxITDirectorApprove = ({
       return;
     }
 
-    if (!levelJB) {
-      alert("Level Job cannot be empty");
-      console.log("Level Job:", levelJB);
+    if (!levelJob) {
+      alert('Level Job cannot be empty');
       return;
-    }
+  }
 
     try {
       if (!it_m_name) {
         const response = await fetch(
-          `${URLAPI}/it_m_approve/${itdirectorApprove.req_id}?name=${encodeURIComponent(itdirectorName)}&status=${encodeURIComponent(value2)}&note=${encodeURIComponent(it_d_note ?? "")}&level_job=${encodeURIComponent(levelJB ?? "")}`,
+          `${URLAPI}/it_m_approve/${itdirectorApprove.req_id}?name=${encodeURIComponent(itdirectorName)}&status=${encodeURIComponent(value2)}&note=${encodeURIComponent(it_d_note ?? "")}&level_job=${encodeURIComponent(levelJob ?? "")}`,
           {
             method: "PUT",
             headers: {
@@ -412,7 +415,7 @@ export const BoxITDirectorApprove = ({
     id_section_competency,
     navigate,
     it_m_name,
-    levelJB,
+    levelJob,
   ]);
 
   return (
@@ -470,17 +473,6 @@ export const BoxITDirectorApprove = ({
         )}
       </Grid>
 
-      
-      {userData?.position === "d" && (
-        <Grid item xs={6} component="div">
-          <FormGroup aria-label="position" row id={`checkbox_group`}>
-            <CheckboxITApprove
-              levelJob={levelJB}
-              onChange={handleChangeCheck()}
-            />
-          </FormGroup>
-        </Grid>
-      )}
     </Grid>
   );
 };

@@ -27,7 +27,6 @@ interface UserApproveProps {
     name: string;
     status: string;
     req_id: string;
-    
 }
 
 interface ProgramOption {
@@ -74,7 +73,7 @@ export default function RequestForm() {
     const [itdirectorApprove, setITDirectorApprove] = useState<ApproveProps | null>(null);
     const [itmanagerNote, setITManagerNote] = useState<string>('');
     const [itdirectorNote, setITDirectorNote] = useState<string>('');
-    
+    const [levelJob, setLevelJob] = useState<number | null>(null); // State for levelJob
 
     useEffect(() => {
         if (isEditMode) {
@@ -119,6 +118,7 @@ export default function RequestForm() {
                             level_job: requestData.level_job || null
                         });
                         setITDirectorNote(requestData.it_d_note || '');
+                        setLevelJob(requestData.level_job || null); // Set initial levelJob
                         let parsedFiles: ExistingFileInfo[] = [];
                         try {
                             parsedFiles = JSON.parse(requestData.files);
@@ -207,25 +207,25 @@ export default function RequestForm() {
             const shortYear = String(currentYearBE).slice(-2); // เอาเฉพาะ 2 หลักสุดท้ายของ พ.ศ.
             return `${prefix}${shortYear}/001`; // ใช้รูปแบบ Prefix+Year/001
         };
-    
+
         try {
             const response = await fetch(`${URLAPI}/generatecode`);
             if (!response.ok) {
                 throw new Error('Failed to fetch data from API');
             }
-    
+
             const data = await response.json();
             if (data && data.length > 0) {
                 const { years, total_requests } = data[0];
                 const incrementedTotal = total_requests + 1; // เพิ่มค่า total_requests ขึ้น 1
                 const formattedTotal = String(incrementedTotal).padStart(3, '0'); // Padding เป็น 3 หลัก
                 const dateCode = `${years}/${formattedTotal}`;
-    
+
                 // กำหนด prefix ตามประเภทที่เลือก
                 const prefix = selectedTypeId === 1 ? 'IT' :
                     selectedTypeId === 2 ? 'IS' :
                         selectedTypeId === 3 ? 'DEV' : 'UNK';
-    
+
                 return `${prefix}${dateCode}`; // Generate รหัสที่ไม่ซ้ำโดยเพิ่มเลข request ขึ้น 1
             } else {
                 throw new Error('No data received from the API');
@@ -237,7 +237,7 @@ export default function RequestForm() {
                     selectedTypeId === 3 ? 'DEV' : 'UNK';
             return getFallbackCode(prefix);
         }
-    }, []);    
+    }, []);
 
 
     const validateForm = useCallback(() => {
@@ -255,10 +255,10 @@ export default function RequestForm() {
 
     const handleSubmit = useCallback(async () => {
         if (!validateForm()) return;
-    
+
         try {
             const formData = new FormData();
-    
+
             const rsCodeToUse = isEditMode ? rsCode : await generateRsCode(selectedTypeId);
             formData.append('rs_code', rsCodeToUse);
             formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
@@ -276,10 +276,10 @@ export default function RequestForm() {
             formData.append('title_req', title);
             formData.append('detail_req', details);
             formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
-    
+
             if (uploadedFiles.length > 0) {
                 const existingFiles: ExistingFileInfo[] = [];
-    
+
                 uploadedFiles.forEach((file) => {
                     if (file instanceof File) {
                         formData.append('new_files', file);
@@ -292,14 +292,14 @@ export default function RequestForm() {
                         });
                     }
                 });
-    
+
                 if (existingFiles.length > 0) {
                     formData.append('existing_files', JSON.stringify(existingFiles));
                 }
             }
-    
+
             console.log('Form Data:', formData);
-    
+
             const response = await fetch(
                 isEditMode ? `${URLAPI}/it-requests/${id}` : `${URLAPI}/it-requests`,
                 {
@@ -307,19 +307,19 @@ export default function RequestForm() {
                     body: formData,
                 }
             );
-    
+
             if (!response.ok) {
                 const errorBody = await response.text();
                 console.error('Error response body:', errorBody);
                 throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
             }
-    
+
             const result = await response.json();
             console.log(isEditMode ? 'IT request updated successfully:' : 'IT request created successfully:', result);
-    
+
             setSuccessAlert(true);
             clearForm();
-    
+
             setTimeout(() => {
                 setSuccessAlert(false);
                 if (userData?.id_section === 28 || userData?.id_division_competency === 86 || userData?.id_section_competency === 28) {
@@ -361,25 +361,23 @@ export default function RequestForm() {
                 {successAlert && <SaveAlert onClose={() => setSuccessAlert(false)} />}
 
                 <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
-                    
-                        <Typography
-                                    sx={{
-                                        mt: 2,
-                                        mb: 4,
-                                        fontWeight: 'bold',
-                                        fontSize: 25,
-                                        color: '#1976d2',
-                                        textAlign: 'left',
-                                        textDecoration: 'underline',
-                                        textDecorationThickness: 2,
-                                        textUnderlineOffset: 6,
-                                        textDecorationColor: '#1976d2',
-                                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                                    }}
-                                >
-                                    {isEditMode ? 'Request Edit' : 'Request Form'}
-                                </Typography>
-                    
+                    <Typography
+                        sx={{
+                            mt: 2,
+                            mb: 4,
+                            fontWeight: 'bold',
+                            fontSize: 25,
+                            color: '#1976d2',
+                            textAlign: 'left',
+                            textDecoration: 'underline',
+                            textDecorationThickness: 2,
+                            textUnderlineOffset: 6,
+                            textDecorationColor: '#1976d2',
+                            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                        }}
+                    >
+                        {isEditMode ? 'Request Edit' : 'Request Form'}
+                    </Typography>
                     <hr />
 
                     <Grid container spacing={2}>
@@ -469,11 +467,9 @@ export default function RequestForm() {
                                 </Typography>
 
                                 <Grid container spacing={4}>
-                                    {/* IT Manager Section */}
                                     <Grid item xs={12} sm={6}>
-                                        <Box>
-                                            {itmanagerApprove !== null ? (
-                                                <BoxITManagerApprove
+                                        {itmanagerApprove !== null ? (
+                                            <BoxITManagerApprove
                                                 itmanagerApprove={{
                                                     name: itmanagerApprove.name,
                                                     status: itmanagerApprove.status,
@@ -482,9 +478,10 @@ export default function RequestForm() {
                                                 }}
                                                 id_division_competency={userData.id_division_competency}
                                                 it_m_note={itmanagerNote}
+                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
                                             />
-                                            ) : (
-                                                <BoxITManagerApprove
+                                        ) : (
+                                            <BoxITManagerApprove
                                                 itmanagerApprove={{
                                                     name: '',
                                                     status: '',
@@ -493,21 +490,17 @@ export default function RequestForm() {
                                                 }}
                                                 id_division_competency={userData.id_division_competency}
                                                 it_m_note={null}
+                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
                                             />
-                                            )}
-
-                                            <ITManagerTextarea
-                                                value={itmanagerNote}
-                                                onChange={(e) => setITManagerNote(e.target.value)}
-                                            />
-                                        </Box>
+                                        )}
+                                        <ITManagerTextarea
+                                            value={itmanagerNote}
+                                            onChange={(e) => setITManagerNote(e.target.value)}
+                                        />
                                     </Grid>
-
-                                    {/* IT Director Section */}
                                     <Grid item xs={12} sm={6}>
-                                        <Box>
-                                            {itdirectorApprove !== null ? (
-                                                <BoxITDirectorApprove
+                                        {itdirectorApprove !== null ? (
+                                            <BoxITDirectorApprove
                                                 itdirectorApprove={{
                                                     name: itdirectorApprove.name,
                                                     status: itdirectorApprove.status,
@@ -517,10 +510,10 @@ export default function RequestForm() {
                                                 it_m_name={itmanagerApprove?.name ?? null}
                                                 id_section_competency={userData.id_section_competency}
                                                 it_d_note={itdirectorNote}
-                                                levelJob={itmanagerApprove?.level_job ?? null}
+                                                levelJob={levelJob} // Pass levelJob as prop
                                             />
-                                            ) : (
-                                                <BoxITDirectorApprove
+                                        ) : (
+                                            <BoxITDirectorApprove
                                                 itdirectorApprove={{
                                                     name: '',
                                                     status: '',
@@ -530,17 +523,18 @@ export default function RequestForm() {
                                                 it_m_name={null}
                                                 id_section_competency={userData.id_section_competency}
                                                 it_d_note={null}
-                                                levelJob={null}
+                                                levelJob={levelJob} // Pass levelJob as prop
                                             />
-                                            )}
-                                            
+                                        )}
+                                        <Box sx={{ mb: 9 }}>
 
-                                            <ITDirectorTextarea
-                                                value={itdirectorNote}
-                                                onChange={(e) => setITDirectorNote(e.target.value)}
-                                            />
                                         </Box>
+                                        <ITDirectorTextarea
+                                            value={itdirectorNote}
+                                            onChange={(e) => setITDirectorNote(e.target.value)}
+                                        />
                                     </Grid>
+
                                 </Grid>
                             </Box>
 

@@ -78,13 +78,21 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     try {
       const response = await fetch(`${URLAPI}/subtask/${req_id}`);
       const data = await response.json();
-      const formattedData = data.map((item: any, index: number) => ({
-        ...item,
-        id: index + 1,
-      }));
-      setRows(formattedData);
+      
+      // Check if data is an array before mapping
+      if (Array.isArray(data)) {
+        const formattedData = data.map((item: any, index: number) => ({
+          ...item,
+          id: index + 1,
+        }));
+        setRows(formattedData);
+      } else {
+        console.error("Fetched data is not an array:", data);
+        setRows([]);
+      }
     } catch (error) {
       console.error("Error fetching subtasks:", error);
+      setRows([]);
     }
   };
 
@@ -316,7 +324,7 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     const updatedRows = rows.map((r) =>
       r.id === row.id ? { ...r, id_priority: newValue } : r
     );
-    setRows(updatedRows);
+    setRows(updatedRows as SubtaskData[]);
     updateSubtask(
       row,
       "id_priority",
