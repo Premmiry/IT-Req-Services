@@ -420,9 +420,8 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                   <Box
                     component="span"
                     sx={{ fontSize: "0.875rem", color: "info.main" }}
-                  >
-                    {requestData.detail_req}
-                  </Box>
+                    dangerouslySetInnerHTML={{ __html: requestData.detail_req }}
+                  />
                 </Typography>
               </Stack>
 

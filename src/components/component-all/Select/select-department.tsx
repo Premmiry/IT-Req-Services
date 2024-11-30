@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
 import { FormLabel } from '@mui/material';
 import URLAPI from '../../../URLAPI';
+
 interface Department {
   id_department: number;
   name_department: string;
@@ -56,7 +57,6 @@ export default function SelectDepartment({ onDepartmentChange, initialValue }: S
         value={selectedDepartment}
         variant="outlined"
         color="primary"
-        readOnly={true}
         getOptionLabel={(option: DepartmentOption) => option.label}
         isOptionEqualToValue={(option: DepartmentOption, value: DepartmentOption) => option.key === value.key}
         onChange={(_event, value) => {

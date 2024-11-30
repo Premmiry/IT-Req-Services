@@ -247,7 +247,9 @@ export default function RequestForm() {
         if (!selectedTypeId) newErrors.typeId = 'กรุณาเลือกประเภทคำร้อง';
         if (!name) newErrors.name = 'กรุณากรอกชื่อ';
         if (!phone) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์';
-        if (!details) newErrors.details = 'กรุณากรอกรายละเอียด';
+        if (!details || details.replace(/<[^>]*>/g, '').trim() === '') {
+            newErrors.details = 'กรุณากรอกรายละเอียด';
+        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -354,6 +356,34 @@ export default function RequestForm() {
         }
     }, [userData, navigate]);
 
+    // Update the isReadOnly logic
+    const isReadOnly = useMemo(() => {
+        if (!isEditMode) return false;
+        
+        // Allow editing for IT staff with specific status_id
+        if (isITStaff && [4, 5].includes(status_id || 0)) {
+            return false;
+        }
+        
+        // Allow editing for managers/directors with specific status_id
+        if (['m', 'd'].includes(userData?.position || '') && [2, 3].includes(status_id || 0)) {
+            return false;
+        }
+        
+        // Allow editing if status is pending (status_id = 1)
+        if (status_id === 1) {
+            return false;
+        }
+
+        // Allow editing for the original requester when status is 1 or when they're editing their own request
+        if (userData?.username === rsCode?.split('/')[0]) {
+            return false;
+        }
+        
+        // Default to readonly for edit mode
+        return isEditMode;
+    }, [isEditMode, isITStaff, status_id, userData?.position, userData?.username, rsCode]);
+
     return (
         <React.Fragment>
             <CssBaseline />
@@ -386,9 +416,17 @@ export default function RequestForm() {
                                 <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={selectedDepartment} />
                                 {errors.department && <Typography color="danger">{errors.department}</Typography>}
                             </Box>
-                            <NameInput value={name} onChange={(e) => setName(e.target.value)} />
+                            <NameInput 
+                                value={name} 
+                                onChange={(e) => setName(e.target.value)} 
+                                readOnly={isReadOnly}
+                            />
                             {errors.name && <Typography color="danger">{errors.name}</Typography>}
-                            <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
+                            <PhoneInput 
+                                value={phone} 
+                                onChange={(e) => setPhone(e.target.value)} 
+                                readOnly={isReadOnly}
+                            />
                             {errors.phone && <Typography color="danger">{errors.phone}</Typography>}
                             <Box sx={{ mt: 2 }}>
                                 <SelectTypeRequest onSelectType={handleTypeChange} initialValue={selectedTypeId} />
@@ -424,10 +462,18 @@ export default function RequestForm() {
                                     <SelectProgram onProgramChange={handleProgramChange} initialValue={selectedProgram} />
                                 </Box>
                             ) : (
-                                <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
+                                <TitleInput 
+                                    value={title} 
+                                    onChange={(e) => setTitle(e.target.value)} 
+                                    readOnly={isReadOnly}
+                                />
                             )}
 
-                            <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
+                            <DetailsTextarea 
+                                value={details} 
+                                onChange={(e) => setDetails(e.target.value)} 
+                                readOnly={isReadOnly}
+                            />
                             {errors.details && <Typography color="danger">{errors.details}</Typography>}
                             <Fileupload onFilesChange={handleFilesChange} initialFiles={uploadedFiles} />
                             {errors.files && <Typography color="danger">{errors.files}</Typography>}
@@ -496,6 +542,7 @@ export default function RequestForm() {
                                         <ITManagerTextarea
                                             value={itmanagerNote}
                                             onChange={(e) => setITManagerNote(e.target.value)}
+                                            readOnly={!(isITStaff && userData?.position === 'm')}
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
@@ -532,6 +579,7 @@ export default function RequestForm() {
                                         <ITDirectorTextarea
                                             value={itdirectorNote}
                                             onChange={(e) => setITDirectorNote(e.target.value)}
+                                            readOnly={!(isITStaff && userData?.position === 'd')}
                                         />
                                     </Grid>
 
