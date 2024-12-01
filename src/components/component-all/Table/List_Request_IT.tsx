@@ -25,6 +25,24 @@ import URLAPI from "../../../URLAPI";
 import RequestDetail from "../Paper/RequestDetail";
 import TaskIcon from "@mui/icons-material/Task";
 import InfoIcon from '@mui/icons-material/Info';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+import 'dayjs/locale/th';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import {
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+} from '@mui/material';
+import { Tooltip as ReactTooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
+
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
 // แยก Type ออกมาเพื่อความชัดเจน
 interface RequestData {
@@ -55,14 +73,18 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [actionType, setActionType] = useState<"delete" | "receive" | null>(null);
+  const [filterType, setFilterType] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterDate, setFilterDate] = useState<Date | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   // แยก utility functions ออกมาและใช้ useMemo เพื่อ cache ค่า
   const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    const buddhistYear = date.getFullYear() + 543;
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    return `${day}/${month}/${buddhistYear}`;
+    if (!dateString) return '';
+    if (dateString.includes('/')) {
+        return dateString;
+    }
+    return dayjs(dateString).format('DD/MM/BBBB');
   }, []);
 
   const getTypeColor = useMemo(() => {
@@ -199,6 +221,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         type_id: item.type_id,
         type: item.type,
         assignee: item.assign_name || "",
+        detail_req: item.detail_req || "",
         datecreated: formatDate(item.created_at),
       }));
       setRows(mappedData);
@@ -211,40 +234,165 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
 
   // ใช้ useMemo สำหรับ columns definition
   const columns = useMemo<GridColDef[]>(() => {
+    const getTypeStyle = (type: string) => {
+        const styles = {
+            Service: {
+                backgroundColor: '#ff7043',
+                icon: '🔧'
+            },
+            Develop: {
+                backgroundColor: '#9575cd',
+                icon: '💻'
+            },
+            Issue: {
+                backgroundColor: '#4caf50',
+                icon: '⚠️'
+            }
+        };
+        return styles[type as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: '📋' };
+    };
+
+    const getStatusStyle = (status: string) => {
+        const styles = {
+            "Request": {
+                backgroundColor: '#42a5f5',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Wait For Assigned": {
+                backgroundColor: '#90a4ae',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "In Progress": {
+                backgroundColor: '#5c6bc0',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Complete": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Cancel": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            }
+        };
+        return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
+    };
+
     const baseColumns: GridColDef[] = [
       {
         field: "id",
         headerName: "No.",
-        width: 55,
+        width: 50,
+        align: 'center',
+        headerAlign: 'center',
         renderCell: (params: GridRenderCellParams) => (
-          <span>{params.api.getSortedRowIds().indexOf(params.id) + 1}</span>
+          <span style={{ fontSize: '0.875rem' }}>
+            {params.api.getSortedRowIds().indexOf(params.id) + 1}
+          </span>
         ),
       },
       {
         field: "name",
-        headerName: "Name",
-        width: 600,
+        headerName: "Request Detail",
+        flex: 1,
+        minWidth: 400,
         renderCell: (params: GridRenderCellParams) => (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+            padding: "4px 0",
+          }}>
             <span
+              data-tooltip-id={`tooltip-${params.row.id}`}
+              data-tooltip-html={`<div style="max-width: 400px; padding: 8px;"><div style="font-weight: bold; margin-bottom: 4px;">${params.value}</div><div style="white-space: pre-wrap; color: #666; font-size: 0.875rem;">${params.row.detail_req || ''}</div></div>`}
               style={{
                 cursor: "pointer",
-                color: "#1976d2",
-                textDecoration: "underline",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                flex: 1,
               }}
-              onClick={() => handleEdit(params.row.id)}
+              onClick={() => navigate(`/edit-request/${params.row.id}`)}
             >
-              {params.value}
+              <span style={{ 
+                color: "#2196F3", 
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                minWidth: "110px",
+              }}>
+                {params.row.req_no}
+              </span>
+              <span style={{ 
+                color: "#666",
+                fontWeight: 600,
+                fontSize: "0.875rem"
+              }}>:</span>
+              <span style={{ 
+                color: "#1976d2",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                flexGrow: 1,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "550px",
+              }}>
+                {params.value}
+              </span>
             </span>
-      
-            <div style={{ display: "flex", alignItems: "center" }}>
+
+            <ReactTooltip
+              id={`tooltip-${params.row.id}`}
+              place="top"
+              variant="light"
+              border="1px solid #e0e0e0"
+              style={{
+                backgroundColor: "#fff",
+                color: "#333",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                borderRadius: "4px",
+                zIndex: 9999,
+                padding: "8px",
+                maxWidth: "400px",
+                fontSize: "0.875rem"
+              }}
+            />
+
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
               {admin === "ADMIN" &&
                 (([1, 3].includes(params.row.type_id) && params.row.status_id == 5) ||
                   (params.row.type_id == 2 && params.row.status_id == 1)) && (
@@ -252,13 +400,22 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     <IconButton
                       size="small"
                       color="primary"
-                      onClick={() => handleRecieveClick(params.row.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRecieveClick(params.row.id);
+                      }}
                       sx={{
-                        ml: 1,
-                        borderRadius: "7px",
-                        boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)",
+                        padding: '4px',
+                        borderRadius: "6px",
+                        boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
                         backgroundColor: "#fff",
-                        transition: "all 0.3s ease",
+                        "&:hover": {
+                          backgroundColor: "#f5f5f5",
+                          transform: "translateY(-1px)",
+                        },
+                        "& .MuiSvgIcon-root": {
+                          fontSize: "1.1rem",
+                        },
                       }}
                     >
                       <TaskIcon />
@@ -266,18 +423,26 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                   </Tooltip>
                 )}
 
-      
               <Tooltip title="View Details" arrow>
                 <IconButton
                   size="small"
                   color="default"
-                  onClick={() => handleOpenModal(params.row.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenModal(params.row.id);
+                  }}
                   sx={{
-                    ml: 1,
-                    borderRadius: "7px",
-                    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)",
+                    padding: '4px',
+                    borderRadius: "6px",
+                    boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
                     backgroundColor: "#fff",
-                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      backgroundColor: "#f5f5f5",
+                      transform: "translateY(-1px)",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      fontSize: "1.1rem",
+                    },
                   }}
                 >
                   <InfoIcon />
@@ -287,50 +452,96 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
           </div>
         ),
       },
-      
-      
       {
         field: "type",
-        headerName: "type",
-        width: 150,
-        renderCell: (params: GridRenderCellParams) => (
-          <Chip
-            label={params.value}
-            style={{
-              backgroundColor: getTypeColor(params.value),
-              color: "#fff",
-            }}
-            size="medium"
-            sx={{ width: 100 }}
-          />
-        ),
+        headerName: "Type",
+        width: 120,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: (params: GridRenderCellParams) => {
+            const style = getTypeStyle(params.value);
+            return (
+                <Chip
+                    label={
+                        <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 0.5,
+                            px: 0.5 
+                        }}>
+                            <span>{style.icon}</span>
+                            <span>{params.value}</span>
+                        </Box>
+                    }
+                    sx={{
+                        backgroundColor: style.backgroundColor,
+                        color: "#fff",
+                        width: '100px',
+                        height: '28px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        '& .MuiChip-label': {
+                            padding: '0 4px'
+                        },
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        transition: 'transform 0.2s ease',
+                        '&:hover': {
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                        }
+                    }}
+                />
+            );
+        }
       },
       {
         field: "status",
-        headerName: "status",
-        width: 200,
-        renderCell: (params: GridRenderCellParams) => (
-          <Chip
-            label={params.value}
-            style={{
-              backgroundColor: getStatusColor(params.value),
-              color: "#fff",
-            }}
-            size="medium"
-            icon={
-              params.value === "Complete" ? (
-                <CheckCircleIcon />
-              ) : (
-                <RadioButtonCheckedSharpIcon />
-              )
-            }
-          />
-        ),
+        headerName: "Status",
+        width: 180,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: (params: GridRenderCellParams) => {
+            const style = getStatusStyle(params.value);
+            return (
+                <Chip
+                    icon={style.icon}
+                    label={params.value}
+                    sx={{
+                        backgroundColor: style.backgroundColor,
+                        color: "#fff",
+                        minWidth: '140px',
+                        height: '28px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        '& .MuiChip-icon': {
+                            color: '#fff',
+                            marginLeft: '4px'
+                        },
+                        '& .MuiChip-label': {
+                            padding: '0 8px'
+                        },
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        transition: 'transform 0.2s ease',
+                        '&:hover': {
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                        }
+                    }}
+                />
+            );
+        }
       },
       {
         field: "datecreated",
-        headerName: "RequestDate",
-        width: 120,
+        headerName: "Request Date",
+        width: 110,
+        align: 'center',
+        headerAlign: 'center',
+        renderCell: (params: GridRenderCellParams) => (
+          <span style={{ fontSize: '0.875rem' }}>
+            {params.value}
+          </span>
+        ),
       },
     ];
 
@@ -339,15 +550,28 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
       baseColumns.push({
         field: "actions",
         headerName: "Actions",
-        width: 90,
+        width: 80,
+        align: 'center',
+        headerAlign: 'center',
         renderCell: (params: GridRenderCellParams) => (
           <Button
             variant="outlined"
             color="error"
-            startIcon={<DeleteIcon />}
-            onClick={() => handleDeleteClick(params.row.id)}
-            sx={{ width: 25, justifyContent: "center" }}
-          />
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteClick(params.row.id);
+            }}
+            sx={{ 
+              minWidth: 'unset',
+              p: '3px 8px',
+              "& .MuiSvgIcon-root": {
+                fontSize: "1.1rem",
+              },
+            }}
+          >
+            <DeleteIcon />
+          </Button>
         ),
       });
     }
@@ -389,48 +613,239 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     }
   }, [modalOpen, fetchRequests]);
 
+  // Get unique types and statuses for filter options
+  const typeOptions = useMemo(() => {
+    const types = Array.from(new Set(rows.map(row => row.type)));
+    return types.sort();
+  }, [rows]);
+
+  const statusOptions = useMemo(() => {
+    const statuses = Array.from(new Set(rows.map(row => row.status)));
+    return statuses.sort();
+  }, [rows]);
+
+  // เพิ่มฟังก์ชันสำหรับเปรียบเทียบวันที่
+  const compareDates = useCallback((date1: string, date2: any) => {
+    if (!date1 || !date2) return false;
+    
+    // แปลงวันที่ที่ใช้ filter
+    const filterDate = dayjs(date2).format('DD/MM/BBBB');
+    
+    console.log('Comparing dates:', {
+        date1,
+        filterDate,
+        isMatch: date1 === filterDate
+    });
+    
+    // เปรียบเทียบวันที่โดยตรง
+    return date1 === filterDate;
+  }, []);
+
+      // เพิ่ม console.log ใน useEffect เพื่อดูข้อมูลที่ได้จาก API
+      useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await fetch(`${URLAPI}/it-requests?tab=${tab}`);
+                const { data } = await response.json();
+                // console.log('API Response:', data);
+                
+                const mappedData = data.map((item: any) => ({
+                    ...item,
+                    datecreated: item.created_at,
+                }));
+                // console.log('Mapped Data:', mappedData);
+                
+                setRows(mappedData);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        
+        fetchData();
+    }, [tab]);
+
+  // Filter function
+  const filteredRows = useMemo(() => {
+    console.log('Current filter date:', filterDate ? dayjs(filterDate).format('DD/MM/BBBB') : null);
+    
+    return rows.filter(row => {
+        const matchesType = !filterType || row.type === filterType;
+        const matchesStatus = !filterStatus || row.status === filterStatus;
+        const matchesDate = !filterDate || compareDates(row.datecreated, filterDate);
+        
+        // console.log('Row check:', {
+        //     datecreated: row.datecreated,
+        //     filterDate: filterDate ? dayjs(filterDate).format('DD/MM/BBBB') : null,
+        //     matchesDate
+        // });
+        
+        return matchesType && matchesStatus && matchesDate;
+    });
+  }, [rows, filterType, filterStatus, filterDate, compareDates]);
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setFilterType('');
+    setFilterStatus('');
+    setFilterDate(null);
+  };
+
+  // ฟังก์ชันสำหรับ format วันที่ให้เป็น พ.ศ.
+  const formatDateForPicker = useCallback((date: any) => {
+    if (!date) return '';
+    const year = dayjs(date).year() + 543;
+    return dayjs(date).format('DD/MM/') + year;
+  }, []);
+
   return (
     <Container maxWidth="xl">
       {successAlert && <SaveAlert onClose={() => setSuccessAlert(false)} />}
-      <Box sx={{ my: 4 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
+      <Box sx={{ my: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 1,
+        }}>
           <Typography
             variant="h4"
             component="h1"
             sx={{
-              mt: 2,
-              mb: 4,
               fontWeight: "bold",
-              fontSize: 30,
+              fontSize: 24,
               color: "#1976d2",
-              textAlign: "left",
-              textDecorationThickness: 2,
-              textUnderlineOffset: 6,
-              textDecorationColor: "#1976d2",
-              textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
             }}
           >
             Request List IT
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleRequest}
-          >
-            Request
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              size="small"
+            >
+              Filters
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleRequest}
+              size="small"
+            >
+              Request
+            </Button>
+          </Box>
         </Box>
-        <Box sx={{ height: 600, width: "100%" }}>
+
+        {showFilters && (
+          <Box sx={{ 
+            mb: 2, 
+            p: 2, 
+            backgroundColor: '#f8f9fa',
+            borderRadius: 1,
+            display: 'flex',
+            gap: 2,
+            alignItems: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={filterType}
+                label="Type"
+                onChange={(e) => setFilterType(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>All</em>
+                </MenuItem>
+                {typeOptions.map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filterStatus}
+                label="Status"
+                onChange={(e) => setFilterStatus(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>All</em>
+                </MenuItem>
+                {statusOptions.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {status}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <LocalizationProvider 
+              dateAdapter={AdapterDayjs} 
+              adapterLocale="th"
+            >
+              <DatePicker
+                label="Request Date"
+                value={filterDate ? dayjs(filterDate) : null}
+                onChange={(newValue) => setFilterDate(newValue ? dayjs(newValue).toDate() : null)}
+                format="DD/MM/YYYY"  // เปลี่ยนจาก BBBB เป็น YYYY
+                formatDensity="spacious"
+                slotProps={{ 
+                    textField: { 
+                        size: 'small',
+                        sx: { width: 200 },
+                        // ใช้ inputProps เพื่อ format ค่าที่แสดง
+                        inputProps: {
+                            value: filterDate ? formatDateForPicker(filterDate) : ''
+                        }
+                    },
+                    field: {
+                        shouldRespectLeadingZeros: true
+                    }
+                }}
+              />
+            </LocalizationProvider>
+
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleResetFilters}
+              sx={{ height: 40 }}
+            >
+              Clear Filters
+            </Button>
+          </Box>
+        )}
+
+        <Box sx={{ 
+          height: 'calc(100vh - 180px)',
+          width: '100%',
+          '& .MuiDataGrid-root': {
+            border: 'none',
+          },
+          '& .MuiDataGrid-cell': {
+            borderBottom: '1px solid #f0f0f0',
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f5f5f5',
+            borderBottom: '1px solid #ddd',
+          },
+          '& .MuiDataGrid-row': {
+            '&:hover': {
+              backgroundColor: '#f8f8f8',
+            },
+          },
+          '& .MuiDataGrid-footerContainer': {
+            borderTop: '1px solid #ddd',
+          },
+        }}>
           <DataGrid
-            rows={rows}
+            rows={filteredRows}
             columns={columns}
             initialState={{
               pagination: {
@@ -439,10 +854,17 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 },
               },
             }}
-            pageSizeOptions={[5, 10, 25]}
+            pageSizeOptions={[10, 25, 50]}
             disableRowSelectionOnClick
             loading={isLoading}
             getRowId={(row) => row.id}
+            rowHeight={45}
+            columnHeaderHeight={45}
+            sx={{
+              '& .MuiDataGrid-virtualScroller': {
+                overflow: 'hidden auto',
+              },
+            }}
           />
         </Box>
       </Box>
@@ -458,7 +880,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
             {actionType === "delete"
-              ? "คุณต้องการจะลบรายการนี้หรือไม่?"
+              ? "คุณ้องการจะลบรายการนี้หรือไม่?"
               : "คุณต้องการจะรับงานนี้ใช่หรือไม่?"}
           </DialogContentText>
         </DialogContent>

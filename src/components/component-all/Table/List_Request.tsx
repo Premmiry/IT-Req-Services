@@ -1,41 +1,39 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Container, Typography, Button, Chip, Modal, Tooltip, IconButton } from '@mui/material';
+import {
+    Box,
+    Container,
+    Typography,
+    Button,
+    Chip,
+    Modal,
+    Tooltip,
+    IconButton,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+} from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+import 'dayjs/locale/th';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
+import InfoIcon from '@mui/icons-material/Info';
 import URLAPI from '../../../URLAPI';
 import RequestDetail from '../Paper/RequestDetail';
-import TaskIcon from "@mui/icons-material/Task";
-import InfoIcon from '@mui/icons-material/Info';
+import { Tooltip as ReactTooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
-// แยก Type Colors และ Status Colors ออกมาเป็น Constants
-const TYPE_COLORS = {
-    Service: '#fc836a',
-    Develop: '#9d42f9',
-    Issue: '#27e16d',
-    default: '#81b1c9'
-} as const;
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
-const STATUS_COLORS = {
-    Request: '#2196F3',
-    'Manager Approve': '#7abf7d',
-    'Manager Unapprove': '#7abf7d',
-    'Director Approve': '#7abf7d',
-    'Director Unapprove': '#7abf7d',
-    'IT Manager Approve': '#fcba58',
-    'IT Manager Unapprove': '#fcba58',
-    'IT Director Approve': '#fcba58',
-    'IT Director Unapprove': '#fcba58',
-    'Wait For Assigned': '#B0BEC5',
-    'In Progress': '#3a08a6',
-    Complete: '#4CAF50',
-    Cancel: '#F44336',
-    default: '#81b1c9'
-} as const;
-
-// แยก Type ของ Row Data
 interface RowData {
     id: number;
     req_no: string;
@@ -47,6 +45,8 @@ interface RowData {
     datecreated: string;
 }
 
+
+
 export default function ListRequest() {
     const navigate = useNavigate();
     const [rows, setRows] = useState<RowData[]>([]);
@@ -57,22 +57,35 @@ export default function ListRequest() {
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
 
+    const [filterType, setFilterType] = useState<string>('');
+    const [filterStatus, setFilterStatus] = useState<string>('');
+    const [filterDate, setFilterDate] = useState<Date | null>(null);
+    const [showFilters, setShowFilters] = useState(false);
+
     // แยกฟังก์ชัน formatDate ออกมาเป็น memoized function
     const formatDate = useCallback((dateString: string) => {
-        const date = new Date(dateString);
-        const buddhistYear = date.getFullYear() + 543;
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        return `${day}/${month}/${buddhistYear}`;
+        if (!dateString) return '';
+        // ถ้าวันที่มาในรูปแบบที่มี / อยู่แล้ว ให้ใช้ค่านั้นเลย
+        if (dateString.includes('/')) {
+            return dateString;
+        }
+        return dayjs(dateString).format('DD/MM/') + (dayjs(dateString).year() + 543);
     }, []);
 
-    // ใช้ useMemo สำหรับฟังก์ชันที่ return ค่าเหมือนเดิมเมื่อ input เหมือนเดิม
-    const getTypeColor = useMemo(() => (type: string) => {
-        return TYPE_COLORS[type as keyof typeof TYPE_COLORS] || TYPE_COLORS.default;
+    const compareDates = useCallback((date1: string, date2: any) => {
+        if (!date1 || !date2) return false;
+        
+        // แปลงวันที่ที่ใช้ filter
+        const filterDate = dayjs(date2).format('DD/MM/') + (dayjs(date2).year() + 543);
+        
+        return date1 === filterDate;
     }, []);
 
-    const getStatusColor = useMemo(() => (status: string) => {
-        return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || STATUS_COLORS.default;
+    // ฟังก์ชันสำหรับ format วันที่ให้เป็น พ.ศ.
+    const formatDateForPicker = useCallback((date: any) => {
+        if (!date) return '';
+        const year = dayjs(date).year() + 543;
+        return dayjs(date).format('DD/MM/') + year;
     }, []);
 
     // แยก API URL builder ออกมาเป็นฟังก์ชันแยก
@@ -85,17 +98,62 @@ export default function ListRequest() {
             const { position, id_department, id_division_competency, id_section_competency } = userData;
             const params = new URLSearchParams();
 
-            params.append('position', position);
-            if (position === 's' || position === 'h') {
-                params.append('department', id_department);
-            } else if (position === 'm') {
-                params.append('division_competency', id_division_competency);
-            } else if (position === 'd') {
-                params.append('section_competency', id_section_competency);
-                params.append('division_competency', id_division_competency);
+            // ตรวจสอบ position
+            if (typeof position === 'string') {
+                params.append('position', position);
+
+                // ตรวจสอบและแปลงค่าตาม position
+                switch (position) {
+                    case 's':
+                    case 'h':
+                        // แปลง department ID
+                        if (id_department) {
+                            const deptId = Number(id_department);
+                            if (Number.isInteger(deptId) && deptId > 0) {
+                                params.append('department', deptId.toString());
+                            }
+                        }
+                        break;
+
+                    case 'm':
+                        // แปลง division ID
+                        if (id_division_competency) {
+                            const divId = Number(id_division_competency);
+                            if (Number.isInteger(divId) && divId > 0) {
+                                params.append('division_competency', divId.toString());
+                            }
+                        }
+                        break;
+
+                    case 'd':
+                        // แปลง section และ division IDs
+                        if (id_section_competency) {
+                            const secId = Number(id_section_competency);
+                            if (Number.isInteger(secId) && secId > 0) {
+                                params.append('section_competency', secId.toString());
+                            }
+                        }
+                        if (id_division_competency) {
+                            const divId = Number(id_division_competency);
+                            if (Number.isInteger(divId) && divId > 0) {
+                                params.append('division_competency', divId.toString());
+                            }
+                        }
+                        break;
+                }
             }
 
-            return `${apiUrl}?${params.toString()}`;
+            // Log สำหรับ debug
+            console.log('User Data:', {
+                position,
+                id_department,
+                id_division_competency,
+                id_section_competency
+            });
+            
+            const finalUrl = `${apiUrl}?${params.toString()}`;
+            console.log('Final URL:', finalUrl);
+            return finalUrl;
         }
 
         return apiUrl;
@@ -108,9 +166,21 @@ export default function ListRequest() {
 
         try {
             const response = await fetch(apiUrl);
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) {
+                // เพิ่มการ log response เพื่อดูรายละเอียดเพิ่มเติม
+                const errorText = await response.text();
+                console.error('API Error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorText
+                });
+                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+            }
 
             const { data } = await response.json();
+            // แสดงข้อมูลที่ได้จาก API
+            console.log('API Response:', data);
+            
             const mappedData = data.map((item: any) => ({
                 id: item.id,
                 req_no: item.rs_code,
@@ -119,6 +189,7 @@ export default function ListRequest() {
                 type_id: item.type_id,
                 type: item.type,
                 assignee: item.assign_name || '',
+                detail_req: item.detail_req || '',
                 datecreated: formatDate(item.created_at),
             }));
 
@@ -128,98 +199,250 @@ export default function ListRequest() {
         }
     }, [buildApiUrl, formatDate]);
 
-    // Memoize columns definition
+    const getTypeStyle = (type: string) => {
+        const styles = {
+            Service: {
+                backgroundColor: '#ff7043',
+                icon: '🔧'
+            },
+            Develop: {
+                backgroundColor: '#9575cd',
+                icon: '💻'
+            },
+            Issue: {
+                backgroundColor: '#4caf50',
+                icon: '⚠️'
+            }
+        };
+        return styles[type as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: '📋' };
+    };
+
+    const getStatusStyle = (status: string) => {
+        const styles = {
+            "Request": {
+                backgroundColor: '#42a5f5',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            // ... (same status styles as List_Request_IT)
+        };
+        return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
+    };
+
     const columns = useMemo<GridColDef[]>(() => [
         {
             field: 'id',
             headerName: 'No.',
-            width: 55,
+            width: 50,
+            align: 'center',
+            headerAlign: 'center',
             renderCell: (params: GridRenderCellParams) => (
-                <span>{params.api.getSortedRowIds().indexOf(params.id) + 1}</span>
+                <span style={{ fontSize: '0.875rem' }}>
+                    {params.api.getSortedRowIds().indexOf(params.id) + 1}
+                </span>
             ),
         },
         {
-            field: 'req_no',
-            headerName: 'Request No.',
-            width: 120,
-        },
-        {
             field: 'name',
-            headerName: 'หัวข้อ Request',
-            width: 600,
+            headerName: 'Request Detail',
+            flex: 1,
+            minWidth: 400,
             renderCell: (params: GridRenderCellParams) => (
-                <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
+                <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    width: "100%",
+                    padding: "4px 0",
+                }}>
+                    <span
+                        data-tooltip-id={`tooltip-${params.row.id}`}
+                        data-tooltip-html={`
+                            <div style="max-width: 400px; padding: 8px;">
+                                <div style="font-weight: bold; margin-bottom: 4px;">
+                                    ${params.value}
+                                </div>
+                                <div style="white-space: pre-wrap; color: #666; font-size: 0.875rem;">
+                                    ${params.row.detail_req || ''}
+                                </div>
+                            </div>
+                        `}
+                        style={{
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                        }}
+                        onClick={() => navigate(`/edit-request/${params.row.id}`)}
+                    >
+                        <span style={{ 
+                            color: "#2196F3", 
+                            fontWeight: 600,
+                            fontSize: "0.875rem",
+                            minWidth: "110px",
+                        }}>
+                            {params.row.req_no}
+                        </span>
+                        <span style={{ 
+                            color: "#666",
+                            fontWeight: 600,
+                            fontSize: "0.875rem"
+                        }}>:</span>
+                        <span style={{ 
+                            color: "#1976d2",
+                            fontWeight: 600,
+                            fontSize: "0.875rem",
+                            flexGrow: 1,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "700px",
+                        }}>
+                            {params.value}
+                        </span>
+                    </span>
 
-                <span
-                style={{ cursor: 'pointer', color: '#1976d2', textDecoration: 'underline' }}
-                onClick={() => navigate(`/edit-request/${params.row.id}`)}
-                >
-                    {params.value}
-                </span>
+                    <ReactTooltip
+                        id={`tooltip-${params.row.id}`}
+                        place="top"
+                        variant="light"
+                        style={{
+                            backgroundColor: "#fff",
+                            color: "#333",
+                            border: "1px solid #e0e0e0",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            borderRadius: "4px",
+                            zIndex: 9999,
+                            padding: "8px",
+                            maxWidth: "400px",
+                            fontSize: "0.875rem"
+                        }}
+                    />
 
-                <Tooltip title="View Details" arrow>
-                <IconButton
-                  size="small"
-                  color="warning"
-                  onClick={() => handleOpenModal(params.row.id)}
-                  sx={{
-                    ml: 1,
-                    borderRadius: "7px",
-                    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)",
-                    backgroundColor: "#fff",
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  <InfoIcon />
-                </IconButton>
-              </Tooltip>
-
+                    <div style={{ display: "flex", gap: "4px" }}>
+                        <Tooltip title="View Details" arrow>
+                            <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenModal(params.row.id);
+                                }}
+                                sx={{
+                                    padding: '4px',
+                                    borderRadius: "6px",
+                                    boxShadow: "0px 1px 3px rgba(0, 0, 0, 0.1)",
+                                    backgroundColor: "#fff",
+                                    "&:hover": {
+                                        backgroundColor: "#f5f5f5",
+                                        transform: "translateY(-1px)",
+                                    },
+                                    "& .MuiSvgIcon-root": {
+                                        fontSize: "1.1rem",
+                                    },
+                                }}
+                            >
+                                <InfoIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </div>
                 </div>
-                
-
-
-
             ),
         },
         {
             field: 'type',
-            headerName: 'ประเภท',
-            width: 100,
-            renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    style={{ backgroundColor: getTypeColor(params.value), color: '#fff' }}
-                    size="medium"
-                    sx={{ width: 100 }}
-                />
-            ),
+            headerName: 'Type',
+            width: 120,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params: GridRenderCellParams) => {
+                const style = getTypeStyle(params.value);
+                return (
+                    <Chip
+                        label={
+                            <Box sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 0.5,
+                                px: 0.5 
+                            }}>
+                                <span>{style.icon}</span>
+                                <span>{params.value}</span>
+                            </Box>
+                        }
+                        sx={{
+                            backgroundColor: style.backgroundColor,
+                            color: "#fff",
+                            width: '100px',
+                            height: '28px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            '& .MuiChip-label': {
+                                padding: '0 4px'
+                            },
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            transition: 'transform 0.2s ease',
+                            '&:hover': {
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                            }
+                        }}
+                    />
+                );
+            }
         },
         {
             field: 'status',
-            headerName: 'สถานะดำเนินการ',
-            width: 190,
-            renderCell: (params: GridRenderCellParams) => (
-                <Chip
-                    label={params.value}
-                    style={{ backgroundColor: getStatusColor(params.value), color: '#fff' }}
-                    size="medium"
-                    icon={params.value === 'Complete' ? <CheckCircleIcon /> : <RadioButtonCheckedSharpIcon />}
-                />
-            ),
+            headerName: 'Status',
+            width: 180,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params: GridRenderCellParams) => {
+                const style = getStatusStyle(params.value);
+                return (
+                    <Chip
+                        icon={style.icon}
+                        label={params.value}
+                        sx={{
+                            backgroundColor: style.backgroundColor,
+                            color: "#fff",
+                            minWidth: '140px',
+                            height: '28px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            '& .MuiChip-icon': {
+                                color: '#fff',
+                                marginLeft: '4px'
+                            },
+                            '& .MuiChip-label': {
+                                padding: '0 8px'
+                            },
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            transition: 'transform 0.2s ease',
+                            '&:hover': {
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                            }
+                        }}
+                    />
+                );
+            }
         },
         {
             field: 'datecreated',
-            headerName: 'วันที่ Request',
-            width: 100,
+            headerName: 'Request Date',
+            width: 110,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params: GridRenderCellParams) => (
+                <span style={{ fontSize: '0.875rem' }}>
+                    {params.value}
+                </span>
+            ),
         },
-    ], [navigate, getTypeColor, getStatusColor]);
+    ], [navigate]);
 
     // Load initial data
     useEffect(() => {
@@ -257,40 +480,182 @@ export default function ListRequest() {
         }
     }, [modalOpen, fetchRequests]);
 
+    // Get unique types and statuses for filter options
+    const typeOptions = useMemo(() => {
+        const types = Array.from(new Set(rows.map(row => row.type)));
+        return types.sort();
+    }, [rows]);
+
+    const statusOptions = useMemo(() => {
+        const statuses = Array.from(new Set(rows.map(row => row.status)));
+        return statuses.sort();
+    }, [rows]);
+
+    // Filter function
+    const filteredRows = useMemo(() => {
+        return rows.filter(row => {
+            const matchesType = !filterType || row.type === filterType;
+            const matchesStatus = !filterStatus || row.status === filterStatus;
+            const matchesDate = !filterDate || compareDates(row.datecreated, filterDate);
+            
+            return matchesType && matchesStatus && matchesDate;
+        });
+    }, [rows, filterType, filterStatus, filterDate, compareDates]);
+
+    // Reset filters
+    const handleResetFilters = () => {
+        setFilterType('');
+        setFilterStatus('');
+        setFilterDate(null);
+    };
+
     return (
         <Container maxWidth="xl">
-            <Box sx={{ my: 4 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              mt: 2,
-              mb: 4,
-              fontWeight: "bold",
-              fontSize: 30,
-              color: "#1976d2",
-              textAlign: "left",
-              textDecorationThickness: 2,
-              textUnderlineOffset: 6,
-              textDecorationColor: "#1976d2",
-              textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-            }}
-          >
-            Request List
-          </Typography>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<AddIcon />}
-                        onClick={() => navigate('/request')}
+            <Box sx={{ my: 2 }}>
+                <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 1,
+                }}>
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{
+                            fontWeight: "bold",
+                            fontSize: 24,
+                            color: "#1976d2",
+                        }}
                     >
-                        Request
-                    </Button>
+                        Request List
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                            variant="outlined"
+                            startIcon={<FilterListIcon />}
+                            onClick={() => setShowFilters(!showFilters)}
+                            size="small"
+                        >
+                            Filters
+                        </Button>
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={() => navigate('/request')}
+                            size="small"
+                        >
+                            Request
+                        </Button>
+                    </Box>
                 </Box>
-                <Box sx={{ height: 600, width: '100%' }}>
+
+                {showFilters && (
+                    <Box sx={{ 
+                        mb: 2, 
+                        p: 2, 
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: 1,
+                        display: 'flex',
+                        gap: 2,
+                        alignItems: 'center',
+                        flexWrap: 'wrap'
+                    }}>
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <InputLabel>Type</InputLabel>
+                            <Select
+                                value={filterType}
+                                label="Type"
+                                onChange={(e) => setFilterType(e.target.value)}
+                            >
+                                <MenuItem value="">
+                                    <em>All</em>
+                                </MenuItem>
+                                {typeOptions.map((type) => (
+                                    <MenuItem key={type} value={type}>
+                                        {type}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                                value={filterStatus}
+                                label="Status"
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                            >
+                                <MenuItem value="">
+                                    <em>All</em>
+                                </MenuItem>
+                                {statusOptions.map((status) => (
+                                    <MenuItem key={status} value={status}>
+                                        {status}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <LocalizationProvider 
+                            dateAdapter={AdapterDayjs} 
+                            adapterLocale="th"
+                        >
+                            <DatePicker
+                                label="Request Date"
+                                value={filterDate ? dayjs(filterDate) : null}
+                                onChange={(newValue) => setFilterDate(newValue ? dayjs(newValue).toDate() : null)}
+                                format="DD/MM/YYYY"
+                                formatDensity="spacious"
+                                slotProps={{ 
+                                    textField: { 
+                                        size: 'small',
+                                        sx: { width: 200 },
+                                        inputProps: {
+                                            value: filterDate ? formatDateForPicker(filterDate) : ''
+                                        }
+                                    },
+                                    field: {
+                                        shouldRespectLeadingZeros: true
+                                    }
+                                }}
+                            />
+                        </LocalizationProvider>
+
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleResetFilters}
+                            sx={{ height: 40 }}
+                        >
+                            Clear Filters
+                        </Button>
+                    </Box>
+                )}
+
+                <Box sx={{ 
+                    height: 'calc(100vh - 180px)',
+                    width: '100%',
+                    '& .MuiDataGrid-root': {
+                        border: 'none',
+                    },
+                    '& .MuiDataGrid-cell': {
+                        borderBottom: '1px solid #f0f0f0',
+                    },
+                    '& .MuiDataGrid-columnHeaders': {
+                        backgroundColor: '#f5f5f5',
+                        borderBottom: '1px solid #ddd',
+                    },
+                    '& .MuiDataGrid-row': {
+                        '&:hover': {
+                            backgroundColor: '#f8f8f8',
+                        },
+                    },
+                    '& .MuiDataGrid-footerContainer': {
+                        borderTop: '1px solid #ddd',
+                    },
+                }}>
                     <DataGrid
-                        rows={rows}
+                        rows={filteredRows}
                         columns={columns}
                         initialState={{
                             pagination: {
@@ -299,23 +664,24 @@ export default function ListRequest() {
                                 },
                             },
                         }}
-                        pageSizeOptions={[5, 10, 25]}
+                        pageSizeOptions={[10, 25, 50]}
                         disableRowSelectionOnClick
+                        rowHeight={45}
+                        columnHeaderHeight={45}
+                        sx={{
+                            '& .MuiDataGrid-virtualScroller': {
+                                overflow: 'hidden auto',
+                            },
+                        }}
                     />
                 </Box>
             </Box>
-            {/* Modal for Request Detail */}
+
             <Modal
                 open={modalOpen}
                 onClose={handleCloseModal}
                 aria-labelledby="request-detail-modal-title"
                 aria-describedby="request-detail-modal-description"
-                role="dialog"
-                sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
             >
                 <Box sx={{
                     position: 'absolute',
@@ -323,13 +689,13 @@ export default function ListRequest() {
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
                     width: {
-                        xs: '90%',    // ใช้ความกว้าง 90% ของหน้าจอสำหรับขนาดเล็ก (มือถือ)
-                        sm: '80%',    // สำหรับแท็บเล็ตเล็ก
-                        md: '70%',    // สำหรับแท็บเล็ตและเดสก์ท็อปขนาดกลาง
-                        lg: '60%',    // สำหรับเดสก์ท็อปขนาดใหญ่
-                        xl: '50%',    // สำหรับจอขนาดใหญ่มาก
+                        xs: '90%',
+                        sm: '80%',
+                        md: '70%',
+                        lg: '60%',
+                        xl: '50%',
                     },
-                    maxWidth: '800px',  // กำหนดขีดจำกัดความกว้างสูงสุดให้กับ Modal
+                    maxWidth: '800px',
                     bgcolor: 'background.paper',
                     boxShadow: 24,
                     p: 4,

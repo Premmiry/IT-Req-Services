@@ -12,16 +12,18 @@ import { styled } from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
 import URLAPI from '../../../URLAPI';
 import { Grid } from '@mui/material';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
 
 // ตั้งค่า plugin ที่ใช้
 dayjs.extend(advancedFormat);
 dayjs.extend(localeData);
+dayjs.extend(buddhistEra);
 dayjs.locale('th');
 
 interface DateWorkProps {
     req_id: number;
-    date_start?: Date | null;
-    date_end?: Date | null;
+    date_start?: Date | string | null;
+    date_end?: Date | string | null;
 }
 
 const StyledButton = styled(IconButton)(({ theme }) => ({
@@ -77,11 +79,22 @@ const usePriorityOptions = () => {
 
 const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => {
     const { isITStaff } = usePriorityOptions();
-    const [dateStart, setDateStart] = useState<Dayjs | null>(date_start ? dayjs(date_start) : null);
-    const [dateEnd, setDateEnd] = useState<Dayjs | null>(date_end ? dayjs(date_end) : null);
+    const [dateStart, setDateStart] = useState<Dayjs | null>(
+        date_start ? dayjs(date_start) : null
+    );
+    const [dateEnd, setDateEnd] = useState<Dayjs | null>(
+        date_end ? dayjs(date_end) : null
+    );
     const [isLoading, setIsLoading] = useState(false);
 
-
+    useEffect(() => {
+        if (date_start) {
+            setDateStart(dayjs(date_start));
+        }
+        if (date_end) {
+            setDateEnd(dayjs(date_end));
+        }
+    }, [date_start, date_end]);
 
     const updateDateWork = async (field: 'date_start' | 'date_end', value: Dayjs | null) => {
         if (!value || !isITStaff) return;
@@ -99,16 +112,18 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                const errorMessage = errorData?.detail || 'Failed to update date';
-                throw new Error(errorMessage);
+                throw new Error('Failed to update date');
             }
 
-            const data = await response.json();
-            console.log(`${field} updated successfully:`, data);
+            if (field === 'date_start') {
+                setDateStart(value);
+            } else {
+                setDateEnd(value);
+            }
+
         } catch (error) {
             console.error('Error updating date:', error);
-            alert(error instanceof Error ? error.message : 'An error occurred while updating the date');
+            alert('Failed to update date');
         } finally {
             setIsLoading(false);
         }
@@ -134,7 +149,7 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                         label="วันที่เริ่มงาน (Date Start)"
                         value={dateStart}
                         onChange={handleDateStartChange}
-                        format="DD-MM-YYYY"
+                        format="DD/MM/YYYY"
                         slots={{
                             openPickerIcon: EditCalendarRoundedIcon,
                             openPickerButton: StyledButton,
@@ -147,6 +162,9 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                                 variant: 'standard',
                                 focused: true,
                                 color: 'primary',
+                                inputProps: {
+                                    value: dateStart ? dateStart.add(543, 'year').format('DD/MM/YYYY') : ''
+                                }
                             },
                         }}
                         disabled={!isITStaff || isLoading}
@@ -157,7 +175,7 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                         label="วันที่สิ้นสุดงาน (Date End)"
                         value={dateEnd}
                         onChange={handleDateEndChange}
-                        format="DD-MM-YYYY"
+                        format="DD/MM/YYYY"
                         slots={{
                             openPickerIcon: EditCalendarRoundedIcon,
                             openPickerButton: StyledButton,
@@ -170,6 +188,9 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                                 variant: 'standard',
                                 focused: true,
                                 color: 'secondary',
+                                inputProps: {
+                                    value: dateEnd ? dateEnd.add(543, 'year').format('DD/MM/YYYY') : ''
+                                }
                             },
                         }}
                         disabled={!isITStaff || isLoading}

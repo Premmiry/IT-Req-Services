@@ -421,7 +421,7 @@ useEffect(() => {
   return (
     <Grid container spacing={1}>
       <Grid item xs={6} component="div">
-        <FormLabel>IT Director Approve</FormLabel>
+        <FormLabel>IT Director / Deputy Approve</FormLabel>
         <Input
           variant="outlined"
           color="warning"

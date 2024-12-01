@@ -25,9 +25,12 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonCheckedSharpIcon from "@mui/icons-material/RadioButtonCheckedSharp";
 import AssigneeDepSelector from "../Select/AssigneeDepSelector";
 import AssigneeEmpSelector from "../Select/AssigneeEmpSelector";
+import UAT from "../ContentTypeR/boxUAT"; // นำเข้า PrioritySelector
 import { SelectPriority } from "../Select/select-priority";
 import DateWork from "../DatePicker/datework";
+import SUBTASK from "../ContentTypeR/boxsubtask";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
+import BackspaceIcon from "@mui/icons-material/Backspace";
 
 const style = {
   position: "absolute",
@@ -229,23 +232,24 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
     );
   }
 
+  const statusColors = {
+    Request: "#2196F3",
+    "Manager Approve": "#7abf7d",
+    "Manager Unapprove": "#7abf7d",
+    "Director Approve": "#7abf7d",
+    "Director Unapprove": "#7abf7d",
+    "IT Manager Approve": "#fcba58",
+    "IT Manager Unapprove": "#fcba58",
+    "IT Director Approve": "#fcba58",
+    "IT Director Unapprove": "#fcba58",
+    "Wait For Assigned": "#B0BEC5",
+    "In Progress": "#3a08a6",
+    Complete: "#4CAF50",
+    Cancel: "#F44336",
+  };
+
   const getStatusColor = (status: string) => {
-    const colorMap = {
-      Request: "#2196F3",
-      "Manager Approve": "#7abf7d",
-      "Manager Unapprove": "#7abf7d",
-      "Director Approve": "#7abf7d",
-      "Director Unapprove": "#7abf7d",
-      "IT Manager Approve": "#fcba58",
-      "IT Manager Unapprove": "#fcba58",
-      "IT Director Approve": "#fcba58",
-      "IT Director Unapprove": "#fcba58",
-      "Wait For Assigned": "#B0BEC5",
-      "In Progress": "#3a08a6",
-      Complete: "#4CAF50",
-      Cancel: "#F44336",
-    };
-    return colorMap[status as keyof typeof colorMap] || "#81b1c9"; // Default color
+    return statusColors[status as keyof typeof statusColors] || "#000000";
   };
 
   const handleConfirmJob = async () => {
@@ -339,26 +343,12 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
               )
             }
             sx={{
-              
-              color: "#fff",
-              minWidth: '140px',
-              height: '28px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              '& .MuiChip-icon': {
-                  color: '#fff',
-                  marginLeft: '4px'
-              },
-              '& .MuiChip-label': {
-                  padding: '0 8px'
-              },
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s ease',
-              '&:hover': {
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-              }
-          }}
+              "--Chip-radius": "5px",
+              "--Chip-gap": "5px",
+              "--Chip-paddingInline": "5px",
+              "--Chip-decoratorChildHeight": "20px",
+              "--Chip-minHeight": "20px",
+            }}
           />
         </Stack>
       </Typography>
@@ -838,7 +828,44 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
 
         <br />
 
+        {requestData.status_id !== 8 && admin === "ADMIN" && (
+          <>
+            <Box sx={{ p: 2 }}>
+              <Button
+                color="error"
+                startIcon={<BackspaceIcon />}
+                onClick={handleCancelJob}
+              >
+                Cancel Job
+              </Button>
+            </Box>
+          </>
+        )}
+        <br />
+        {isITStaff && (
+          <>
+            <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+              <Box sx={{ p: 2 }}>
+                <SUBTASK req_id={requestData.id} />
+              </Box>
+            </Card>
+          </>
+        )}
 
+        {requestData.type_id === 3 ? (
+          <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+            <Box sx={{ p: 2 }}>
+              <UAT
+                id={requestData.id}
+                username={userData.username}
+                department={userData.id_department}
+                status={requestData.status_id ?? 0}
+                onClose={onClose}
+              />
+            </Box>
+          </Card>
+        ) : null}
+        <br />
         {!isITStaff &&
         ((requestData.status_id === 6 && requestData.type_id !== 3) ||
           (requestData.status_id === 16 && requestData.type_id === 3)) ? (
@@ -871,7 +898,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
           onClick={handleEdit}
           sx={{ mt: 2, mb: 2, width: "100%" }}
         >
-          Request Form Edit
+          Request Form
         </Button>
       )}
     </Box>
