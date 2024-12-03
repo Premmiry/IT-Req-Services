@@ -227,7 +227,50 @@ export default function ListRequest() {
                 backgroundColor: '#66bb6a',
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
-            // ... (same status styles as List_Request_IT)
+            "Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Wait For Assigned": {
+                backgroundColor: '#90a4ae',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "In Progress": {
+                backgroundColor: '#5c6bc0',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Complete": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Cancel": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            }
         };
         return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
     };
@@ -660,11 +703,11 @@ export default function ListRequest() {
                         initialState={{
                             pagination: {
                                 paginationModel: {
-                                    pageSize: 10,
+                                    pageSize: 100,
                                 },
                             },
                         }}
-                        pageSizeOptions={[10, 25, 50]}
+                        pageSizeOptions={[100, 200, 400, 600, 800, 1000]}
                         disableRowSelectionOnClick
                         rowHeight={45}
                         columnHeaderHeight={45}

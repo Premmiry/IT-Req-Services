@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Box, Button, Typography } from '@mui/joy';
+import Chip from "@mui/material/Chip";
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
@@ -19,7 +20,11 @@ import AssigneeDepSelector from "../Select/AssigneeDepSelector";
 import AssigneeEmpSelector from "../Select/AssigneeEmpSelector";
 import { SelectPriority } from "../Select/select-priority";
 import DateWork from "../DatePicker/datework";
+import SUBTASK from "../ContentTypeR/boxsubtask";
+import UAT from "../ContentTypeR/boxUAT"; 
 import { Stack } from '@mui/material';
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RadioButtonCheckedSharpIcon from "@mui/icons-material/RadioButtonCheckedSharp";
 import dayjs from 'dayjs';
 
 interface ApproveProps {
@@ -66,6 +71,7 @@ interface RequestData {
     title_req: string;
     detail_req: string;
     status_id: number | null;
+    status_name: string;
     m_name?: string;
     m_status?: string;
     d_name?: string;
@@ -114,6 +120,66 @@ export default function RequestForm() {
     const numericId = id ? parseInt(id) : 0; // Convert string id to number
     const [requestData, setRequestData] = useState<RequestData | null>(null);
 
+
+
+      const getStatusStyle = (status: string) => {
+        const styles = {
+            "Request": {
+                backgroundColor: '#42a5f5',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Wait For Assigned": {
+                backgroundColor: '#90a4ae',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "In Progress": {
+                backgroundColor: '#5c6bc0',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Complete": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Cancel": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            }
+        };
+        return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
+    };
+    
     // Add fetchRequestData function
     const fetchRequestData = useCallback(async () => {
         if (!numericId) return;
@@ -224,9 +290,13 @@ export default function RequestForm() {
 
     // Memoize complex calculations
     const isITStaff = useMemo(() => {
-        return userData?.id_section === 28 ||
-            userData?.id_division_competency === 86 ||
-            userData?.id_section_competency === 28;
+        if (!userData) return false;
+        
+        return Boolean(
+            userData.id_section === 28 ||
+            userData.id_division_competency === 86 ||
+            userData.id_section_competency === 28
+        );
     }, [userData]);
 
     const handleDepartmentChange = useCallback((department: DepartmentOption | null) => {
@@ -448,10 +518,11 @@ export default function RequestForm() {
                 {successAlert && <SaveAlert onClose={() => setSuccessAlert(false)} />}
 
                 <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography
                         sx={{
                             mt: 2,
-                            mb: 4,
+                            mb: 2,
                             fontWeight: 'bold',
                             fontSize: 25,
                             color: '#1976d2',
@@ -463,8 +534,49 @@ export default function RequestForm() {
                             textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
                         }}
                     >
-                        {isEditMode ? 'Request Edit' : 'Request Form'}
+                        {isEditMode ? 'Request Edit' : 'Request Form'} : <span style={{ color: 'green' }}>{requestData?.rs_code}</span>
                     </Typography>
+                    {/* Status */}
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Chip
+            label={requestData?.status_name}
+            style={{
+              backgroundColor: getStatusStyle(requestData?.status_name ?? '').backgroundColor,
+              color: "#fff",
+            }}
+            size="medium"
+            icon={
+              requestData?.status_name === "Complete" ? (
+                <CheckCircleIcon />
+              ) : (
+                <RadioButtonCheckedSharpIcon />
+              )
+            }
+            sx={{
+              
+              color: "#fff",
+              minWidth: '140px',
+              height: '28px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              '& .MuiChip-icon': {
+                  color: '#fff',
+                  marginLeft: '4px'
+              },
+              '& .MuiChip-label': {
+                  padding: '0 8px'
+              },
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              transition: 'transform 0.2s ease',
+              '&:hover': {
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+              }
+          }}
+          />
+        </Stack>
+                    </Box>
+                    
                     <hr />
 
                     <Grid container spacing={2}>
@@ -490,18 +602,35 @@ export default function RequestForm() {
                                 {errors.typeId && <Typography color="danger">{errors.typeId}</Typography>}
                             </Box>
                             <Box sx={{ mt: 2 }}>
-                                {
-                                    userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2) && (
+                            {(admin === 'ADMIN' || (
+                        userData?.position && 
+                        (userData.position === 'm' || userData.position === 'd') && 
+                        selectedTypeId !== 2
+                    )) && (
                                         <>
                                             {managerApprove !== null ? (
-                                                <BoxManagerApprove managerApprove={managerApprove} id_division_competency={userData.id_division_competency} />
+                                                <BoxManagerApprove 
+                                                    managerApprove={managerApprove} 
+                                                    id_division_competency={userData.id_division_competency || 0} 
+                                                />
                                             ) : (
-                                                <BoxManagerApprove managerApprove={{ name: '', status: '', req_id: '', m_name: '' }} id_division_competency={userData.id_division_competency} />
+                                                <BoxManagerApprove 
+                                                    managerApprove={{ name: '', status: '', req_id: '', m_name: '' }} 
+                                                    id_division_competency={userData.id_division_competency || 0} 
+                                                />
                                             )}
                                             {directorApprove !== null ? (
-                                                <BoxDirectorApprove directorApprove={directorApprove} m_name={managerApprove?.name ?? null} id_section_competency={userData.id_section_competency} />
+                                                <BoxDirectorApprove 
+                                                    directorApprove={directorApprove} 
+                                                    m_name={managerApprove?.name ?? null} 
+                                                    id_section_competency={userData.id_section_competency || 0} 
+                                                />
                                             ) : (
-                                                <BoxDirectorApprove directorApprove={{ name: '', status: '', req_id: '', m_name: '' }} m_name={null} id_section_competency={userData.id_section_competency} />
+                                                <BoxDirectorApprove 
+                                                    directorApprove={{ name: '', status: '', req_id: '', m_name: '' }} 
+                                                    m_name={null} 
+                                                    id_section_competency={userData.id_section_competency || 0} 
+                                                />
                                             )}
                                         </>
                                     )
@@ -536,115 +665,111 @@ export default function RequestForm() {
                             {errors.files && <Typography color="danger">{errors.files}</Typography>}
                         </Grid>
                     </Grid>
-                    {
-                        userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
-                            <Box
+                    
+                    {(admin === 'ADMIN' || (
+                        userData?.position && 
+                        (userData.position === 'm' || userData.position === 'd') && 
+                        isITStaff && selectedTypeId !== 2
+                    )) && (
+                        <Box sx={{
+                            backgroundColor: '#fff',
+                            padding: 2,
+                            borderRadius: 2,
+                            marginTop: 4,
+                            border: '1px dashed',
+                            borderColor: 'lightblue',
+                        }}>
+                            <Typography
                                 sx={{
-                                    backgroundColor: '#fff',
-                                    padding: 2,
-                                    borderRadius: 2,
-                                    marginTop: 4,
-                                    border: '1px dashed',
-                                    borderColor: 'lightblue',
-
-                                    // boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
+                                    mb: 2,
+                                    fontWeight: 'bold',
+                                    fontSize: 20,
+                                    color: '#1976d2',
+                                    textAlign: 'left',
+                                    textDecoration: 'underline',
+                                    textDecorationThickness: 2,
+                                    textUnderlineOffset: 6,
+                                    textDecorationColor: '#1976d2',
+                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
                                 }}
                             >
+                                IT Approve 
+                            </Typography>
 
-                                <Typography
-                                    sx={{
-
-                                        mb: 2,
-                                        fontWeight: 'bold',
-                                        fontSize: 20,
-                                        color: '#1976d2',
-                                        textAlign: 'left',
-                                        textDecoration: 'underline',
-                                        textDecorationThickness: 2,
-                                        textUnderlineOffset: 6,
-                                        textDecorationColor: '#1976d2',
-                                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                                    }}
-                                >
-                                    IT Approve
-                                </Typography>
-
-                                <Grid container spacing={4}>
-                                    <Grid item xs={12} sm={6}>
-                                        {itmanagerApprove !== null ? (
-                                            <BoxITManagerApprove
-                                                itmanagerApprove={{
-                                                    name: itmanagerApprove.name,
-                                                    status: itmanagerApprove.status,
-                                                    req_id: itmanagerApprove.req_id,
-                                                    level_job: itmanagerApprove.level_job ?? null
-                                                }}
-                                                id_division_competency={userData.id_division_competency}
-                                                it_m_note={itmanagerNote}
-                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
-                                            />
-                                        ) : (
-                                            <BoxITManagerApprove
-                                                itmanagerApprove={{
-                                                    name: '',
-                                                    status: '',
-                                                    req_id: '',
-                                                    level_job: null
-                                                }}
-                                                id_division_competency={userData.id_division_competency}
-                                                it_m_note={null}
-                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
-                                            />
-                                        )}
-                                        <ITManagerTextarea
-                                            value={itmanagerNote}
-                                            onChange={(e) => setITManagerNote(e.target.value)}
-                                            readOnly={!(isITStaff && userData?.position === 'm')}
+                            <Grid container spacing={4}>
+                                <Grid item xs={12} sm={6}>
+                                    {itmanagerApprove !== null ? (
+                                        <BoxITManagerApprove
+                                            itmanagerApprove={{
+                                                name: itmanagerApprove.name,
+                                                status: itmanagerApprove.status,
+                                                req_id: itmanagerApprove.req_id,
+                                                level_job: itmanagerApprove.level_job ?? null
+                                            }}
+                                            id_division_competency={userData.id_division_competency}
+                                            it_m_note={itmanagerNote}
+                                            onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
                                         />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        {itdirectorApprove !== null ? (
-                                            <BoxITDirectorApprove
-                                                itdirectorApprove={{
-                                                    name: itdirectorApprove.name,
-                                                    status: itdirectorApprove.status,
-                                                    req_id: itdirectorApprove.req_id,
-                                                    level_job: itdirectorApprove.level_job ?? null
-                                                }}
-                                                it_m_name={itmanagerApprove?.name ?? null}
-                                                id_section_competency={userData.id_section_competency}
-                                                it_d_note={itdirectorNote}
-                                                levelJob={levelJob} // Pass levelJob as prop
-                                            />
-                                        ) : (
-                                            <BoxITDirectorApprove
-                                                itdirectorApprove={{
-                                                    name: '',
-                                                    status: '',
-                                                    req_id: '',
-                                                    level_job: null
-                                                }}
-                                                it_m_name={null}
-                                                id_section_competency={userData.id_section_competency}
-                                                it_d_note={null}
-                                                levelJob={levelJob} // Pass levelJob as prop
-                                            />
-                                        )}
-                                        <Box sx={{ mb: 9 }}>
-
-                                        </Box>
-                                        <ITDirectorTextarea
-                                            value={itdirectorNote}
-                                            onChange={(e) => setITDirectorNote(e.target.value)}
-                                            readOnly={!(isITStaff && userData?.position === 'd')}
+                                    ) : (
+                                        <BoxITManagerApprove
+                                            itmanagerApprove={{
+                                                name: '',
+                                                status: '',
+                                                req_id: '',
+                                                level_job: null
+                                            }}
+                                            id_division_competency={userData.id_division_competency}
+                                            it_m_note={null}
+                                            onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
                                         />
-                                    </Grid>
-
+                                    )}
+                                    <ITManagerTextarea
+                                        value={itmanagerNote}
+                                        onChange={(e) => setITManagerNote(e.target.value)}
+                                        readOnly={!(isITStaff && userData?.position === 'm')}
+                                    />
                                 </Grid>
-                            </Box>
+                                <Grid item xs={12} sm={6}>
+                                    {itdirectorApprove !== null ? (
+                                        <BoxITDirectorApprove
+                                            itdirectorApprove={{
+                                                name: itdirectorApprove.name,
+                                                status: itdirectorApprove.status,
+                                                req_id: itdirectorApprove.req_id,
+                                                level_job: itdirectorApprove.level_job ?? null
+                                            }}
+                                            it_m_name={itmanagerApprove?.name ?? null}
+                                            id_section_competency={userData.id_section_competency}
+                                            it_d_note={itdirectorNote}
+                                            levelJob={levelJob} // Pass levelJob as prop
+                                        />
+                                    ) : (
+                                        <BoxITDirectorApprove
+                                            itdirectorApprove={{
+                                                name: '',
+                                                status: '',
+                                                req_id: '',
+                                                level_job: null
+                                            }}
+                                            it_m_name={null}
+                                            id_section_competency={userData.id_section_competency}
+                                            it_d_note={null}
+                                            levelJob={levelJob} // Pass levelJob as prop
+                                        />
+                                    )}
+                                    <Box sx={{ mb: 8 }}>
 
-                        )
-                    }
+                                    </Box>
+                                    <ITDirectorTextarea
+                                        value={itdirectorNote}
+                                        onChange={(e) => setITDirectorNote(e.target.value)}
+                                        readOnly={!(isITStaff && userData?.position === 'd')}
+                                    />
+                                </Grid>
+
+                            </Grid>
+                        </Box>
+                    )}
 
 
                     {
@@ -685,7 +810,8 @@ export default function RequestForm() {
                                         sx={{ mt: 2 }}
                                     >
                                         <Box>
-                                            <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                            
+                                            <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
                                                 Tags
                                             </Typography>
                                             <Stack direction="row" spacing={1}>
@@ -712,7 +838,7 @@ export default function RequestForm() {
                                         </Box>
 
                                         <Box>
-                                            <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                            <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
                                                 Assignees
                                             </Typography>
                                             <Stack direction="row" spacing={1}>
@@ -724,7 +850,7 @@ export default function RequestForm() {
                                         </Box>
 
                                         <Box>
-                                            <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
+                                            <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
                                                 Priority
                                             </Typography>
                                             <SelectPriority
@@ -769,17 +895,51 @@ export default function RequestForm() {
                                 </Typography>
 
                                 <Box sx={{ p: 1 }}>
-                                    
-
-                                    
-
-                                        
-                                    
+                                <SUBTASK req_id={requestData?.id ?? 0} />
                                 </Box>
                             </Box>
                         )
                     }
 
+
+        {requestData?.type_id === 3 ? (
+            <Box
+                sx={{
+                    backgroundColor: '#fff',
+                    padding: 2,
+                    borderRadius: 2,
+                    marginTop: 4,
+                    border: '1px dashed',
+                    borderColor: 'lightblue',
+                }}
+            >
+                <Typography
+                    sx={{
+                        fontWeight: 'bold',
+                        fontSize: 20,
+                        color: '#1976d2',
+                        textAlign: 'left',
+                        textDecoration: 'underline',
+                        textDecorationThickness: 2,
+                        textUnderlineOffset: 6,
+                        textDecorationColor: '#1976d2',
+                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                    }}
+                >
+                    UAT
+                </Typography>
+
+                <Box sx={{ p: 1 }}>
+                    <UAT
+                        id={requestData?.id ?? 0}
+                        username={userData.username}
+                        department={userData.id_department}
+                        status={requestData?.status_id ?? 0}
+                    />
+                </Box>
+            </Box>
+        ) : null}
+                      
 
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -787,16 +947,16 @@ export default function RequestForm() {
                                 userData && (
                                     (
                                         // Condition 1: status_id = 2 and position is m or d and not type 2
-                                        (status_id === 2 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2) ||
+                                        (status_id === 2 && ['m', 'd'].includes(userData?.position || '') && selectedTypeId !== 2) ||
 
                                         // Condition 2: status_id = 3 and position is d and not type 2
-                                        (status_id === 3 && userData.position === 'd' && selectedTypeId !== 2) ||
+                                        (status_id === 3 && userData?.position === 'd' && selectedTypeId !== 2) ||
 
                                         // Condition 3: status_id = 4 and position is m or d and not type 2 and is IT staff
-                                        (status_id === 4 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2 && isITStaff) ||
+                                        (status_id === 4 && ['m', 'd'].includes(userData?.position || '') && selectedTypeId !== 2 && isITStaff) ||
 
                                         // Condition 4: status_id = 5 and position is d and not type 2 and is IT staff
-                                        (status_id === 5 && userData.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
+                                        (status_id === 5 && userData?.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
 
                                         // Condition 6: status_id = 1 or not in edit mode
                                         (status_id === 1 || !isEditMode)

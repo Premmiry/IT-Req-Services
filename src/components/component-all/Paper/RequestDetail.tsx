@@ -229,24 +229,63 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
     );
   }
 
-  const getStatusColor = (status: string) => {
-    const colorMap = {
-      Request: "#2196F3",
-      "Manager Approve": "#7abf7d",
-      "Manager Unapprove": "#7abf7d",
-      "Director Approve": "#7abf7d",
-      "Director Unapprove": "#7abf7d",
-      "IT Manager Approve": "#fcba58",
-      "IT Manager Unapprove": "#fcba58",
-      "IT Director Approve": "#fcba58",
-      "IT Director Unapprove": "#fcba58",
-      "Wait For Assigned": "#B0BEC5",
-      "In Progress": "#3a08a6",
-      Complete: "#4CAF50",
-      Cancel: "#F44336",
+  const getStatusStyle = (status: string) => {
+    const styles = {
+        "Request": {
+            backgroundColor: '#42a5f5',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Manager Approve": {
+            backgroundColor: '#66bb6a',
+            icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Manager Unapprove": {
+            backgroundColor: '#ef5350',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Director Approve": {
+            backgroundColor: '#66bb6a',
+            icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Director Unapprove": {
+            backgroundColor: '#ef5350',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "IT Manager Approve": {
+            backgroundColor: '#ffa726',
+            icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+        },
+        "IT Manager Unapprove": {
+            backgroundColor: '#ef5350',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "IT Director Approve": {
+            backgroundColor: '#ffa726',
+            icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+        },
+        "IT Director Unapprove": {
+            backgroundColor: '#ef5350',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Wait For Assigned": {
+            backgroundColor: '#90a4ae',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "In Progress": {
+            backgroundColor: '#5c6bc0',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Complete": {
+            backgroundColor: '#66bb6a',
+            icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+        },
+        "Cancel": {
+            backgroundColor: '#ef5350',
+            icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+        }
     };
-    return colorMap[status as keyof typeof colorMap] || "#81b1c9"; // Default color
-  };
+    return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
+};
 
   const handleConfirmJob = async () => {
     try {
@@ -327,7 +366,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
           <Chip
             label={requestData.status_name}
             style={{
-              backgroundColor: getStatusColor(requestData.status_name),
+              backgroundColor: getStatusStyle(requestData?.status_name ?? '').backgroundColor,
               color: "#fff",
             }}
             size="medium"

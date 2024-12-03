@@ -176,18 +176,18 @@ export const DetailsTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
             display: 'none',
           },
           '.ql-container': {
-            border: '2px solid #e3f2fd',
-            backgroundColor: (theme) => `${theme.palette.primary.main}40`,
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
-            borderRadius: '8px',
+            border: '2px solid #e3f2fd', // Light blue border
+            backgroundColor: '#f8f9fa', // Light gray background
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)', // Subtle inner shadow
+            borderRadius: '8px', // Rounded corners
           },
           '.ql-editor': {
             backgroundColor: 'transparent',
             cursor: 'not-allowed',
-            color: '#455a64',
-            padding: '16px',
+            color: '#455a64', // Darker text for better readability
+            padding: '16px', // More padding
             '&:hover': {
-              backgroundColor: '#f5f5f5',
+              backgroundColor: '#f5f5f5', // Slight hover effect
               transition: 'background-color 0.2s ease',
             },
           },

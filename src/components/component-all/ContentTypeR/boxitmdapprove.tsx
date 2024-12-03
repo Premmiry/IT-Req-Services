@@ -144,7 +144,7 @@ export const BoxITManagerApprove = ({
   const handleChangeCheck =
     () => (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = parseInt(event.target.value, 10);
-      setLevelJob(value);
+      handleLevelJobChange(value);
       console.log("Level Job:", value);
     };
 
@@ -263,11 +263,12 @@ export const BoxITManagerApprove = ({
         )}
       </Grid>
       
-        <Grid item xs={6} component="div">
+        <Grid item xs={12} component="div">
           <FormGroup aria-label="position" row id={`checkbox_group`}>
             <CheckboxITApprove
               levelJob={levelJob}
               onChange={handleChangeCheck()}
+              loading3={false}
             />
           </FormGroup>
         </Grid>
@@ -282,7 +283,7 @@ export const BoxITDirectorApprove = ({
   id_section_competency,
   it_d_note,
   levelJob: initialLevelJob, 
-  onLevelJobChange
+
 }: {
   itdirectorApprove: ApproveProps;
   it_m_name: string | null;
@@ -300,13 +301,7 @@ export const BoxITDirectorApprove = ({
   const action: SelectStaticProps['action'] = React.useRef(null);
   const navigate = useNavigate();
 
-  // Update levelJob and call the callback if provided
-  const handleLevelJobChange = (newLevelJob: number | null) => {
-      setLevelJob(newLevelJob);
-      if (onLevelJobChange) {
-          onLevelJobChange(newLevelJob);
-      }
-  };
+
 
   const memoizedITDirectorApprove = useMemo(() => {
     return {
@@ -455,6 +450,7 @@ useEffect(() => {
           ))}
         </Select>
       </Grid>
+
       <Grid item xs={3} component="div">
         {showSubmitButton && (
           <>
@@ -472,6 +468,8 @@ useEffect(() => {
           />
         )}
       </Grid>
+
+     
 
     </Grid>
   );

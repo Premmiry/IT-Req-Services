@@ -40,6 +40,7 @@ import {
 } from '@mui/material';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import Swal from 'sweetalert2';
 
 dayjs.extend(buddhistEra);
 dayjs.locale('th');
@@ -96,24 +97,24 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     return (type: string) => colorMap[type as keyof typeof colorMap] || "#81b1c9";
   }, []);
 
-  const getStatusColor = useMemo(() => {
-    const colorMap = {
-      Request: "#2196F3",
-      "Manager Approve": "#7abf7d",
-      "Manager Unapprove": "#7abf7d",
-      "Director Approve": "#7abf7d",
-      "Director Unapprove": "#7abf7d",
-      "IT Manager Approve": "#fcba58",
-      "IT Manager Unapprove": "#fcba58",
-      "IT Director Approve": "#fcba58",
-      "IT Director Unapprove": "#fcba58",
-      "Wait For Assigned": "#B0BEC5",
-      "In Progress": "#3a08a6",
-      Complete: "#4CAF50",
-      Cancel: "#F44336",
-    };
-    return (status: string) => colorMap[status as keyof typeof colorMap] || "#81b1c9";
-  }, []);
+  // const getStatusColor = useMemo(() => {
+  //   const colorMap = {
+  //     Request: "#2196F3",
+  //     "Manager Approve": "#7abf7d",
+  //     "Manager Unapprove": "#7abf7d",
+  //     "Director Approve": "#7abf7d",
+  //     "Director Unapprove": "#7abf7d",
+  //     "IT Manager Approve": "#fcba58",
+  //     "IT Manager Unapprove": "#fcba58",
+  //     "IT Director Approve": "#fcba58",
+  //     "IT Director Unapprove": "#fcba58",
+  //     "Wait For Assigned": "#B0BEC5",
+  //     "In Progress": "#3a08a6",
+  //     Complete: "#4CAF50",
+  //     Cancel: "#F44336",
+  //   };
+  //   return (status: string) => colorMap[status as keyof typeof colorMap] || "#81b1c9";
+  // }, []);
 
   // ใช้ useCallback สำหรับ handlers
   const handleRequest = useCallback(() => {
@@ -151,12 +152,35 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
       }
 
       const data = await response.json();
-      console.log("Job Received Successfully:", data);
-      alert("Job Received Successfully");
+      console.log("รับงานสำเร็จ:", data);
+      
+      // Custom alert notification
+      Swal.fire({
+        title: 'รับงานสำเร็จ!',
+        // html: 'รับงานสำเร็จ!',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        customClass: {
+          title: 'alert-title',
+          confirmButton: 'alert-button'
+        },
+        buttonsStyling: false,
+      });
+
       fetchRequests(); // เรียกฟังก์ชันนี้เพื่ออัปเดต UI หรือรีเฟรชข้อมูล
     } catch (error) {
       console.error("Error receiving job:", error);
-      alert("เกิดข้อผิดพลาดในการรับงาน");
+      Swal.fire({
+        title: 'Error!',
+        html: 'เกิดข้อผิดพลาดในการรับงาน',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        customClass: {
+          title: 'alert-title',
+          confirmButton: 'alert-button'
+        },
+        buttonsStyling: false,
+      });
     } finally {
       setOpen(false);
     }
@@ -174,8 +198,32 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
       setRows((prevRows) => prevRows.filter((row) => row.id !== selectedId));
       setSuccessAlert(true);
       setTimeout(() => setSuccessAlert(false), 3000);
+
+      // Custom alert notification for successful deletion
+      Swal.fire({
+        title: 'ลบรายการสำเร็จ!',
+        icon: 'success',
+        confirmButtonText: 'OK',
+        customClass: {
+          title: 'alert-title',
+          confirmButton: 'alert-button'
+        },
+        buttonsStyling: false,
+      });
     } catch (error) {
       console.error("Error deleting request:", error);
+      // Custom alert notification for error
+      Swal.fire({
+        title: 'Error!',
+        html: 'เกิดข้อผิดพลาดในการลบรายการ หรือ รายการนี้ถูกลบไปแล้ว',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        customClass: {
+          title: 'alert-title',
+          confirmButton: 'alert-button'
+        },
+        buttonsStyling: false,
+      });
     } finally {
       setOpen(false);
     }
@@ -580,7 +628,6 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
   }, [
     handleEdit,
     getTypeColor,
-    getStatusColor,
     handleDeleteClick,
     handleRecieveClick,
     admin,
@@ -850,11 +897,11 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
             initialState={{
               pagination: {
                 paginationModel: {
-                  pageSize: 10,
+                  pageSize: 100,
                 },
               },
             }}
-            pageSizeOptions={[10, 25, 50]}
+            pageSizeOptions={[100, 200, 400, 600, 800, 1000]}
             disableRowSelectionOnClick
             loading={isLoading}
             getRowId={(row) => row.id}
@@ -873,26 +920,53 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         onClose={handleClose}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: '12px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          },
+        }}
       >
-        <DialogTitle id="alert-dialog-title">
+        <DialogTitle id="alert-dialog-title" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
           {actionType === "delete" ? "Confirm Delete" : "Confirm Receive"}
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
+          <DialogContentText id="alert-dialog-description" sx={{ fontSize: '1rem', color: '#555' }}>
             {actionType === "delete"
-              ? "คุณ้องการจะลบรายการนี้หรือไม่?"
+              ? "คุณต้องการจะลบรายการนี้หรือไม่?"
               : "คุณต้องการจะรับงานนี้ใช่หรือไม่?"}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button
             onClick={actionType === "delete" ? handleConfirmDelete : handleRecieve}
-            color="error"
+            variant="contained"
+            color="primary"
+            sx={{
+              backgroundColor: '#1976d2',
+              '&:hover': {
+                backgroundColor: '#115293',
+              },
+              borderRadius: '8px',
+            }}
             autoFocus
           >
             Confirm
           </Button>
-          <Button onClick={handleClose} color="primary">
+          <Button 
+            onClick={handleClose} 
+            color="error" 
+            variant="outlined"
+            sx={{
+              borderRadius: '8px',
+              borderColor: '#f44336',
+              color: '#f44336',
+              '&:hover': {
+                backgroundColor: '#f44336',
+                color: '#fff',
+              },
+            }}
+          >
             Cancel
           </Button>
         </DialogActions>
