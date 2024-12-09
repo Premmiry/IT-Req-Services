@@ -25,12 +25,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonCheckedSharpIcon from "@mui/icons-material/RadioButtonCheckedSharp";
 import AssigneeDepSelector from "../Select/AssigneeDepSelector";
 import AssigneeEmpSelector from "../Select/AssigneeEmpSelector";
-import UAT from "../ContentTypeR/boxUAT"; // นำเข้า PrioritySelector
 import { SelectPriority } from "../Select/select-priority";
 import DateWork from "../DatePicker/datework";
-import SUBTASK from "../ContentTypeR/boxsubtask";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
-import BackspaceIcon from "@mui/icons-material/Backspace";
 
 const style = {
     position: "absolute",
@@ -113,7 +110,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
     // State declarations
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [requestData, setRequestData] = useState<RequestData | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
     // const [userData, setUserData] = useState<any | null>(null);
@@ -232,24 +228,62 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
         );
     }
 
-    const statusColors = {
-        Request: "#2196F3",
-        "Manager Approve": "#7abf7d",
-        "Manager Unapprove": "#7abf7d",
-        "Director Approve": "#7abf7d",
-        "Director Unapprove": "#7abf7d",
-        "IT Manager Approve": "#fcba58",
-        "IT Manager Unapprove": "#fcba58",
-        "IT Director Approve": "#fcba58",
-        "IT Director Unapprove": "#fcba58",
-        "Wait For Assigned": "#B0BEC5",
-        "In Progress": "#3a08a6",
-        Complete: "#4CAF50",
-        Cancel: "#F44336",
-    };
-
-    const getStatusColor = (status: string) => {
-        return statusColors[status as keyof typeof statusColors] || "#000000";
+    const getStatusStyle = (status: string) => {
+        const styles = {
+            "Request": {
+                backgroundColor: '#42a5f5',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Wait For Assigned": {
+                backgroundColor: '#90a4ae',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "In Progress": {
+                backgroundColor: '#5c6bc0',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Complete": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Cancel": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            }
+        };
+        return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
     };
 
     const handleConfirmJob = async () => {
@@ -331,7 +365,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                     <Chip
                         label={requestData.status_name}
                         style={{
-                            backgroundColor: getStatusColor(requestData.status_name),
+                            backgroundColor: getStatusStyle(requestData?.status_name ?? '').backgroundColor,
                             color: "#fff",
                         }}
                         size="medium"
@@ -343,11 +377,25 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                             )
                         }
                         sx={{
-                            "--Chip-radius": "5px",
-                            "--Chip-gap": "5px",
-                            "--Chip-paddingInline": "5px",
-                            "--Chip-decoratorChildHeight": "20px",
-                            "--Chip-minHeight": "20px",
+
+                            color: "#fff",
+                            minWidth: '140px',
+                            height: '28px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            '& .MuiChip-icon': {
+                                color: '#fff',
+                                marginLeft: '4px'
+                            },
+                            '& .MuiChip-label': {
+                                padding: '0 8px'
+                            },
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            transition: 'transform 0.2s ease',
+                            '&:hover': {
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                            }
                         }}
                     />
                 </Stack>
@@ -420,9 +468,8 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                                     <Box
                                         component="span"
                                         sx={{ fontSize: "0.875rem", color: "info.main" }}
-                                    >
-                                        {requestData.detail_req}
-                                    </Box>
+                                        dangerouslySetInnerHTML={{ __html: requestData.detail_req }}
+                                    />
                                 </Typography>
                             </Stack>
 
@@ -829,44 +876,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
 
                 <br />
 
-                {requestData.status_id !== 8 && admin === "ADMIN" && (
-                    <>
-                        <Box sx={{ p: 2 }}>
-                            <Button
-                                color="error"
-                                startIcon={<BackspaceIcon />}
-                                onClick={handleCancelJob}
-                            >
-                                Cancel Job
-                            </Button>
-                        </Box>
-                    </>
-                )}
-                <br />
-                {isITStaff && (
-                    <>
-                        <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-                            <Box sx={{ p: 2 }}>
-                                <SUBTASK req_id={requestData.id} />
-                            </Box>
-                        </Card>
-                    </>
-                )}
 
-                {requestData.type_id === 3 ? (
-                    <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-                        <Box sx={{ p: 2 }}>
-                            <UAT
-                                id={requestData.id}
-                                username={userData.username}
-                                department={userData.id_department}
-                                status={requestData.status_id ?? 0}
-                                onClose={onClose}
-                            />
-                        </Box>
-                    </Card>
-                ) : null}
-                <br />
                 {!isITStaff &&
                     ((requestData.status_id === 6 && requestData.type_id !== 3) ||
                         (requestData.status_id === 16 && requestData.type_id === 3)) ? (
@@ -884,13 +894,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                 ) : null}
                 <br />
 
-                {/* <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-                    <Box sx={{ p: 2 }}>
-                      
-                    <TestDateRang />
-               
-                    </Box>
-                </Card> */}
             </Box>
             {!isModal && (
                 <Button
@@ -899,7 +902,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                     onClick={handleEdit}
                     sx={{ mt: 2, mb: 2, width: "100%" }}
                 >
-                    Request Form
+                    Request Form Edit
                 </Button>
             )}
         </Box>

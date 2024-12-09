@@ -37,7 +37,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [assignedDepartments, setAssignedDepartments] = useState<AssignedDepartment[]>([]);
-
+    const [admin, setAdmin] = useState<string | null>(null);
     // New state for managing snackbar notifications
     const [snackbar, setSnackbar] = useState({
         open: false,
@@ -47,8 +47,10 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
+        const admin = sessionStorage.getItem('admin');
         if (storedUserData) {
             setUserData(JSON.parse(storedUserData));
+            setAdmin(admin);
             fetchAssignments(requestId);
         }
     }, [requestId]);
@@ -222,7 +224,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
         <>
         <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 ,  flexWrap: 'wrap'}}>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                {!readOnly && isITStaff && (
+                {!readOnly && admin === 'ADMIN' && (
                     <Chip
                         icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
                         // label="Tags"

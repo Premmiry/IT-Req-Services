@@ -80,10 +80,11 @@ function Login() {
 
                 // ตรวจสอบ admin
                 const adminResponse = await fetch(`${URLAPI}/admin?user=${username}`, { method: 'GET' });
-
                 if (adminResponse.ok) {
                     const adminData = await adminResponse.json();
-                    sessionStorage.setItem('admin', (adminData && adminData.length > 0) ? 'ADMIN' : 'USER');
+                    console.log("Admin Data del flag:", adminData);
+                    sessionStorage.setItem('admin', (adminData && adminData.length > 0 && adminData[0].del_flag === 'N') ? 'ADMIN' : 'USER');
+                    console.log("Admin Data stored in sessionStorage:", adminData);
                 } else {
                     sessionStorage.setItem('admin', 'USER');
                 }

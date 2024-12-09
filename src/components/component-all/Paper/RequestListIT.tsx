@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Tabs, Tab, Typography,styled } from '@mui/material';
 import ListRequestIT from '../Table/List_Request_IT';
+import AdminManageData from './AdminManageData';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -66,6 +67,12 @@ function a11yProps(index: number) {
 
 export default function RequestListIT() {
     const [value, setValue] = useState(0);
+    const [admin, setAdmin] = useState<string | null>(null);
+
+    useEffect(() => {
+        const adminValue = sessionStorage.getItem('admin');
+        setAdmin(adminValue);
+    }, []);
 
     const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
@@ -74,8 +81,8 @@ export default function RequestListIT() {
     return (
         <Box sx={{ 
             width: '100%',
-            backgroundColor: '#ffffff', // พื้นหลังสีขาว
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)' // เพิ่มเงา
+            backgroundColor: '#ffffff',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
             <Box>
                 <StyledTabs 
@@ -86,6 +93,7 @@ export default function RequestListIT() {
                     <StyledTab label="Request Job" {...a11yProps(0)} />
                     <StyledTab label="Complete Job" {...a11yProps(1)} />
                     <StyledTab label="Cancel Job" {...a11yProps(2)} />
+                    {admin === 'ADMIN' && <StyledTab label="Manage Data" {...a11yProps(3)} />}
                 </StyledTabs>
             </Box>
             <TabPanel value={value} index={0}>
@@ -97,6 +105,11 @@ export default function RequestListIT() {
             <TabPanel value={value} index={2}>
                 <ListRequestIT tab={3} />
             </TabPanel>
+            {admin === 'ADMIN' && (
+                <TabPanel value={value} index={3}>
+                    <AdminManageData />
+                </TabPanel>
+            )}
         </Box>
     );
 }

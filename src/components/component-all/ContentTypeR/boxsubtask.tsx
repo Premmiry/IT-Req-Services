@@ -59,7 +59,8 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             }));
             setRows(formattedData);
         } catch (error) {
-            console.error('Error fetching subtasks:', error);
+            console.log('ยังไม่มีการเพิ่มหัวข้อ Subtask');
+            // console.error('Error fetching subtasks:', error);
         }
     };
 
@@ -140,6 +141,10 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     };
 
     const handleSaveRow = async (row: SubtaskData) => {
+        if (!row.sub_id) {
+            alert('กรุณาบันทึก request ก่อนจึงจะสามารถบันทึก subtask ได้!!');
+            return;
+        }
         if (!row.name.trim()) {
             setSnackbarMessage('Please enter a name for the subtask');
             setSnackbarOpen(true);
@@ -231,6 +236,10 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     };
 
     const handleDateStartChange = (row: SubtaskData, newValue: dayjs.Dayjs | null) => {
+        if (!row.sub_id) {
+            console.log('Subtask ID is', row.sub_id);
+            return;
+        }
         if (!newValue) return;
         const updatedRows = rows.map(r =>
             r.id === row.id ? { ...r, startdate: newValue.toISOString() } : r
@@ -247,6 +256,10 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     };
 
     const handleDateEndChange = (row: SubtaskData, newValue: dayjs.Dayjs | null) => {
+        if (!row.sub_id) {
+            console.log('Subtask ID is', row.sub_id);
+            return;
+        }
         if (!newValue) return;
         if (!row.startdate) {
             setSnackbarMessage('Please select a start date first');
@@ -268,6 +281,10 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     };
 
     const handleStatusChange = (row: SubtaskData, newValue: number) => {
+        if (!row.sub_id) {
+            console.log('Subtask ID is', row.sub_id);
+            return;
+        }
         const updatedRows = rows.map(r =>
             r.id === row.id ? { ...r, status: newValue } : r
         );
@@ -278,6 +295,10 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
     };
 
     const handlePriorityChange = (row: SubtaskData, newValue: number | null) => {
+        if (!row.sub_id) {
+            console.log('Subtask ID is', row.sub_id);
+            return;
+        }
         const updatedRows = rows.map(r =>
             r.id === row.id ? { ...r, id_priority: newValue } : r
         );

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Box, Button, Typography } from '@mui/joy';
+import Chip from "@mui/material/Chip";
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
 import SelectProgram from '../Select/select-program';
 import SelectTopic from '../Select/select-topic';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Container, Paper, Grid } from '@mui/material';
+import { Container, Paper, Grid, FormLabel } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import Fileupload from '../FileUpload/file-upload';
 import { NameInput, PhoneInput, TitleInput, DetailsTextarea, ITManagerTextarea, ITDirectorTextarea } from '../Input/input-requestform';
@@ -15,6 +16,17 @@ import { SaveAlert } from '../Alert/alert';
 import { BoxDirectorApprove, BoxManagerApprove } from '../ContentTypeR/boxmdapprove';
 import { BoxITDirectorApprove, BoxITManagerApprove } from '../ContentTypeR/boxitmdapprove';
 import URLAPI from '../../../URLAPI';
+import AssigneeDepSelector from "../Select/AssigneeDepSelector";
+import AssigneeEmpSelector from "../Select/AssigneeEmpSelector";
+import { SelectPriority } from "../Select/select-priority";
+import DateWork from "../DatePicker/datework";
+import SUBTASK from "../ContentTypeR/boxsubtask";
+import UAT from "../ContentTypeR/boxUAT";
+import { Stack } from '@mui/material';
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import RadioButtonCheckedSharpIcon from "@mui/icons-material/RadioButtonCheckedSharp";
+import dayjs from 'dayjs';
+import SelectSubtopic from '../Select/select-subtopic';
 
 interface ApproveProps {
     name: string;
@@ -46,6 +58,52 @@ interface ExistingFileInfo {
     file_new_name: string;
 }
 
+// Update RequestData interface to include all necessary fields
+interface RequestData {
+    id: number;
+    id_department: number;
+    type_id: number | null;
+    topic_id: number | null;
+    subtopic_id: number | null;
+    id_program?: number;
+    program_name?: string;
+    rs_code: string;
+    name_req: string;
+    phone: string;
+    title_req: string;
+    detail_req: string;
+    status_id: number | null;
+    status_name: string;
+    m_name?: string;
+    m_status?: string;
+    d_name?: string;
+    d_status?: string;
+    it_m_name?: string;
+    it_m_status?: string;
+    it_m_note?: string;
+    it_d_name?: string;
+    it_d_status?: string;
+    it_d_note?: string;
+    level_job?: number | null;
+    files?: string;
+    date_start?: string | null;  // Changed from Date to string
+    date_end?: string | null;    // Changed from Date to string
+    id_priority?: number | null;
+}
+
+interface SubtopicOption {
+    key: number;
+    label: string;
+    pattern: string;
+    topic_id: number;
+    check_m: number;
+    check_d: number;
+    check_it_m: number;
+    check_it_d: number;
+}
+
+
+
 export default function RequestForm() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -53,6 +111,7 @@ export default function RequestForm() {
     const [selectedDepartment, setSelectedDepartment] = useState<DepartmentOption | null>(null);
     const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
     const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
+    const [selectedSubtopicId, setSelectedSubtopicId] = useState<number | null>(null);
     const [selectedProgram, setSelectedProgram] = useState<ProgramOption | null>(null);
     const [name, setName] = useState<string>('');
     const [phone, setPhone] = useState<string>('');
@@ -63,7 +122,6 @@ export default function RequestForm() {
     const [successAlert, setSuccessAlert] = useState<boolean>(false);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [rsCode, setRsCode] = useState<string>('');
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
@@ -74,73 +132,153 @@ export default function RequestForm() {
     const [itmanagerNote, setITManagerNote] = useState<string>('');
     const [itdirectorNote, setITDirectorNote] = useState<string>('');
     const [levelJob, setLevelJob] = useState<number | null>(null); // State for levelJob
+    const numericId = id ? parseInt(id) : 0; // Convert string id to number
+    const [requestData, setRequestData] = useState<RequestData | null>(null);
+    const subtopicOption = selectedSubtopicId !== null ? { key: selectedSubtopicId, label: '', pattern: '', topic_id: 0, check_m: 0, check_d: 0, check_it_m: 0, check_it_d: 0 } : null;
 
-    useEffect(() => {
-        if (isEditMode) {
-            const fetchRequestData = async () => {
-                setIsLoading(true);
+    const getStatusStyle = (status: string) => {
+        const styles = {
+            "Request": {
+                backgroundColor: '#42a5f5',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Approve": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Manager Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Approve": {
+                backgroundColor: '#ffa726',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "IT Director Unapprove": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Wait For Assigned": {
+                backgroundColor: '#90a4ae',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "In Progress": {
+                backgroundColor: '#5c6bc0',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Complete": {
+                backgroundColor: '#66bb6a',
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Cancel": {
+                backgroundColor: '#ef5350',
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            }
+        };
+        return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
+    };
+
+    // Add fetchRequestData function
+    const fetchRequestData = useCallback(async () => {
+        if (!numericId) return;
+        try {
+            const response = await fetch(`${URLAPI}/it-requests?req_id=${numericId}`);
+            if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
+
+            const { data } = await response.json();
+            if (data && data.length > 0) {
+                const reqData = data[0];
+                console.log('Date data from API:', {
+                    date_start: reqData.date_start,
+                    date_end: reqData.date_end
+                });
+
+                setRequestData({
+                    ...reqData,
+                    date_start: reqData.date_start ? reqData.date_start.split('T')[0] : null,
+                    date_end: reqData.date_end ? reqData.date_end.split('T')[0] : null
+                });
+                setSelectedDepartment({ key: reqData.id_department, label: '' });
+                setSelectedTypeId(reqData.type_id || null);
+                setSelectedTopicId(reqData.topic_id || null);
+                setSelectedSubtopicId(reqData.subtopic_id || null);
+                setSelectedProgram(
+                    reqData.id_program && reqData.program_name
+                        ? { key: reqData.id_program, label: reqData.program_name }
+                        : null
+                );
+                setRsCode(reqData.rs_code || '');
+                setName(reqData.name_req || '');
+                setPhone(reqData.phone || '');
+                setTitle(reqData.title_req || '');
+                setDetails(reqData.detail_req || '');
+                setStatusId(reqData.status_id || null);
+                setManagerApprove({
+                    name: reqData.m_name || '',
+                    status: reqData.m_status || '',
+                    req_id: numericId.toString()
+                });
+                setDirectorApprove({
+                    name: reqData.d_name || '',
+                    status: reqData.d_status || '',
+                    req_id: numericId.toString()
+                });
+                setITManagerApprove({
+                    name: reqData.it_m_name || '',
+                    status: reqData.it_m_status || '',
+                    req_id: numericId.toString(),
+                    level_job: reqData.level_job || null
+                });
+                setITManagerNote(reqData.it_m_note || '');
+                setITDirectorApprove({
+                    name: reqData.it_d_name || '',
+                    status: reqData.it_d_status || '',
+                    req_id: numericId.toString(),
+                    level_job: reqData.level_job || null
+                });
+                setITDirectorNote(reqData.it_d_note || '');
+                setLevelJob(reqData.level_job || null);
+
+                // Handle files
+                let parsedFiles: ExistingFileInfo[] = [];
                 try {
-                    const response = await fetch(`${URLAPI}/it-requests?req_id=${id}`);
-                    if (!response.ok) throw new Error(`Error fetching request data: ${response.statusText}`);
-
-                    const { data } = await response.json();
-                    console.log("ข้อมูลที่ได้จาก API:", data);
-
-                    if (data && data.length > 0) {
-                        const requestData = data[0];
-                        setSelectedDepartment({ key: requestData.id_department, label: '' });
-                        setSelectedTypeId(requestData.type_id || null);
-                        setSelectedTopicId(requestData.topic_id || null);
-                        setSelectedProgram(
-                            requestData.id_program && requestData.program_name
-                                ? { key: requestData.id_program, label: requestData.program_name }
-                                : null
-                        );
-                        setRsCode(requestData.rs_code || '');
-                        setName(requestData.name_req || '');
-                        setPhone(requestData.phone || '');
-                        setTitle(requestData.title_req || '');
-                        setDetails(requestData.detail_req || '');
-                        setStatusId(requestData.status_id || null);
-                        setManagerApprove({ name: requestData.m_name || '', status: requestData.m_status || '', req_id: id || '' });
-                        setDirectorApprove({ name: requestData.d_name || '', status: requestData.d_status || '', req_id: id || '' });
-                        setITManagerApprove({
-                            name: requestData.it_m_name || '',
-                            status: requestData.it_m_status || '',
-                            req_id: id || '',
-                            level_job: requestData.level_job || null
-                        });
-                        setITManagerNote(requestData.it_m_note || '');
-                        setITDirectorApprove({
-                            name: requestData.it_d_name || '',
-                            status: requestData.it_d_status || '',
-                            req_id: id || '',
-                            level_job: requestData.level_job || null
-                        });
-                        setITDirectorNote(requestData.it_d_note || '');
-                        setLevelJob(requestData.level_job || null); // Set initial levelJob
-                        let parsedFiles: ExistingFileInfo[] = [];
-                        try {
-                            parsedFiles = JSON.parse(requestData.files);
-                            if (!Array.isArray(parsedFiles)) {
-                                parsedFiles = [];
-                            }
-                        } catch (error) {
-                            console.error('Error parsing files:', error);
-                        }
-                        setUploadedFiles(parsedFiles);
+                    parsedFiles = JSON.parse(reqData.files);
+                    if (!Array.isArray(parsedFiles)) {
+                        parsedFiles = [];
                     }
                 } catch (error) {
-                    console.error('Error:', (error as Error).message);
-                    setError((error as Error).message);
-                } finally {
-                    setIsLoading(false);
+                    console.error('Error parsing files:', error);
                 }
-            };
+                setUploadedFiles(parsedFiles);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            setError(error instanceof Error ? error.message : "An error occurred");
+        }
+    }, [numericId]);
 
+    // Add useEffect to fetch data
+    useEffect(() => {
+        if (isEditMode) {
             fetchRequestData();
         }
-    }, [id, isEditMode]);
+    }, [isEditMode, fetchRequestData]);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -167,9 +305,13 @@ export default function RequestForm() {
 
     // Memoize complex calculations
     const isITStaff = useMemo(() => {
-        return userData?.id_section === 28 ||
-            userData?.id_division_competency === 86 ||
-            userData?.id_section_competency === 28;
+        if (!userData) return false;
+
+        return Boolean(
+            userData.id_section === 28 ||
+            userData.id_division_competency === 86 ||
+            userData.id_section_competency === 28
+        );
     }, [userData]);
 
     const handleDepartmentChange = useCallback((department: DepartmentOption | null) => {
@@ -189,6 +331,15 @@ export default function RequestForm() {
         setSelectedTopicId(topicId);
         setTitle('');
         setErrors(prev => ({ ...prev, topicId: '' }));
+    }, []);
+
+    const handleSubtopicChange = useCallback((subtopic: SubtopicOption | null) => {
+        if (subtopic !== null) {
+            setSelectedSubtopicId(subtopic.key);
+            setErrors(prev => ({ ...prev, subtopicId: '' }));
+        } else {
+            setSelectedSubtopicId(null);
+        }
     }, []);
 
     const handleProgramChange = useCallback((program: ProgramOption | null) => {
@@ -245,13 +396,17 @@ export default function RequestForm() {
 
         if (!selectedDepartment) newErrors.department = 'กรุณาเลือกแผนก';
         if (!selectedTypeId) newErrors.typeId = 'กรุณาเลือกประเภทคำร้อง';
+        if (!selectedTopicId) newErrors.topicId = 'กรุณาเลือกหัวข้อคำร้อง';
+        if (!selectedSubtopicId) newErrors.subtopicId = 'กรุณาเลือกหัวข้อ Subtask';
         if (!name) newErrors.name = 'กรุณากรอกชื่อ';
         if (!phone) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์';
-        if (!details) newErrors.details = 'กรุณากรอกรายละเอียด';
+        if (!details || details.replace(/<[^>]*>/g, '').trim() === '') {
+            newErrors.details = 'กรุณากรอกรายลเอียด';
+        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    }, [selectedDepartment, selectedTypeId, name, phone, details]);
+    }, [selectedDepartment, selectedTypeId, selectedTopicId, selectedSubtopicId, name, phone, details]);
 
     const handleSubmit = useCallback(async () => {
         if (!validateForm()) return;
@@ -273,6 +428,7 @@ export default function RequestForm() {
             formData.append('phone', phone);
             formData.append('type_id', selectedTypeId ? selectedTypeId.toString() : '');
             formData.append('topic_id', selectedTopicId ? selectedTopicId.toString() : '');
+            formData.append('subtopic_id', selectedSubtopicId ? selectedSubtopicId.toString() : '');
             formData.append('title_req', title);
             formData.append('detail_req', details);
             formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
@@ -331,12 +487,13 @@ export default function RequestForm() {
         } catch (error) {
             console.error(isEditMode ? 'Error updating IT request:' : 'Error submitting IT request:', error);
         }
-    }, [isEditMode, rsCode, selectedDepartment, userData, name, phone, selectedTypeId, selectedTopicId, title, details, selectedProgram, uploadedFiles, validateForm, generateRsCode, navigate]);
+    }, [isEditMode, rsCode, selectedDepartment, userData, name, phone, selectedTypeId, selectedTopicId, selectedSubtopicId, title, details, selectedProgram, uploadedFiles, validateForm, generateRsCode, navigate]);
 
     const clearForm = useCallback(() => {
         setSelectedDepartment(null);
         setSelectedTypeId(null);
         setSelectedTopicId(null);
+        setSelectedSubtopicId(null);
         setSelectedProgram(null);
         setName('');
         setPhone('');
@@ -354,62 +511,154 @@ export default function RequestForm() {
         }
     }, [userData, navigate]);
 
+    // Update the isReadOnly logic
+    const isReadOnly = useMemo(() => {
+        if (!isEditMode) return false;
+
+        // Allow editing for IT staff with specific status_id
+        if (isITStaff && [4, 5].includes(status_id || 0)) {
+            return false;
+        }
+
+        // Allow editing for managers/directors with specific status_id
+        if (['m', 'd'].includes(userData?.position || '') && [2, 3].includes(status_id || 0)) {
+            return false;
+        }
+
+        // Allow editing if status is pending (status_id = 1)
+        if (status_id === 1) {
+            return false;
+        }
+
+        // Allow editing for the original requester when status is 1 or when they're editing their own request
+        if (userData?.username === rsCode?.split('/')[0]) {
+            return false;
+        }
+
+        // Default to readonly for edit mode
+        return isEditMode;
+    }, [isEditMode, isITStaff, status_id, userData?.position, userData?.username, rsCode]);
+
     return (
         <React.Fragment>
             <CssBaseline />
             <Container maxWidth="lg">
                 {successAlert && <SaveAlert onClose={() => setSuccessAlert(false)} />}
-
                 <Paper sx={{ width: '100%', padding: 2, boxShadow: 10 }}>
-                    <Typography
-                        sx={{
-                            mt: 2,
-                            mb: 4,
-                            fontWeight: 'bold',
-                            fontSize: 25,
-                            color: '#1976d2',
-                            textAlign: 'left',
-                            textDecoration: 'underline',
-                            textDecorationThickness: 2,
-                            textUnderlineOffset: 6,
-                            textDecorationColor: '#1976d2',
-                            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                        }}
-                    >
-                        {isEditMode ? 'Request Edit' : 'Request Form'}
-                    </Typography>
-                    <hr />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography
+                            sx={{
+                                mt: 2,
+                                mb: 2,
+                                fontWeight: 'bold',
+                                fontSize: 25,
+                                color: '#1976d2',
+                                textAlign: 'left',
+                                textDecoration: 'underline',
+                                textDecorationThickness: 2,
+                                textUnderlineOffset: 6,
+                                textDecorationColor: '#1976d2',
+                                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                            }}
+                        >
+                            {isEditMode ? 'Request Edit' : 'Request Form'} : <span style={{ color: 'green' }}>{requestData?.rs_code}</span>
+                        </Typography>
+                        {/* Status */}
+                        {isEditMode && (
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <Chip
+                                    label={requestData?.status_name}
+                                    style={{
+                                        backgroundColor: getStatusStyle(requestData?.status_name ?? '').backgroundColor,
+                                        color: "#fff",
+                                    }}
+                                    size="medium"
+                                    icon={
+                                        requestData?.status_name === "Complete" ? (
+                                            <CheckCircleIcon />
+                                        ) : (
+                                            <RadioButtonCheckedSharpIcon />
+                                        )
+                                    }
+                                    sx={{
 
+                                        color: "#fff",
+                                        minWidth: '140px',
+                                        height: '28px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        '& .MuiChip-icon': {
+                                            color: '#fff',
+                                            marginLeft: '4px'
+                                        },
+                                        '& .MuiChip-label': {
+                                            padding: '0 8px'
+                                        },
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                        transition: 'transform 0.2s ease',
+                                        '&:hover': {
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                                        }
+                                    }}
+                                />
+                            </Stack>
+                        )}
+                    </Box>
+
+                    <hr />
                     <Grid container spacing={2}>
                         <Grid item xs={4}>
                             <Box sx={{ mt: 4 }}>
-                                <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={selectedDepartment} />
+                                <SelectDepartment onDepartmentChange={handleDepartmentChange} initialValue={selectedDepartment} filterDepartments={false} />
                                 {errors.department && <Typography color="danger">{errors.department}</Typography>}
                             </Box>
-                            <NameInput value={name} onChange={(e) => setName(e.target.value)} />
+                            <NameInput
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                readOnly={isReadOnly}
+                            />
                             {errors.name && <Typography color="danger">{errors.name}</Typography>}
-                            <PhoneInput value={phone} onChange={(e) => setPhone(e.target.value)} />
+                            <PhoneInput
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                readOnly={isReadOnly}
+                            />
                             {errors.phone && <Typography color="danger">{errors.phone}</Typography>}
                             <Box sx={{ mt: 2 }}>
+                                <FormLabel>ประเภท Request</FormLabel>
                                 <SelectTypeRequest onSelectType={handleTypeChange} initialValue={selectedTypeId} />
                                 {errors.typeId && <Typography color="danger">{errors.typeId}</Typography>}
                             </Box>
                             <Box sx={{ mt: 2 }}>
-                                {
-                                    userData && ((userData.position === 'm' || userData.position === 'd' || admin === 'ADMIN') && selectedTypeId !== 2) && (
-                                        <>
-                                            {managerApprove !== null ? (
-                                                <BoxManagerApprove managerApprove={managerApprove} id_division_competency={userData.id_division_competency} />
-                                            ) : (
-                                                <BoxManagerApprove managerApprove={{ name: '', status: '', req_id: '', m_name: '' }} id_division_competency={userData.id_division_competency} />
-                                            )}
-                                            {directorApprove !== null ? (
-                                                <BoxDirectorApprove directorApprove={directorApprove} m_name={managerApprove?.name ?? null} id_section_competency={userData.id_section_competency} />
-                                            ) : (
-                                                <BoxDirectorApprove directorApprove={{ name: '', status: '', req_id: '', m_name: '' }} m_name={null} id_section_competency={userData.id_section_competency} />
-                                            )}
-                                        </>
-                                    )
+                                {(admin === 'ADMIN' || (userData?.position && (userData.position === 'm' || userData.position === 'd') && selectedTypeId !== 2)) && (
+                                    <>
+                                        {managerApprove !== null ? (
+                                            <BoxManagerApprove
+                                                managerApprove={managerApprove}
+                                                id_division_competency={userData.id_division_competency || 0}
+                                            />
+                                        ) : (
+                                            <BoxManagerApprove
+                                                managerApprove={{ name: '', status: '', req_id: '', m_name: '' }}
+                                                id_division_competency={userData.id_division_competency || 0}
+                                            />
+                                        )}
+                                        {directorApprove !== null ? (
+                                            <BoxDirectorApprove
+                                                directorApprove={directorApprove}
+                                                m_name={managerApprove?.name ?? null}
+                                                id_section_competency={userData.id_section_competency || 0}
+                                            />
+                                        ) : (
+                                            <BoxDirectorApprove
+                                                directorApprove={{ name: '', status: '', req_id: '', m_name: '' }}
+                                                m_name={null}
+                                                id_section_competency={userData.id_section_competency || 0}
+                                            />
+                                        )}
+                                    </>
+                                )
                                 }
                             </Box>
                         </Grid>
@@ -419,39 +668,64 @@ export default function RequestForm() {
                                 {errors.topicId && <Typography color="danger">{errors.topicId}</Typography>}
                             </Box>
 
-                            {selectedTopicId === 2 ? (
-                                <Box sx={{ mt: 2 }}>
-                                    <SelectProgram onProgramChange={handleProgramChange} initialValue={selectedProgram} />
-                                </Box>
+                            {selectedTypeId === 3 && selectedTopicId === 2 ? (
+                                <>
+                                    <Box sx={{ mt: 2 }}>
+                                        <SelectProgram onProgramChange={handleProgramChange} initialValue={selectedProgram} />
+                                    </Box>
+                                </>
+                            ) : (selectedTypeId === 1 || selectedTypeId === 2) && selectedTopicId !== null ? (
+                                <>
+                                    <Box sx={{ mt: 2 }}>
+                                        <SelectSubtopic
+                                            onSubtopicChange={handleSubtopicChange}
+                                            initialValue={subtopicOption}
+                                            selectedTopicId={selectedTopicId || 0}
+                                        />
+                                    </Box>
+                                    { subtopicOption?.key === 1 && (
+                                        <TitleInput
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            readOnly={isReadOnly}
+                                        />
+                                    )}
+                                </>
                             ) : (
-                                <TitleInput value={title} onChange={(e) => setTitle(e.target.value)} />
+                                <TitleInput
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    readOnly={isReadOnly}
+                                />
                             )}
 
-                            <DetailsTextarea value={details} onChange={(e) => setDetails(e.target.value)} />
+                            <DetailsTextarea
+                                value={details}
+                                onChange={(e) => setDetails(e.target.value)}
+                                readOnly={isReadOnly}
+                            />
                             {errors.details && <Typography color="danger">{errors.details}</Typography>}
                             <Fileupload onFilesChange={handleFilesChange} initialFiles={uploadedFiles} />
                             {errors.files && <Typography color="danger">{errors.files}</Typography>}
                         </Grid>
                     </Grid>
-                    {
-                        userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
-                            <Box
-                                sx={{
-                                    backgroundColor: '#fff',
-                                    padding: 2,
-                                    borderRadius: 2,
-                                    marginTop: 4,
-                                    border: '1px dashed',
-                                    borderColor: 'lightblue',
 
-                                    // boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-                                }}
-                            >
-
+                    {(admin === 'ADMIN' || (
+                        userData?.position &&
+                        (userData.position === 'm' || userData.position === 'd') &&
+                        isITStaff && selectedTypeId !== 2
+                    )) && (
+                            <Box sx={{
+                                backgroundColor: '#fff',
+                                padding: 2,
+                                borderRadius: 2,
+                                marginTop: 4,
+                                border: '1px dashed',
+                                borderColor: 'lightblue',
+                            }}>
                                 <Typography
                                     sx={{
-                                        mt: 2,
-                                        mb: 4,
+                                        mb: 2,
                                         fontWeight: 'bold',
                                         fontSize: 20,
                                         color: '#1976d2',
@@ -496,6 +770,7 @@ export default function RequestForm() {
                                         <ITManagerTextarea
                                             value={itmanagerNote}
                                             onChange={(e) => setITManagerNote(e.target.value)}
+                                            readOnly={!(isITStaff && userData?.position === 'm')}
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
@@ -526,36 +801,195 @@ export default function RequestForm() {
                                                 levelJob={levelJob} // Pass levelJob as prop
                                             />
                                         )}
-                                        <Box sx={{ mb: 9 }}>
+                                        <Box sx={{ mb: 8 }}>
 
                                         </Box>
                                         <ITDirectorTextarea
                                             value={itdirectorNote}
                                             onChange={(e) => setITDirectorNote(e.target.value)}
+                                            readOnly={!(isITStaff && userData?.position === 'd')}
                                         />
                                     </Grid>
 
                                 </Grid>
                             </Box>
+                        )}
+                    {userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && (isITStaff)) && (
+                        <Box
+                            sx={{
+                                backgroundColor: '#fff',
+                                padding: 2,
+                                borderRadius: 2,
+                                marginTop: 4,
+                                border: '1px dashed',
+                                borderColor: 'lightblue',
+                            }}
+                        >
+                            <Typography
+                                sx={{
+                                    fontWeight: 'bold',
+                                    fontSize: 20,
+                                    color: '#1976d2',
+                                    textAlign: 'left',
+                                    textDecoration: 'underline',
+                                    textDecorationThickness: 2,
+                                    textUnderlineOffset: 6,
+                                    textDecorationColor: '#1976d2',
+                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                }}
+                            >
+                                Admin Assign
+                            </Typography>
 
-                        )
+                            <Box sx={{ p: 1 }}>
+                                <Stack
+                                    direction="row"
+                                    spacing={2}
+                                    alignItems="center"
+                                    sx={{ mt: 2 }}
+                                >
+                                    <Box>
+
+                                        <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
+                                            Tags
+                                        </Typography>
+                                        <Stack direction="row" spacing={1}>
+                                            <AssigneeDepSelector requestId={numericId} />
+                                        </Stack>
+                                    </Box>
+                                </Stack>
+
+                                <Stack
+                                    direction="row"
+                                    alignItems="center"
+                                    spacing={4}
+                                    sx={{
+                                        p: 1,
+                                        bgcolor: "#ffffff",
+                                    }}
+                                >
+                                    <Box>
+                                        <DateWork
+                                            req_id={numericId}
+                                            date_start={requestData?.date_start ? dayjs(requestData.date_start).toDate() : null}
+                                            date_end={requestData?.date_end ? dayjs(requestData.date_end).toDate() : null}
+                                        />
+                                    </Box>
+
+                                    <Box>
+                                        <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
+                                            Assignees
+                                        </Typography>
+                                        <Stack direction="row" spacing={1}>
+                                            <AssigneeEmpSelector
+                                                requestId={numericId}
+                                                typedata="main"
+                                            />
+                                        </Stack>
+                                    </Box>
+
+                                    <Box>
+                                        <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
+                                            Priority
+                                        </Typography>
+                                        <SelectPriority
+                                            id={numericId}
+                                            id_priority={requestData?.id_priority ?? null}
+                                        />
+                                    </Box>
+                                </Stack>
+                            </Box>
+                        </Box>
+                    )
                     }
+                    {userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
+                        <Box
+                            sx={{
+                                backgroundColor: '#fff',
+                                padding: 2,
+                                borderRadius: 2,
+                                marginTop: 4,
+                                border: '1px dashed',
+                                borderColor: 'lightblue',
+                            }}
+                        >
+                            <Typography
+                                sx={{
+
+
+                                    fontWeight: 'bold',
+                                    fontSize: 20,
+                                    color: '#1976d2',
+                                    textAlign: 'left',
+                                    textDecoration: 'underline',
+                                    textDecorationThickness: 2,
+                                    textUnderlineOffset: 6,
+                                    textDecorationColor: '#1976d2',
+                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                }}
+                            >
+                                Subtask
+                            </Typography>
+
+                            <Box sx={{ p: 1 }}>
+                                <SUBTASK req_id={requestData?.id ?? 0} />
+                            </Box>
+                        </Box>
+                    )
+                    }
+                    {requestData?.type_id === 3 ? (
+                        <Box
+                            sx={{
+                                backgroundColor: '#fff',
+                                padding: 2,
+                                borderRadius: 2,
+                                marginTop: 4,
+                                border: '1px dashed',
+                                borderColor: 'lightblue',
+                            }}
+                        >
+                            <Typography
+                                sx={{
+                                    fontWeight: 'bold',
+                                    fontSize: 20,
+                                    color: '#1976d2',
+                                    textAlign: 'left',
+                                    textDecoration: 'underline',
+                                    textDecorationThickness: 2,
+                                    textUnderlineOffset: 6,
+                                    textDecorationColor: '#1976d2',
+                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                }}
+                            >
+                                UAT
+                            </Typography>
+
+                            <Box sx={{ p: 1 }}>
+                                <UAT
+                                    id={requestData?.id ?? 0}
+                                    username={userData.username}
+                                    department={userData.id_department}
+                                    status={requestData?.status_id ?? 0}
+                                />
+                            </Box>
+                        </Box>
+                    ) : null}
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             {
                                 userData && (
                                     (
                                         // Condition 1: status_id = 2 and position is m or d and not type 2
-                                        (status_id === 2 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2) ||
+                                        (status_id === 2 && ['m', 'd'].includes(userData?.position || '') && selectedTypeId !== 2) ||
 
                                         // Condition 2: status_id = 3 and position is d and not type 2
-                                        (status_id === 3 && userData.position === 'd' && selectedTypeId !== 2) ||
+                                        (status_id === 3 && userData?.position === 'd' && selectedTypeId !== 2) ||
 
                                         // Condition 3: status_id = 4 and position is m or d and not type 2 and is IT staff
-                                        (status_id === 4 && ['m', 'd'].includes(userData.position) && selectedTypeId !== 2 && isITStaff) ||
+                                        (status_id === 4 && ['m', 'd'].includes(userData?.position || '') && selectedTypeId !== 2 && isITStaff) ||
 
                                         // Condition 4: status_id = 5 and position is d and not type 2 and is IT staff
-                                        (status_id === 5 && userData.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
+                                        (status_id === 5 && userData?.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
 
                                         // Condition 6: status_id = 1 or not in edit mode
                                         (status_id === 1 || !isEditMode)

@@ -5,6 +5,7 @@ import URLAPI from '../../../URLAPI';
 interface Topic {
     topic_id: number;
     topic_name: string;
+    description: string;
 }
 
 interface TopicOption {

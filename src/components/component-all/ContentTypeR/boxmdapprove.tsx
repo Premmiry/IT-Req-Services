@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { FormLabel, Input, Select, Option, SelectStaticProps, Button, Grid } from '@mui/joy';
+import SaveIcon from '@mui/icons-material/Save';
+import { FormLabel, Input, Select, Option, SelectStaticProps, Button } from '@mui/joy';
+import Grid from '@mui/joy/Grid';
 import { ApproveAlert } from '../Alert/alert';
 import { useNavigate } from 'react-router-dom';
 import URLAPI from '../../../URLAPI';
-
 
 const fetchApproveOptions = async () => {
     const response = await fetch(`${URLAPI}/mtapprove`);
@@ -38,7 +39,7 @@ const useApproveOptions = () => {
 };
 
 export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { managerApprove: ApproveProps, id_division_competency: number | null }) => {
-    const [value1, setValue1] = React.useState<number | null>(null);
+    const [value1, setValue1] = useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [managerName, setManagerName] = useState<string>(managerApprove?.name || '');
     const [showSubmitButton, setShowSubmitButton] = useState(false);
@@ -46,13 +47,11 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
     const action: SelectStaticProps['action'] = React.useRef(null);
     const navigate = useNavigate();
 
-    const memoizedManagerApprove = useMemo(() => {
-        return {
-            name: managerApprove?.name,
-            req_id: managerApprove?.req_id,
-            status: managerApprove?.status
-        };
-    }, [managerApprove?.name, managerApprove?.req_id, managerApprove?.status]);
+    const memoizedManagerApprove = useMemo(() => ({
+        name: managerApprove?.name,
+        req_id: managerApprove?.req_id,
+        status: managerApprove?.status
+    }), [managerApprove]);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -104,11 +103,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
 
             setTimeout(() => {
                 setShowAlert(false);
-                if (id_division_competency === 86) {
-                    navigate('/request-list-it');
-                } else {
-                    navigate('/request-list');
-                }
+                navigate(id_division_competency === 86 ? '/request-list-it' : '/request-list');
             }, 2000);
 
         } catch (error) {
@@ -118,12 +113,12 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
 
     return (
         <Grid container spacing={1}>
-                <Grid xs={8} component="div">
+            <Grid xs={6}>
                 <FormLabel>Manager Approve</FormLabel>
-                <Input variant="outlined" color="success" type='text' placeholder='Manager Name' value={managerName} readOnly={true} onChange={(e) => setManagerName(e.target.value)} />
+                <Input variant="outlined" color="success" type='text' placeholder='Manager Name' value={managerName} readOnly onChange={(e) => setManagerName(e.target.value)} />
             </Grid>
 
-            <Grid xs={4} component="div">
+            <Grid xs={4}>
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -134,10 +129,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
                         setValue1(newValue);
                     }}
                     variant="outlined" color="success"
-                    {...(value1 && {
-                        
-                        indicator: null,
-                    })}
+                    {...(value1 && { indicator: null })}
                 >
                     {approveOptions.map(option => (
                         <Option key={option.id_approve} value={option.id_approve}>
@@ -146,14 +138,27 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency }: { 
                     ))}
                 </Select>
             </Grid>
-            {showSubmitButton && <Button onClick={handleSubmit}>Submit</Button>}
-            {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+            <Grid xs={1}>
+                {showSubmitButton && (
+                    <>
+                        <FormLabel>Approve</FormLabel>
+                        <Button 
+                            color="success" 
+                            variant="soft"
+                            onClick={handleSubmit}
+                        >
+                            <SaveIcon /> 
+                        </Button>
+                    </>
+                )}
+                {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+            </Grid>
         </Grid>
     );
 };
 
 export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_competency }: { directorApprove: ApproveProps, m_name: string | null, id_section_competency: number }) => {
-    const [value2, setValue2] = React.useState<number | null>(null);
+    const [value2, setValue2] = useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [directorName, setDirectorName] = useState<string>(directorApprove?.name || '');
     const [showSubmitButton, setShowSubmitButton] = useState(false);
@@ -161,13 +166,11 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
     const action: SelectStaticProps['action'] = React.useRef(null);
     const navigate = useNavigate();
 
-    const memoizedDirectorApprove = useMemo(() => {
-        return {
-            name: directorApprove?.name,
-            req_id: directorApprove?.req_id,
-            status: directorApprove?.status
-        };
-    }, [directorApprove?.name, directorApprove?.req_id, directorApprove?.status]);
+    const memoizedDirectorApprove = useMemo(() => ({
+        name: directorApprove?.name,
+        req_id: directorApprove?.req_id,
+        status: directorApprove?.status
+    }), [directorApprove]);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -229,11 +232,7 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
             setShowAlert(true);
             setTimeout(() => {
                 setShowAlert(false);
-                if (id_section_competency === 28) {
-                    navigate('/request-list-it');
-                } else {
-                    navigate('/request-list');
-                }
+                navigate(id_section_competency === 28 ? '/request-list-it' : '/request-list');
             }, 2000);
         } catch (error) {
             console.error('Error updating director approval:', error);
@@ -242,12 +241,12 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
 
     return (
         <Grid container spacing={1}>
-            <Grid xs={8} component="div">
+            <Grid xs={6}>
                 <FormLabel>Director Approve</FormLabel>
-                <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly={true} onChange={(e) => setDirectorName(e.target.value)} />
+                <Input variant="outlined" color="warning" type='text' placeholder='Director Name' value={directorName} readOnly onChange={(e) => setDirectorName(e.target.value)} />
             </Grid>
 
-            <Grid xs={4} component="div">
+            <Grid xs={4}>
                 <FormLabel>Status</FormLabel>
                 <Select
                     action={action}
@@ -258,10 +257,7 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                         setValue2(newValue);
                     }}
                     variant="outlined" color="warning"
-                    {...(value2 && {
-                        
-                        indicator: null,
-                    })}
+                    {...(value2 && { indicator: null })}
                 >
                     {approveOptions.map(option => (
                         <Option key={option.id_approve} value={option.id_approve}>
@@ -270,8 +266,21 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                     ))}
                 </Select>
             </Grid>
-            {showSubmitButton && <Button  onClick={handleSubmit}>Submit</Button>}
-            {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+            <Grid xs={1}>
+                {showSubmitButton && (
+                    <>
+                        <FormLabel>Approve</FormLabel>
+                        <Button
+                            color="warning" 
+                            variant="soft"
+                            onClick={handleSubmit}
+                        >
+                            <SaveIcon />
+                        </Button>
+                    </>
+                )}
+                {showAlert && <ApproveAlert onClose={() => { /* Implement onClose function here */ }} />}
+            </Grid>
         </Grid>
     );
 };

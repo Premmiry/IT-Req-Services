@@ -29,8 +29,11 @@
     "lucide-react": "^0.454.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-quill": "^2.0.0",
     "react-router-dom": "^6.23.1",
-    "styled-components": "^6.1.11"
+    "react-tooltip": "^5.28.0",
+    "styled-components": "^6.1.13",
+    "sweetalert2": "^11.14.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
