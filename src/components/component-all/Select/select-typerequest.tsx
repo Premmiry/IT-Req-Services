@@ -3,7 +3,7 @@ import { Autocomplete } from '@mui/joy';
 import { FormLabel, Box, Typography } from '@mui/material';
 import URLAPI from '../../../URLAPI';
 import ComputerIcon from '@mui/icons-material/Computer';
-import SecurityIcon from '@mui/icons-material/Security'; 
+import ConstructionIcon from '@mui/icons-material/Construction';
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
 
 interface TypesReq {
@@ -63,7 +63,7 @@ export default function SelectTypeRequest({ onSelectType, initialValue }: Select
             case 1:
                 return <ComputerIcon sx={{ color: '#1976d2' }} />;
             case 2:
-                return <SecurityIcon sx={{ color: '#2e7d32' }} />;
+                return <ConstructionIcon sx={{ color: '#2e7d32' }} />;
             case 3:
                 return <DeveloperModeIcon sx={{ color: '#ed6c02' }} />;
             default:
@@ -81,13 +81,13 @@ export default function SelectTypeRequest({ onSelectType, initialValue }: Select
                 value={selectedType}
                 variant="outlined"
                 color="primary"
-                getOptionLabel={(option: TypesReqOption) => `${option.label} (${option.description})`}
+                getOptionLabel={(option: TypesReqOption) => `${option.label}`}
                 renderOption={(props, option) => (
                     <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {getIcon(option.key)}
                         <Typography>
                             <span style={{ fontWeight: 'bold' }}>{option.label}</span>
-                            <span style={{ color: '#666', marginLeft: '8px' }}>({option.description})</span>
+                            <span style={{ color: '#666', marginLeft: '5px', fontSize: '12px' }}>({option.description})</span>
                         </Typography>
                     </Box>
                 )}

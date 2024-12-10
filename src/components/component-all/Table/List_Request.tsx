@@ -12,6 +12,8 @@ import {
     InputLabel,
     Select,
     MenuItem,
+    Tabs,
+    Tab,
 } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -62,6 +64,9 @@ export default function ListRequest() {
     const [filterDate, setFilterDate] = useState<Date | null>(null);
     const [showFilters, setShowFilters] = useState(false);
 
+    // Add new state for tabs
+    const [activeTab, setActiveTab] = useState<number>(0);
+
     // แยกฟังก์ชัน formatDate ออกมาเป็น memoized function
     const formatDate = useCallback((dateString: string) => {
         if (!dateString) return '';
@@ -93,20 +98,24 @@ export default function ListRequest() {
         if (!userData?.username) return null;
 
         let apiUrl = `${URLAPI}/it-requests`;
+        const params = new URLSearchParams();
 
+        // For "My Request" tab
+        if (activeTab === 0) {
+            params.append('user_req', userData.username);
+            return `${apiUrl}?${params.toString()}`;
+        }
+
+        // For "Department Request" tab - existing logic
         if (admin === 'USER') {
             const { position, id_department, id_division_competency, id_section_competency } = userData;
-            const params = new URLSearchParams();
 
-            // ตรวจสอบ position
             if (typeof position === 'string') {
                 params.append('position', position);
 
-                // ตรวจสอบและแปลงค่าตาม position
                 switch (position) {
                     case 's':
                     case 'h':
-                        // แปลง department ID
                         if (id_department) {
                             const deptId = Number(id_department);
                             if (Number.isInteger(deptId) && deptId > 0) {
@@ -116,7 +125,6 @@ export default function ListRequest() {
                         break;
 
                     case 'm':
-                        // แปลง division ID
                         if (id_division_competency) {
                             const divId = Number(id_division_competency);
                             if (Number.isInteger(divId) && divId > 0) {
@@ -126,7 +134,6 @@ export default function ListRequest() {
                         break;
 
                     case 'd':
-                        // แปลง section และ division IDs
                         if (id_section_competency) {
                             const secId = Number(id_section_competency);
                             if (Number.isInteger(secId) && secId > 0) {
@@ -142,22 +149,12 @@ export default function ListRequest() {
                         break;
                 }
             }
-
-            // Log สำหรับ debug
-            console.log('User Data:', {
-                position,
-                id_department,
-                id_division_competency,
-                id_section_competency
-            });
-            
-            const finalUrl = `${apiUrl}?${params.toString()}`;
-            console.log('Final URL:', finalUrl);
-            return finalUrl;
         }
 
-        return apiUrl;
-    }, [userData, admin]);
+        const finalUrl = `${apiUrl}?${params.toString()}`;
+        console.log('Final URL:', finalUrl);
+        return finalUrl;
+    }, [userData, admin, activeTab]);
 
     // ใช้ useCallback สำหรับฟังก์ชันที่ pass เป็น prop หรือใช้ใน useEffect
     const fetchRequests = useCallback(async () => {
@@ -552,6 +549,11 @@ export default function ListRequest() {
         setFilterDate(null);
     };
 
+    // Add tab change handler
+    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setActiveTab(newValue);
+    };
+
     return (
         <Container maxWidth="xl">
             <Box sx={{ my: 2 }}>
@@ -590,6 +592,22 @@ export default function ListRequest() {
                             Request
                         </Button>
                     </Box>
+                </Box>
+
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                    <Tabs 
+                        value={activeTab} 
+                        onChange={handleTabChange}
+                        sx={{
+                            '& .MuiTab-root': {
+                                minWidth: 120,
+                                fontWeight: 600,
+                            }
+                        }}
+                    >
+                        <Tab label="My Request" />
+                        <Tab label="Department Request" />
+                    </Tabs>
                 </Box>
 
                 {showFilters && (
