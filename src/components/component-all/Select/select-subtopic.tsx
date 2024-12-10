@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
-import { FormLabel } from '@mui/material';
 import URLAPI from '../../../URLAPI';
 
 interface Subtopic {
@@ -61,7 +60,7 @@ export default function SelectSubtopic({ onSubtopicChange, initialValue, selecte
                     check_it_d: sub.check_it_d
                 }));
                 setSubtopics(subtopicOptions);
-
+                // console.log('subtopicOptions', subtopicOptions);
                 if (initialValue) {
                     const initialSubtopic = subtopicOptions.find(sub => sub.key === initialValue.key);
                     if (initialSubtopic) {
@@ -80,10 +79,17 @@ export default function SelectSubtopic({ onSubtopicChange, initialValue, selecte
         fetchSubtopics();
     }, [selectedTopicId, onSubtopicChange]);
 
+    useEffect(() => {
+        if (selectedSubtopic) {
+            // console.log('Selected Subtopic Pattern:', selectedSubtopic.pattern);
+        }
+    }, [selectedSubtopic]);
+
     return (
         <React.Fragment>
-            <FormLabel>เรื่องที่ร้องขอ</FormLabel>
+            
             <Autocomplete
+                key={`subtopic-${selectedTopicId}`}
                 placeholder={loading ? "กำลังโหลด..." : "เลือกเรื่อง..."}
                 options={subtopics}
                 value={selectedSubtopic}

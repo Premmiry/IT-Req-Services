@@ -10,7 +10,6 @@ import { SaveAlert } from "../Alert/alert";
 import URLAPI from "../../../URLAPI";
 import RequestDetail from "../Paper/RequestDetail";
 import TaskIcon from "@mui/icons-material/Task";
-import InfoIcon from '@mui/icons-material/Info';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -18,15 +17,11 @@ import dayjs from 'dayjs';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
 import 'dayjs/locale/th';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import {
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-} from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 import Swal from 'sweetalert2';
+import BackupTableIcon from '@mui/icons-material/BackupTable';
 
 dayjs.extend(buddhistEra);
 dayjs.locale('th');
@@ -42,6 +37,7 @@ interface RequestData {
     type: string;
     assignee: string;
     datecreated: string;
+    topic: string;
 }
 
 interface ListRequestITProps {
@@ -100,31 +96,81 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         setOpen(true);
     }, []);
 
+    const fetchRequests = useCallback(async () => {
+        if (!userData?.username || tab === undefined) return;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${URLAPI}/it-requests?tab=${tab}`);
+            if (!response.ok) throw new Error("Network response was not ok");
+
+            const { data } = await response.json();
+            const mappedData: RequestData[] = data.map((item: any) => ({
+                id: item.id,
+                req_no: item.rs_code,
+                name: item.title_req ||
+                    (item.program_name
+                        ? `พัฒนาโปรแกรมต่อเนื่อง (${item.program_name})`
+                        : "พัฒนาโปรแกรมต่อเนื่อง"),
+                status_id: item.status_id,
+                status: item.status_name,
+                type_id: item.type_id,
+                type: item.type,
+                assignee: item.assign_name || '',
+                detail_req: item.detail_req || '',
+                datecreated: formatDate(item.created_at),
+                topic: item.topic || '',
+            }));
+            setRows(mappedData);
+        } catch (error) {
+            console.error("Error fetching requests:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [userData, tab, formatDate]);
+
     const handleRecieve = useCallback(async () => {
         if (!selectedId) return;
 
         try {
-            const response = await fetch(
-                `${URLAPI}/change_status/${selectedId}?change=inprogress`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+            const selectedRow = rows.find(row => row.id === selectedId);
+            if (!selectedRow) {
+                throw new Error("ไม่พบข้อมูลที่เลือก");
+            }
 
-            if (!response.ok) {
+            let response;
+            
+            if ([1, 3].includes(selectedRow.type_id)) {
+                response = await fetch(
+                    `${URLAPI}/change_status/${selectedId}?change=admin&username=${userData?.username}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+            } else if (selectedRow.type_id === 2) {
+                response = await fetch(
+                    `${URLAPI}/change_status/${selectedId}?change=todo&username=${userData?.username}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+            }
+
+            if (!response || !response.ok) {
                 throw new Error("Network response was not ok");
             }
 
             const data = await response.json();
             console.log("รับงานสำเร็จ:", data);
 
-            // Custom alert notification
             Swal.fire({
                 title: 'รับงานสำเร็จ!',
-                // html: 'รับงานสำเร็จ!',
                 icon: 'success',
                 confirmButtonText: 'OK',
                 customClass: {
@@ -134,7 +180,8 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 buttonsStyling: false,
             });
 
-            fetchRequests(); // เรียกฟังก์ชันนี้เพื่ออัปเดต UI หรือรีเฟรชข้อมูล
+            fetchRequests();
+
         } catch (error) {
             console.error("Error receiving job:", error);
             Swal.fire({
@@ -151,7 +198,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
         } finally {
             setOpen(false);
         }
-    }, [selectedId]);
+    }, [selectedId, rows, userData?.username, fetchRequests]);
 
     const handleConfirmDelete = useCallback(async () => {
         if (!selectedId) return;
@@ -182,7 +229,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
             // Custom alert notification for error
             Swal.fire({
                 title: 'Error!',
-                html: 'เกิดข้อผิดพลาดในการลบรายการ หรือ รายการนี้ถูกลบไปแล้ว',
+                html: 'เกิดข้อผิดพลาดในการลบรายการ หรือ รายการนี้ถูกลบไปแ้ว',
                 icon: 'error',
                 confirmButtonText: 'OK',
                 customClass: {
@@ -212,40 +259,6 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     const handleEdit = useCallback((id: number) => {
         navigate(`/edit-request/${id}`);
     }, [navigate]);
-
-    // แยก fetchRequests ออกมาและใช้ useCallback
-    const fetchRequests = useCallback(async () => {
-        if (!userData?.username || tab === undefined) return;
-
-        setIsLoading(true);
-        try {
-            const response = await fetch(`${URLAPI}/it-requests?tab=${tab}`);
-            if (!response.ok) throw new Error("Network response was not ok");
-
-            const { data } = await response.json();
-            const mappedData: RequestData[] = data.map((item: any) => ({
-                id: item.id,
-                req_no: item.rs_code,
-                name:
-                    item.title_req ||
-                    (item.program_name
-                        ? `พัฒนาโปรแกรมต่อเนื่อง (${item.program_name})`
-                        : "พัฒนาโปรแกรมต่อเนื่อง"),
-                status_id: item.status_id,
-                status: item.status_name,
-                type_id: item.type_id,
-                type: item.type,
-                assignee: item.assign_name || "",
-                detail_req: item.detail_req || "",
-                datecreated: formatDate(item.created_at),
-            }));
-            setRows(mappedData);
-        } catch (error) {
-            console.error("Error fetching requests:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [userData, tab, formatDate]);
 
     // ใช้ useMemo สำหรับ columns definition
     const columns = useMemo<GridColDef[]>(() => {
@@ -305,7 +318,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                     backgroundColor: '#ef5350',
                     icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
                 },
-                "Wait For Assigned": {
+                "Admin Recieve": {
                     backgroundColor: '#90a4ae',
                     icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
                 },
@@ -320,7 +333,12 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 "Cancel": {
                     backgroundColor: '#ef5350',
                     icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+                },
+                "UAT": {
+                    backgroundColor: '#8de134',
+                    icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
                 }
+
             };
             return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
         };
@@ -339,7 +357,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 ),
             },
             {
-                field: "name",
+                field: "topic",
                 headerName: "Request Detail",
                 flex: 1,
                 minWidth: 400,
@@ -409,7 +427,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
 
                         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                             {admin === "ADMIN" &&
-                                (([1, 3].includes(params.row.type_id) && params.row.status_id == 5) ||
+                                (([1, 3].includes(params.row.type_id) && params.row.status_id == 3) ||
                                     (params.row.type_id == 2 && params.row.status_id == 1)) && (
                                     <Tooltip title="Receive Task" arrow>
                                         <IconButton
@@ -460,7 +478,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                                         },
                                     }}
                                 >
-                                    <InfoIcon />
+                                    <BackupTableIcon />
                                 </IconButton>
                             </Tooltip>
                         </div>
@@ -680,7 +698,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
 
     // Filter function
     const filteredRows = useMemo(() => {
-        console.log('Current filter date:', filterDate ? dayjs(filterDate).format('DD/MM/BBBB') : null);
+        // console.log('Current filter date:', filterDate ? dayjs(filterDate).format('DD/MM/BBBB') : null);
 
         return rows.filter(row => {
             const matchesType = !filterType || row.type === filterType;

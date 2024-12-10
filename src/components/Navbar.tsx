@@ -35,18 +35,18 @@ const Navbar: React.FC = () => {
     const storedUserData = sessionStorage.getItem('userData');
     const storedAdmin = sessionStorage.getItem('admin');
 
-    console.log("Stored UserData:", storedUserData);
-    console.log("Stored Admin:", storedAdmin);
+    // console.log("Stored UserData:", storedUserData);
+    // console.log("Stored Admin:", storedAdmin);
 
     if (storedUserData) {
       const userDataParsed: UserData = JSON.parse(storedUserData);
       setUserData(userDataParsed);
-      console.log("UserData:", userDataParsed);
+      // console.log("UserData:", userDataParsed);
     }
 
     if (storedAdmin) {
       setAdmin(storedAdmin);
-      console.log("Admin:", storedAdmin);
+      // console.log("Admin:", storedAdmin);
     }
   }, []);
 
@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
     if (userData && admin) {
       // Add your logic here
     } else {
-      console.log("UserData or department is not set. Aborting fetch.");
+      // console.log("UserData or department is not set. Aborting fetch.");
     }
   }, [userData, admin]);
 

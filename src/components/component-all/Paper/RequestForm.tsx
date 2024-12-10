@@ -27,6 +27,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonCheckedSharpIcon from "@mui/icons-material/RadioButtonCheckedSharp";
 import dayjs from 'dayjs';
 import SelectSubtopic from '../Select/select-subtopic';
+import Swal from 'sweetalert2';
 
 interface ApproveProps {
     name: string;
@@ -134,7 +135,8 @@ export default function RequestForm() {
     const [levelJob, setLevelJob] = useState<number | null>(null); // State for levelJob
     const numericId = id ? parseInt(id) : 0; // Convert string id to number
     const [requestData, setRequestData] = useState<RequestData | null>(null);
-    const subtopicOption = selectedSubtopicId !== null ? { key: selectedSubtopicId, label: '', pattern: '', topic_id: 0, check_m: 0, check_d: 0, check_it_m: 0, check_it_d: 0 } : null;
+    const [selectedSubtopic, setSelectedSubtopic] = useState<SubtopicOption | null>(null);
+    // console.log('subtopicOption', selectedSubtopic);
 
     const getStatusStyle = (status: string) => {
         const styles = {
@@ -204,16 +206,14 @@ export default function RequestForm() {
             const { data } = await response.json();
             if (data && data.length > 0) {
                 const reqData = data[0];
-                console.log('Date data from API:', {
-                    date_start: reqData.date_start,
-                    date_end: reqData.date_end
-                });
 
                 setRequestData({
                     ...reqData,
                     date_start: reqData.date_start ? reqData.date_start.split('T')[0] : null,
                     date_end: reqData.date_end ? reqData.date_end.split('T')[0] : null
                 });
+
+                // อัพเดทค่าต่างๆ
                 setSelectedDepartment({ key: reqData.id_department, label: '' });
                 setSelectedTypeId(reqData.type_id || null);
                 setSelectedTopicId(reqData.topic_id || null);
@@ -227,7 +227,12 @@ export default function RequestForm() {
                 setName(reqData.name_req || '');
                 setPhone(reqData.phone || '');
                 setTitle(reqData.title_req || '');
-                setDetails(reqData.detail_req || '');
+
+                // ตรวจสอบและตั้งค่า details
+                if (reqData.detail_req) {
+                    setDetails(reqData.detail_req);
+                }
+
                 setStatusId(reqData.status_id || null);
                 setManagerApprove({
                     name: reqData.m_name || '',
@@ -266,6 +271,20 @@ export default function RequestForm() {
                     console.error('Error parsing files:', error);
                 }
                 setUploadedFiles(parsedFiles);
+
+                // เพิ่มการเซ็ตค่า selectedSubtopic
+                if (reqData.subtopic_id) {
+                    setSelectedSubtopic({
+                        key: reqData.subtopic_id,
+                        label: reqData.subtopic_name || '',
+                        pattern: reqData.pattern || '',
+                        topic_id: reqData.topic_id || 0,
+                        check_m: reqData.check_m || 0,
+                        check_d: reqData.check_d || 0,
+                        check_it_m: reqData.check_it_m || 0,
+                        check_it_d: reqData.check_it_d || 0
+                    });
+                }
             }
         } catch (error) {
             console.error('Error:', error);
@@ -284,13 +303,13 @@ export default function RequestForm() {
         const storedUserData = sessionStorage.getItem('userData');
         const storedAdmin = sessionStorage.getItem('admin');
 
-        console.log("Stored UserData:", storedUserData);
-        console.log("Stored Admin:", storedAdmin);
+        // console.log("Stored UserData:", storedUserData);
+        // console.log("Stored Admin:", storedAdmin);
 
         if (storedUserData) {
             const userDataParsed = JSON.parse(storedUserData);
             setUserData(userDataParsed);
-            console.log("UserData:", userDataParsed);
+            // console.log("UserData:", userDataParsed);
 
             // Set default values from sessionStorage
             setSelectedDepartment({ key: userDataParsed.id_department, label: '' });
@@ -299,7 +318,7 @@ export default function RequestForm() {
 
         if (storedAdmin) {
             setAdmin(storedAdmin);
-            console.log("Admin:", storedAdmin);
+            // console.log("Admin:", storedAdmin);
         }
     }, []);
 
@@ -323,12 +342,18 @@ export default function RequestForm() {
         setSelectedTypeId(typeId);
         if (typeId === null) {
             setSelectedTopicId(null);
+            setSelectedSubtopicId(null);
+            setDetails('');
         }
         setErrors(prev => ({ ...prev, typeId: '' }));
     }, []);
 
     const handleTopicChange = useCallback((topicId: number | null) => {
         setSelectedTopicId(topicId);
+        if (topicId === null) {
+            setSelectedSubtopicId(null);
+            setDetails('');
+        }
         setTitle('');
         setErrors(prev => ({ ...prev, topicId: '' }));
     }, []);
@@ -336,11 +361,21 @@ export default function RequestForm() {
     const handleSubtopicChange = useCallback((subtopic: SubtopicOption | null) => {
         if (subtopic !== null) {
             setSelectedSubtopicId(subtopic.key);
+            setSelectedSubtopic(subtopic);
+            
+            if (!isEditMode && subtopic.pattern) {
+                setDetails(subtopic.pattern);
+            }
             setErrors(prev => ({ ...prev, subtopicId: '' }));
         } else {
             setSelectedSubtopicId(null);
+            setSelectedSubtopic(null);
+            
+            if (!isEditMode) {
+                setDetails('');
+            }
         }
-    }, []);
+    }, [isEditMode]);
 
     const handleProgramChange = useCallback((program: ProgramOption | null) => {
         setSelectedProgram(program);
@@ -404,6 +439,10 @@ export default function RequestForm() {
             newErrors.details = 'กรุณากรอกรายลเอียด';
         }
 
+        if (selectedTypeId !== 3 && selectedSubtopic?.label === 'Other' && !title) {
+            newErrors.title = 'กรุณากรอกหัวข้อคำร้อง';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     }, [selectedDepartment, selectedTypeId, selectedTopicId, selectedSubtopicId, name, phone, details]);
@@ -415,24 +454,31 @@ export default function RequestForm() {
             const formData = new FormData();
 
             const rsCodeToUse = isEditMode ? rsCode : await generateRsCode(selectedTypeId);
+
+            // แปลงค่าให้เป็น string ก่อนส่ง
             formData.append('rs_code', rsCodeToUse);
-            formData.append('id_department', selectedDepartment ? selectedDepartment.key.toString() : '');
-            formData.append('id_division', userData ? userData.id_division : '');
-            formData.append('id_section', userData ? userData.id_section : '');
-            formData.append('id_job_description', userData ? userData.id_job_description : '');
-            formData.append('id_division_competency', userData ? userData.id_division_competency : '');
-            formData.append('id_section_competency', userData ? userData.id_section_competency : '');
+            formData.append('id_department', selectedDepartment ? String(selectedDepartment.key) : '');
+            formData.append('id_division', userData ? String(userData.id_division) : '');
+            formData.append('id_section', userData ? String(userData.id_section) : '');
+            formData.append('id_job_description', userData ? String(userData.id_job_description) : '');
+            formData.append('id_division_competency', userData ? String(userData.id_division_competency) : '');
+            formData.append('id_section_competency', userData ? String(userData.id_section_competency) : '');
             formData.append('user_req', userData ? userData.username : '');
             formData.append('position', userData ? userData.position : '');
             formData.append('name_req', name);
             formData.append('phone', phone);
-            formData.append('type_id', selectedTypeId ? selectedTypeId.toString() : '');
-            formData.append('topic_id', selectedTopicId ? selectedTopicId.toString() : '');
-            formData.append('subtopic_id', selectedSubtopicId ? selectedSubtopicId.toString() : '');
-            formData.append('title_req', title);
+            formData.append('type_id', selectedTypeId ? String(selectedTypeId) : '');
+            formData.append('topic_id', selectedTopicId ? String(selectedTopicId) : '');
+            formData.append('subtopic_id', selectedSubtopicId ? String(selectedSubtopicId) : '');
+            if (selectedTypeId !== 3 && selectedSubtopic?.label === 'Other') {
+                formData.append('title_req', title);
+            } else {
+                formData.append('title_req', '');
+            }
             formData.append('detail_req', details);
-            formData.append('id_program', selectedProgram ? selectedProgram.key.toString() : '');
+            formData.append('id_program', selectedProgram ? String(selectedProgram.key) : '');
 
+            // จัดการกัคฟล์
             if (uploadedFiles.length > 0) {
                 const existingFiles: ExistingFileInfo[] = [];
 
@@ -454,7 +500,10 @@ export default function RequestForm() {
                 }
             }
 
-            console.log('Form Data:', formData);
+            // Log formData เพื่อตรวจสอบ
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
 
             const response = await fetch(
                 isEditMode ? `${URLAPI}/it-requests/${id}` : `${URLAPI}/it-requests`,
@@ -484,10 +533,11 @@ export default function RequestForm() {
                     navigate('/request-list');
                 }
             }, 2000);
+
         } catch (error) {
             console.error(isEditMode ? 'Error updating IT request:' : 'Error submitting IT request:', error);
         }
-    }, [isEditMode, rsCode, selectedDepartment, userData, name, phone, selectedTypeId, selectedTopicId, selectedSubtopicId, title, details, selectedProgram, uploadedFiles, validateForm, generateRsCode, navigate]);
+    }, [isEditMode, rsCode, selectedDepartment, userData, name, phone, selectedTypeId, selectedTopicId, selectedSubtopicId, title, details, selectedProgram, uploadedFiles, validateForm, generateRsCode, navigate, id]);
 
     const clearForm = useCallback(() => {
         setSelectedDepartment(null);
@@ -514,6 +564,7 @@ export default function RequestForm() {
     // Update the isReadOnly logic
     const isReadOnly = useMemo(() => {
         if (!isEditMode) return false;
+        if (isEditMode) return true;
 
         // Allow editing for IT staff with specific status_id
         if (isITStaff && [4, 5].includes(status_id || 0)) {
@@ -538,6 +589,192 @@ export default function RequestForm() {
         // Default to readonly for edit mode
         return isEditMode;
     }, [isEditMode, isITStaff, status_id, userData?.position, userData?.username, rsCode]);
+
+    const handleITRecieve = useCallback(async () => {
+        if (!numericId) return;
+
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${numericId}?change=inprogress&username=${userData?.username}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            if (!response.ok) {
+                throw new Error('Failed to fetch data from API');
+            }
+
+            // แสดง Alert แจ้งสำเร็จ
+            Swal.fire({
+                title: 'รับงานสำเร็จ!',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+
+            // รีเฟรชข้อมูลใหม่
+            fetchRequestData();
+
+        } catch (error) {
+            console.error('Error fetching requests:', error);
+            // แสดง Alert แจ้งเตือนเมื่อเกิดข้อผิดพลาด
+            Swal.fire({
+                title: 'Error!',
+                html: 'เกิดข้อผิดพลาดในการรับงาน',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+        }
+    }, [numericId, userData?.username, fetchRequestData]);
+
+    const handleITConfirm = useCallback(async () => {
+        if (!numericId) return;
+
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${numericId}?change=confirm&username=${userData?.username}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            if (!response.ok) {
+                throw new Error('Failed to fetch data from API');
+            }
+
+            const result = await response.json();
+            console.log('IT Confirm request:', result);
+
+            Swal.fire({
+                title: 'ยืนยันการคอนฟิรมสำเร็จ!',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+            fetchRequestData();
+
+        } catch (error) {
+            console.error('Error fetching requests:', error);
+            // แสดง Alert แจ้งเตือนเมื่อเกิดข้อผิดพลาด
+            Swal.fire({
+                title: 'Error!',
+                html: 'เกิดข้อผิดพลาดในการรับงาน',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+        }
+    }, [numericId, userData?.username, fetchRequestData]);
+
+    const handleComplete = useCallback(async () => {
+        if (!numericId) return;
+
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${numericId}?change=complete&username=${userData?.username}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            if (!response.ok) {
+                throw new Error('Failed to fetch data from API');
+            }
+
+            Swal.fire({
+                title: 'สำเร็จ!',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+            fetchRequestData();
+        } catch (error) {
+            console.error('Error fetching requests:', error);
+            Swal.fire({
+                title: 'Error!',
+                html: 'เกิดข้อผิดพลาดในการสำเร็จงาน',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+        }
+    }, [numericId, userData?.username, fetchRequestData]);
+
+    const handleReturn = useCallback(async () => {
+        if (!numericId) return;
+
+        try {
+            const response = await fetch(
+                `${URLAPI}/change_status/${numericId}?change=inprogress`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            if (!response.ok) {
+                throw new Error('Failed to fetch data from API');
+            }
+
+            Swal.fire({
+                title: 'คืนงานสำเร็จ!',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+            fetchRequestData();
+        } catch (error) {
+            console.error('Error fetching requests:', error);
+            Swal.fire({
+                title: 'Error!',
+                html: 'เกิดข้อผิดพลาดในการคืนงาน',
+                icon: 'error',
+                confirmButtonText: 'OK',
+                customClass: {
+                    title: 'alert-title',
+                    confirmButton: 'alert-button'
+                },
+                buttonsStyling: false,
+            });
+        }
+    }, [numericId, userData?.username, fetchRequestData]);
 
     return (
         <React.Fragment>
@@ -631,7 +868,7 @@ export default function RequestForm() {
                                 {errors.typeId && <Typography color="danger">{errors.typeId}</Typography>}
                             </Box>
                             <Box sx={{ mt: 2 }}>
-                                {(admin === 'ADMIN' || (userData?.position && (userData.position === 'm' || userData.position === 'd') && selectedTypeId !== 2)) && (
+                                {(admin === 'ADMIN' || (userData?.position && (userData.position === 'm' || userData.position === 'd'))) && selectedTypeId !== 2 && (
                                     <>
                                         {managerApprove !== null ? (
                                             <BoxManagerApprove
@@ -677,32 +914,31 @@ export default function RequestForm() {
                             ) : (selectedTypeId === 1 || selectedTypeId === 2) && selectedTopicId !== null ? (
                                 <>
                                     <Box sx={{ mt: 2 }}>
+                                        <FormLabel>เรื่องที่ร้องขอ</FormLabel>
                                         <SelectSubtopic
                                             onSubtopicChange={handleSubtopicChange}
-                                            initialValue={subtopicOption}
+                                            initialValue={selectedSubtopic}
                                             selectedTopicId={selectedTopicId || 0}
                                         />
                                     </Box>
-                                    { subtopicOption?.key === 1 && (
+                                    {selectedSubtopic?.label === 'Other' && (
                                         <TitleInput
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
-                                            readOnly={isReadOnly}
                                         />
                                     )}
                                 </>
                             ) : (
                                 <TitleInput
                                     value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    readOnly={isReadOnly}
+                                    onChange={(e) => setTitle(e.target.value)}      
                                 />
                             )}
 
                             <DetailsTextarea
                                 value={details}
                                 onChange={(e) => setDetails(e.target.value)}
-                                readOnly={isReadOnly}
+                                placeholder={!isEditMode && selectedSubtopic?.pattern ? selectedSubtopic.pattern : 'กรุณากรอกรายละเอียด'}
                             />
                             {errors.details && <Typography color="danger">{errors.details}</Typography>}
                             <Fileupload onFilesChange={handleFilesChange} initialFiles={uploadedFiles} />
@@ -710,7 +946,7 @@ export default function RequestForm() {
                         </Grid>
                     </Grid>
 
-                    {(admin === 'ADMIN' || (
+                    {((admin === 'ADMIN' && selectedTypeId !== 2) || (
                         userData?.position &&
                         (userData.position === 'm' || userData.position === 'd') &&
                         isITStaff && selectedTypeId !== 2
@@ -900,9 +1136,110 @@ export default function RequestForm() {
                                 </Stack>
                             </Box>
                         </Box>
-                    )
-                    }
-                    {userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && selectedTypeId !== 2 && (isITStaff)) && (
+                    )}
+                    {((status_id === 14 && (requestData?.type_id === 1 || requestData?.type_id === 3)) || (status_id === 18 && (requestData?.type_id === 2))) && (isITStaff) && (
+                        <Box sx={{ mt: 4 }}>
+                            <Button
+                                color="primary"
+                                startDecorator={<SaveIcon />}
+                                onClick={() => {
+                                    Swal.fire({
+                                        title: 'ยืนยันการรับงาน',
+                                        text: 'คุณต้องการรับงานนี้ใช่หรือไม่?',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'ใช่',
+                                        cancelButtonText: 'ไม่',
+                                        confirmButtonColor: '#3085d6',
+                                        cancelButtonColor: '#d33'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            handleITRecieve();
+                                        }
+                                    });
+                                }}
+                            >
+                                เจ้าหน้าที่ IT รับงาน
+                            </Button>
+                        </Box>
+                    )}
+                    {(status_id === 6 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) && (
+                        <Box sx={{ mt: 4 }}>
+                            <Button
+                                color="primary"
+                                startDecorator={<SaveIcon />}
+                                onClick={() => {
+                                    Swal.fire({
+                                        title: 'ยืนยันการคอนเฟิร์มงาน',
+                                        text: 'คุณต้องการคอนเฟิร์มงานนี้ใช่หรือไม่?',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'ใช่',
+                                        cancelButtonText: 'ไม่',
+                                        confirmButtonColor: '#3085d6',
+                                        cancelButtonColor: '#d33'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            handleITConfirm();
+                                        }
+                                    });
+                                }}
+                            >
+                                เจ้าหน้าที่ Confirm งาน
+                            </Button>
+                        </Box>
+                    )}
+                    {(status_id === 15) && (!isITStaff) && (
+                        <Box sx={{ mt: 4 }}>
+                            <Button
+                                sx={{ mr: 3 }}
+                                startDecorator={<SaveIcon />}
+                                onClick={() => {
+                                    Swal.fire({
+                                        title: 'ยืนยันการสำเร็จงาน',
+                                        text: 'คุณต้องการสำเร็จงานนี้ใช่หรือไม่?',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'ใช่',
+                                        cancelButtonText: 'ไม่',
+                                        confirmButtonColor: '#3085d6',
+                                        cancelButtonColor: '#d33'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            handleComplete();
+                                        }
+                                    });
+                                }}
+                            >
+                                Complete Job
+                            </Button>
+                            <Button
+                                sx={{ mr: 3 }}
+                                color="danger"
+                                startDecorator={<SaveIcon />}
+                                onClick={() => {
+                                    Swal.fire({
+                                        title: 'ยืนยันการคืนงาน',
+                                        text: 'คุณต้องการคืนงานนี้ใช่หรือไม่?',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'ใช่',
+                                        cancelButtonText: 'ไม่',
+                                        confirmButtonColor: '#3085d6',
+                                        cancelButtonColor: '#d33'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            handleReturn();
+                                        }
+                                    });
+                                }}
+                            >
+                                Return Job
+                            </Button>
+                        </Box>
+                    )}
+
+                    {userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && (isITStaff)) && (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',

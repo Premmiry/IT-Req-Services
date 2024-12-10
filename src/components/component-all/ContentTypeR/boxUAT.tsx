@@ -36,12 +36,9 @@ interface UATRow {
 
 export default function UAT(props: Props) {
     const [dataUat, setDataUat] = React.useState<any | null>(null);
-    const [rows, setRows] = React.useState<UATRow[]>([{
-        id: 0,
-        title: '',
-        result: null,
-        description: ''
-    }]);
+    const [rows, setRows] = React.useState<UATRow[]>([]);
+    const [selectedRows, setSelectedRows] = React.useState<number[]>([]);
+    const [isAddingRow, setIsAddingRow] = React.useState<boolean>(false);
 
     const fetchUATData = async (req_id: number) => {
         try {
@@ -51,7 +48,6 @@ export default function UAT(props: Props) {
             }
             const data = await response.json();
             setDataUat(data);
-            // console.log(data);
             return data;
         } catch (error) {
             console.error('Error fetching UAT data:', error);
@@ -69,13 +65,7 @@ export default function UAT(props: Props) {
                 description: data.uat_note,
                 id_uat: data.id_uat
             })));
-        } else {
-            setRows([{
-                id: 0,
-                title: '',
-                result: null,
-                description: ''
-            }]);
+            setIsAddingRow(true);
         }
     };
 
@@ -111,7 +101,8 @@ export default function UAT(props: Props) {
     };
 
     const addRow = () => {
-        const newId = Date.now(); // ใช้ timestamp เป็น id
+        setIsAddingRow(true);
+        const newId = Date.now();
         setRows(prevRows => [
             ...prevRows,
             {
@@ -123,6 +114,45 @@ export default function UAT(props: Props) {
         ]);
     };
 
+    const saveSelectedRows = async () => {
+        const rowsToSave = rows.filter(row => selectedRows.includes(row.id));
+
+        if (rowsToSave.length === 0) {
+            alert("กรุณาเลือกรายการที่ต้องการบันทึก");
+            return;
+        }
+
+        // Validate all selected rows
+        for (const row of rowsToSave) {
+            if (!row.title || row.title.trim() === "") {
+                alert("หัวข้อ UAT ห้ามเป็นค่าว่าง");
+                return;
+            }
+        }
+
+        try {
+            // Save all selected rows
+            const savePromises = rowsToSave.map(row => saveOrUpdateRow(row));
+            await Promise.all(savePromises);
+
+            alert("บันทึกข้อมูลสำเร็จ");
+            setSelectedRows([]); // Clear selection
+            await fetchData(); // Refresh data
+        } catch (error) {
+            console.error("Error saving rows:", error);
+            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        }
+    };
+
+    const handleRowSelection = (id: number) => {
+        setSelectedRows(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(rowId => rowId !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
 
     const validateAndSaveRow = async (id: number) => {
         const row = rows.find((r) => r.id === id);
@@ -337,150 +367,181 @@ export default function UAT(props: Props) {
     return (
         <Container component="main" sx={{ mb: 4 }} maxWidth="xl">
             {props.department === 292 && (
-                <Button
-                    id="add-row-button"
-                    variant="contained"
-                    endIcon={<AddBoxIcon />}
-                    onClick={addRow}
-                    sx={{ mb: 2 }}
-                >
-                    เพิ่มหัวข้อ UAT
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                    {!isAddingRow ? (
+                        <Button
+                            id="add-row-button"
+                            variant="contained"
+                            endIcon={<AddBoxIcon />}
+                            onClick={addRow}
+                            sx={{ width: '200px' }}
+                        >
+                            เพิ่มหัวข้อ UAT
+                        </Button>
+                    ) : (
+                        <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+                            <Button
+                                id="add-more-row-button"
+                                variant="contained"
+                                endIcon={<AddBoxIcon />}
+                                onClick={addRow}
+                            >
+                                เพิ่มหัวข้อ UAT
+                            </Button>
+                            {rows.length > 0 && (
+                                <Button
+                                    variant="contained"
+                                    color="success"
+                                    onClick={saveSelectedRows}
+                                    disabled={selectedRows.length === 0}
+                                >
+                                    บันทึกรายการที่เลือก
+                                </Button>
+                            )}
+                        </Box>
+                    )}
+                </Box>
             )}
 
-            <Grid container spacing={2}>
-                <Grid item xs={6}>
-                    <Typography variant="h6" gutterBottom id="title-header">
-                        หัวข้อ UAT
-                    </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                    <Typography variant="h6" gutterBottom id="result-header">
-                        ผลการทดสอบ
-                    </Typography>
-                </Grid>
-            </Grid>
-
-            {rows.map((row, index) => {
-                const rowPrefix = `row_${index + 1}`;
-                return (
-                    <React.Fragment key={row.id}>
-                        <Grid
-                            container
-                            spacing={2}
-                            sx={{ mb: 2, position: 'relative' }}
-                            id={`${rowPrefix}_container`}
-                        >
-                            <Grid item xs={6}>
-                                <Box sx={{ mt: 3 }}>
-                                    <Textarea
-                                        id={`${rowPrefix}_title`}
-                                        value={row.title}
-                                        onChange={handleTextChange(row.id, 'title')}
-                                        minRows={4}
-                                        placeholder="กรอกหัวข้อ UAT ที่นี่…"
-                                        style={{ width: '100%' }}
-                                    />
-                                </Box>
-                            </Grid>
-                            <Grid item xs={6}>
-                                <Box sx={{ mt: 1 }}>
-                                    <FormGroup
-                                        aria-label="position"
-                                        row
-                                        id={`${rowPrefix}_checkbox_group`}
-                                    >
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    id={`${rowPrefix}_pass_checkbox`}
-                                                    checked={row.result === 1}
-                                                    onChange={handleChangeCheck(row.id)}
-                                                    value={1}
-                                                    sx={{
-                                                        color: green[500],
-                                                        '&.Mui-checked': {
-                                                            color: green[500],
-                                                        },
-                                                    }}
-                                                />
-                                            }
-                                            label="ผ่าน"
-                                            labelPlacement="end"
-                                        />
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    id={`${rowPrefix}_fail_checkbox`}
-                                                    checked={row.result === 2}
-                                                    onChange={handleChangeCheck(row.id)}
-                                                    value={2}
-                                                    sx={{
-                                                        color: pink[500],
-                                                        '&.Mui-checked': {
-                                                            color: pink[500],
-                                                        },
-                                                    }}
-                                                />
-                                            }
-                                            label="ไม่ผ่าน"
-                                            labelPlacement="end"
-                                        />
-                                    </FormGroup>
-                                </Box>
-                                <Box>
-                                    <Textarea
-                                        id={`${rowPrefix}_description`}
-                                        value={row.description}
-                                        onChange={handleTextChange(row.id, 'description')}
-                                        minRows={3}
-                                        placeholder="กรอกรายละเอียดสิ่งที่ต้องการให้แก้ไขในกรณีที่ไม่ผ่าน!!"
-                                        style={{ width: '100%' }}
-                                        readOnly={row.result === 1} // ตั้งค่าให้เป็น ReadOnly ถ้าเลือก "ผ่าน"
-                                    />
-                                </Box>
-                            </Grid>
-
-                            {props.department === 292 && (
-                                <>
-                                    <IconButton
-                                        id={`${rowPrefix}_save_button`}
-                                        onClick={() => validateAndSaveRow(row.id)}
-                                        sx={{
-                                            position: 'absolute',
-                                            right: 40,
-                                            top: 8,
-                                            color: 'success.main',
-                                        }}
-                                    >
-                                        {row.id_uat ? <EditIcon /> : <AddIcon />}
-                                    </IconButton>
-
-                                    <IconButton
-                                        id={`${rowPrefix}_delete_button`}
-                                        onClick={() => deleteRow(row.id)}
-                                        sx={{
-                                            position: 'absolute',
-                                            right: 8,
-                                            top: 8,
-                                            color: 'error.main',
-                                        }}
-                                        disabled={rows.length === 1}
-                                    >
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </>
-                            )}
+            {(rows.length > 0 || isAddingRow) && (
+                <>
+                    <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                            <Typography variant="h6" gutterBottom id="title-header">
+                                หัวข้อ UAT
+                            </Typography>
                         </Grid>
-                        {index < rows.length - 1 && (
-                            <Divider
-                                sx={{ my: 2 }}
-                                id={`${rowPrefix}_divider`}
-                            />
-                        )}
-                    </React.Fragment>
-                );
-            })}
+                        <Grid item xs={6}>
+                            <Typography variant="h6" gutterBottom id="result-header">
+                                ผลการทดสอบ
+                            </Typography>
+                        </Grid>
+                    </Grid>
+
+                    {rows.map((row, index) => (
+                        <React.Fragment key={row.id}>
+                            <Grid
+                                container
+                                spacing={2}
+                                sx={{ mb: 2, position: 'relative' }}
+                                id={`row_${index + 1}_container`}
+                            >
+                                {props.department === 292 && (
+                                    <Box sx={{ position: 'absolute', left: -40, top: 8 }}>
+                                        <Checkbox
+                                            checked={selectedRows.includes(row.id)}
+                                            onChange={() => handleRowSelection(row.id)}
+                                        />
+                                    </Box>
+                                )}
+
+                                <Grid item xs={6}>
+                                    <Box sx={{ mt: 3 }}>
+                                        <Textarea
+                                            id={`row_${index + 1}_title`}
+                                            value={row.title}
+                                            onChange={handleTextChange(row.id, 'title')}
+                                            minRows={4}
+                                            placeholder="กรอกหัวข้อ UAT ที่นี่…"
+                                            style={{ width: '100%' }}
+                                        />
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Box sx={{ mt: 1 }}>
+                                        <FormGroup
+                                            aria-label="position"
+                                            row
+                                            id={`row_${index + 1}_checkbox_group`}
+                                        >
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        id={`row_${index + 1}_pass_checkbox`}
+                                                        checked={row.result === 1}
+                                                        onChange={handleChangeCheck(row.id)}
+                                                        value={1}
+                                                        sx={{
+                                                            color: green[500],
+                                                            '&.Mui-checked': {
+                                                                color: green[500],
+                                                            },
+                                                        }}
+                                                    />
+                                                }
+                                                label="ผ่าน"
+                                                labelPlacement="end"
+                                            />
+                                            <FormControlLabel
+                                                control={
+                                                    <Checkbox
+                                                        id={`row_${index + 1}_fail_checkbox`}
+                                                        checked={row.result === 2}
+                                                        onChange={handleChangeCheck(row.id)}
+                                                        value={2}
+                                                        sx={{
+                                                            color: pink[500],
+                                                            '&.Mui-checked': {
+                                                                color: pink[500],
+                                                            },
+                                                        }}
+                                                    />
+                                                }
+                                                label="ไม่ผ่าน"
+                                                labelPlacement="end"
+                                            />
+                                        </FormGroup>
+                                    </Box>
+                                    <Box>
+                                        <Textarea
+                                            id={`row_${index + 1}_description`}
+                                            value={row.description}
+                                            onChange={handleTextChange(row.id, 'description')}
+                                            minRows={3}
+                                            placeholder="กรอกรายละเอียดสิ่งที่ต้องการให้แก้ไขในกรณีที่ไม่ผ่าน!!"
+                                            style={{ width: '100%' }}
+                                            readOnly={row.result === 1}
+                                        />
+                                    </Box>
+                                </Grid>
+
+                                {props.department === 292 && (
+                                    <>
+                                        <IconButton
+                                            id={`row_${index + 1}_save_button`}
+                                            onClick={() => validateAndSaveRow(row.id)}
+                                            sx={{
+                                                position: 'absolute',
+                                                right: 40,
+                                                top: 8,
+                                                color: 'success.main',
+                                            }}
+                                        >
+                                            {row.id_uat ? <EditIcon /> : <AddIcon />}
+                                        </IconButton>
+
+                                        <IconButton
+                                            id={`row_${index + 1}_delete_button`}
+                                            onClick={() => deleteRow(row.id)}
+                                            sx={{
+                                                position: 'absolute',
+                                                right: 8,
+                                                top: 8,
+                                                color: 'error.main',
+                                            }}
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </>
+                                )}
+                            </Grid>
+                            {index < rows.length - 1 && (
+                                <Divider sx={{ my: 2 }} id={`row_${index + 1}_divider`} />
+                            )}
+                        </React.Fragment>
+                    ))}
+                </>
+            )}
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 2 }}>
                 {dataUat && (![7, 8, 17].includes(props.status)) && props.department !== 292 && (

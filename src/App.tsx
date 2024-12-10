@@ -14,36 +14,36 @@ function App() {
   return (
     <UserProvider>
       <Router>
-      <br />
+      
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="request-list" element={
           <>
-            <Navbar />
-            <br />
+            <Navbar />            
             <RequestList/> 
           </>
         } />
         <Route path="request-list-it" element={
           <>
             <Navbar />
-            <br />
+            
             <RequestListIT/> 
           </>
-
         } />
         <Route path="/request" element={
           <>
-            <Navbar />
-            <br />
+            <Navbar /> 
+            <br  />           
             <RequestForm />
+            <br  />           
           </>
         }  />
         <Route path="/edit-request/:id" element={
           <>
-            <Navbar />
-            <br />
+            <Navbar />         
+            <br  />           
             <RequestForm />
+            <br  />           
           </>
         } />
         <Route path="/request-detail/:id" element={<RequestDetail id={0} />} />
@@ -53,7 +53,6 @@ function App() {
         <Route path="/priority/:id" element={<SelectPriority id={0} id_priority={0} />} />
         <Route path="/subtask" element={<Boxsubtask />} />
       </Routes>
-      <br />
       {/* <Footer /> */}
     </Router>
     </UserProvider>

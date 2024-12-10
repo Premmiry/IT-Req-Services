@@ -66,7 +66,7 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
 
             if (!Array.isArray(departments)) {
                 departments = [];
-                console.warn('departments is not an array');
+                // console.warn('departments is not an array');
             }
             setAssignedDepartments(departments);
         } catch (error) {

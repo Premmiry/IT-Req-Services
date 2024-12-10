@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Box, FormLabel } from '@mui/material';
 import { Textarea, Input } from '@mui/joy';
 import ReactQuill from 'react-quill';
@@ -17,23 +17,6 @@ interface InputProps {
 interface StyledTextareaProps extends InputProps {
   color?: 'success' | 'warning';
 }
-
-const quillModules = {
-  toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    [{ 'color': [] }, { 'background': [] }],
-    ['clean']
-  ],
-};
-
-const quillFormats = [
-  'header',
-  'bold', 'italic', 'underline', 'strike',
-  'list', 'bullet',
-  'color', 'background'
-];
 
 const InputComponent: React.FC<InputProps> = ({ 
   label = '', 
@@ -131,89 +114,121 @@ export const TitleInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
   <InputComponent {...props} id={props.id || "title_req"} label={props.label || "เรื่อง"} placeholder={props.placeholder || "เรื่องที่ต้องการ Request..."} readOnly={props.readOnly || false} />
 );
 
-export const DetailsTextarea: React.FC<Omit<InputProps, 'type'>> = (props) => (
-  <Box sx={{ mt: 2 }}>
-    <FormLabel>{props.label || "รายละเอียด"}</FormLabel>
-    <Box 
-      sx={{ 
-        '.ql-container': {
-          minHeight: '200px',
-          fontSize: '1rem',
-          fontFamily: 'inherit',
-          borderBottomLeftRadius: '4px',
-          borderBottomRightRadius: '4px',
-          border: '1px solid',
-          borderColor: (theme) => `${theme.palette.primary.main}70`,
-          '&:hover': {
-            borderColor: 'neutral.outlinedHoverBorder',
-          },
-          '&::before': {
-            border: '1px solid var(--Textarea-focusedHighlight)',
-            transform: 'scaleX(0)',
-            left: 0,
-            right: 0,
-            bottom: '-2px',
-            top: 'unset',
-            transition: 'transform .15s cubic-bezier(0.1,0.9,0.2,1)',
-            borderRadius: 0,
-          },
-          '&:focus-within::before': {
-            transform: 'scaleX(1)',
-          },
-        },
-        '.ql-editor': {
-          minHeight: '200px',
-        },
-        '.ql-toolbar': {
-          borderTopLeftRadius: '4px',
-          borderTopRightRadius: '4px',
-          borderColor: (theme) => `${theme.palette.primary.main}70`,
-          borderStyle: 'solid',
-        },
-        // Enhanced readonly styles
-        ...(props.readOnly && {
-          '.ql-toolbar': {
-            display: 'none',
-          },
+export const DetailsTextarea = React.forwardRef<ReactQuill, Omit<InputProps, 'type'>>((props, ref) => {
+  const quillRef = useRef<ReactQuill | null>(null);
+
+  const [content, setContent] = React.useState('');
+  const isFirstRender = React.useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current && props.value) {
+      setContent(props.value);
+      isFirstRender.current = false;
+    }
+    else if (!isFirstRender.current && props.value !== content) {
+      setContent(props.value);
+    }
+  }, [props.value]);
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <FormLabel>{props.label || "รายละเอียด"}</FormLabel>
+      <Box 
+        sx={{ 
           '.ql-container': {
-            border: '2px solid #e3f2fd', // Light blue border
-            backgroundColor: '#f8f9fa', // Light gray background
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)', // Subtle inner shadow
-            borderRadius: '8px', // Rounded corners
-          },
-          '.ql-editor': {
-            backgroundColor: 'transparent',
-            cursor: 'not-allowed',
-            color: '#455a64', // Darker text for better readability
-            padding: '16px', // More padding
+            minHeight: '200px',
+            fontSize: '1rem',
+            fontFamily: 'inherit',
+            borderBottomLeftRadius: '4px',
+            borderBottomRightRadius: '4px',
+            border: '1px solid',
+            borderColor: (theme) => `${theme.palette.primary.main}70`,
             '&:hover': {
-              backgroundColor: '#f5f5f5', // Slight hover effect
-              transition: 'background-color 0.2s ease',
+              borderColor: 'neutral.outlinedHoverBorder',
             },
           },
-        }),
-      }}
-    >
-      <ReactQuill
-        id={props.id || "details"}
-        theme="snow"
-        value={props.value}
-        onChange={(content: string) => {
-          const syntheticEvent = {
-            target: {
-              value: content
-            }
-          } as React.ChangeEvent<HTMLTextAreaElement>;
-          props.onChange(syntheticEvent);
+          '.ql-editor': {
+            minHeight: '200px',
+          },
+          '.ql-toolbar': {
+            borderTopLeftRadius: '4px',
+            borderTopRightRadius: '4px',
+            borderColor: (theme) => `${theme.palette.primary.main}70`,
+            borderStyle: 'solid',
+          },
+          ...(props.readOnly && {
+            '.ql-toolbar': {
+              display: 'none',
+            },
+            '.ql-container': {
+              border: '2px solid #e3f2fd',
+              backgroundColor: '#f8f9fa',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
+              borderRadius: '8px',
+            },
+            '.ql-editor': {
+              backgroundColor: 'transparent',
+              cursor: 'not-allowed',
+              color: '#455a64',
+              padding: '16px',
+              '&:hover': {
+                backgroundColor: '#f5f5f5',
+                transition: 'background-color 0.2s ease',
+              },
+            },
+          }),
         }}
-        placeholder={props.placeholder || "ใส่รายละเอียด Request ที่นี่…"}
-        modules={quillModules}
-        formats={quillFormats}
-        readOnly={props.readOnly}
-      />
+      >
+        <ReactQuill
+          ref={(el) => {
+            quillRef.current = el;
+            if (typeof ref === 'function') {
+              ref(el);
+            } else if (ref) {
+              (ref as React.MutableRefObject<ReactQuill | null>).current = el;
+            }
+          }}
+          theme="snow"
+          value={content}
+          onChange={(newContent) => {
+            setContent(newContent);
+            const syntheticEvent = {
+              target: {
+                value: newContent
+              }
+            } as React.ChangeEvent<HTMLTextAreaElement>;
+            props.onChange(syntheticEvent);
+          }}
+          modules={{
+            toolbar: [
+              [{ 'header': [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              [{ 'color': [] }, { 'background': [] }],
+              ['clean']
+            ],
+            clipboard: {
+              matchVisual: false
+            },
+            keyboard: {
+              bindings: {}
+            }
+          }}
+          formats={[
+            'header',
+            'bold', 'italic', 'underline', 'strike',
+            'list', 'bullet',
+            'color', 'background'
+          ]}
+          readOnly={props.readOnly}
+          placeholder={props.placeholder || "ใส่รายละเอียด Request ที่นี่…"}
+        />
+      </Box>
     </Box>
-  </Box>
-);
+  );
+});
+
+DetailsTextarea.displayName = 'DetailsTextarea';
 
 export const ManagerInput: React.FC<Omit<InputProps, 'type'>> = (props) => (
   <InputComponent {...props} id={props.id || "m_name"} label={props.label || "ชื่อผู้จัดการส่วน"} placeholder={props.placeholder || "ชื่อ-นามสกุล..."} readOnly={props.readOnly || false} />

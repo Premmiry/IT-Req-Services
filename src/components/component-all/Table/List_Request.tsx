@@ -1,18 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-    Box,
-    Container,
-    Typography,
-    Button,
-    Chip,
-    Modal,
-    Tooltip,
-    IconButton,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
-} from '@mui/material';
+import { Box, Container, Typography, Button, Chip, Modal, Tooltip, IconButton,
+FormControl, InputLabel, Select, MenuItem, Tabs, Tab } from '@mui/material';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -25,11 +13,11 @@ import { useNavigate } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedSharpIcon from '@mui/icons-material/RadioButtonCheckedSharp';
-import InfoIcon from '@mui/icons-material/Info';
 import URLAPI from '../../../URLAPI';
 import RequestDetail from '../Paper/RequestDetail';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import BackupTableIcon from '@mui/icons-material/BackupTable';
 
 dayjs.extend(buddhistEra);
 dayjs.locale('th');
@@ -43,6 +31,7 @@ interface RowData {
     type: string;
     assignee: string;
     datecreated: string;
+    topic: string;
 }
 
 
@@ -61,6 +50,9 @@ export default function ListRequest() {
     const [filterStatus, setFilterStatus] = useState<string>('');
     const [filterDate, setFilterDate] = useState<Date | null>(null);
     const [showFilters, setShowFilters] = useState(false);
+
+    // Add new state for tabs
+    const [activeTab, setActiveTab] = useState<number>(0);
 
     // แยกฟังก์ชัน formatDate ออกมาเป็น memoized function
     const formatDate = useCallback((dateString: string) => {
@@ -94,19 +86,23 @@ export default function ListRequest() {
 
         let apiUrl = `${URLAPI}/it-requests`;
 
+        const params = new URLSearchParams();
+
+        // For "My Request" tab
+        if (activeTab === 0) {
+            params.append('user_req', userData.username);
+            return `${apiUrl}?${params.toString()}`;
+        }
+
         if (admin === 'USER') {
             const { position, id_department, id_division_competency, id_section_competency } = userData;
-            const params = new URLSearchParams();
 
-            // ตรวจสอบ position
             if (typeof position === 'string') {
                 params.append('position', position);
 
-                // ตรวจสอบและแปลงค่าตาม position
                 switch (position) {
                     case 's':
                     case 'h':
-                        // แปลง department ID
                         if (id_department) {
                             const deptId = Number(id_department);
                             if (Number.isInteger(deptId) && deptId > 0) {
@@ -116,7 +112,6 @@ export default function ListRequest() {
                         break;
 
                     case 'm':
-                        // แปลง division ID
                         if (id_division_competency) {
                             const divId = Number(id_division_competency);
                             if (Number.isInteger(divId) && divId > 0) {
@@ -126,7 +121,6 @@ export default function ListRequest() {
                         break;
 
                     case 'd':
-                        // แปลง section และ division IDs
                         if (id_section_competency) {
                             const secId = Number(id_section_competency);
                             if (Number.isInteger(secId) && secId > 0) {
@@ -142,22 +136,12 @@ export default function ListRequest() {
                         break;
                 }
             }
-
-            // Log สำหรับ debug
-            console.log('User Data:', {
-                position,
-                id_department,
-                id_division_competency,
-                id_section_competency
-            });
-            
-            const finalUrl = `${apiUrl}?${params.toString()}`;
-            console.log('Final URL:', finalUrl);
-            return finalUrl;
         }
 
-        return apiUrl;
-    }, [userData, admin]);
+        const finalUrl = `${apiUrl}?${params.toString()}`;
+        // console.log('Final URL:', finalUrl);
+        return finalUrl;
+    }, [userData, admin, activeTab]);
 
     // ใช้ useCallback สำหรับฟังก์ชันที่ pass เป็น prop หรือใช้ใน useEffect
     const fetchRequests = useCallback(async () => {
@@ -179,7 +163,7 @@ export default function ListRequest() {
 
             const { data } = await response.json();
             // แสดงข้อมูลที่ได้จาก API
-            console.log('API Response:', data);
+            // console.log('API Response:', data);
             
             const mappedData = data.map((item: any) => ({
                 id: item.id,
@@ -191,6 +175,7 @@ export default function ListRequest() {
                 assignee: item.assign_name || '',
                 detail_req: item.detail_req || '',
                 datecreated: formatDate(item.created_at),
+                topic: item.topic || '',
             }));
 
             setRows(mappedData);
@@ -289,7 +274,7 @@ export default function ListRequest() {
             ),
         },
         {
-            field: 'name',
+            field: 'topic',
             headerName: 'Request Detail',
             flex: 1,
             minWidth: 400,
@@ -387,7 +372,7 @@ export default function ListRequest() {
                                     },
                                 }}
                             >
-                                <InfoIcon />
+                                <BackupTableIcon />
                             </IconButton>
                         </Tooltip>
                     </div>
@@ -552,6 +537,10 @@ export default function ListRequest() {
         setFilterDate(null);
     };
 
+    const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+        setActiveTab(newValue);
+    };
+
     return (
         <Container maxWidth="xl">
             <Box sx={{ my: 2 }}>
@@ -591,7 +580,21 @@ export default function ListRequest() {
                         </Button>
                     </Box>
                 </Box>
-
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                    <Tabs 
+                        value={activeTab} 
+                        onChange={handleTabChange}
+                        sx={{
+                            '& .MuiTab-root': {
+                                minWidth: 120,
+                                fontWeight: 600,
+                            }
+                        }}
+                    >
+                        <Tab label="My Request" />
+                        <Tab label="Department Request" />
+                    </Tabs>
+                </Box>
                 {showFilters && (
                     <Box sx={{ 
                         mb: 2, 

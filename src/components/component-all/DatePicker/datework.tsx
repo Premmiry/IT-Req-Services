@@ -44,18 +44,18 @@ const usePriorityOptions = () => {
         const storedUserData = sessionStorage.getItem('userData');
         const storedAdmin = sessionStorage.getItem('admin');
 
-        console.log("Stored UserData:", storedUserData);
-        console.log("Stored Admin:", storedAdmin);
+        // console.log("Stored UserData:", storedUserData);
+        // console.log("Stored Admin:", storedAdmin);
 
         if (storedUserData) {
             const userDataParsed = JSON.parse(storedUserData);
             setUserData(userDataParsed);
-            console.log("UserData:", userDataParsed);
+            // console.log("UserData:", userDataParsed);
         }
 
         if (storedAdmin) {
             setAdmin(storedAdmin);
-            console.log("Admin:", storedAdmin);
+            // console.log("Admin:", storedAdmin);
         }
     }, []);
 

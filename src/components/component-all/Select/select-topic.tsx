@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
 import { FormLabel } from '@mui/material';
 import URLAPI from '../../../URLAPI';
+
 interface Topic {
     topic_id: number;
     topic_name: string;
@@ -21,8 +22,13 @@ interface SelectTopicProps {
 
 export default function SelectTopic({ selectedTypeId, onSelectTopic, initialValue }: SelectTopicProps) {
     const [topics, setTopics] = useState<TopicOption[]>([]);
-    const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null); // เพิ่ม state สำหรับจัดการค่าที่เลือก
-    const [loading, setLoading] = useState<boolean>(false); // เพิ่มสถานะโหลด
+    const [selectedTopic, setSelectedTopic] = useState<TopicOption | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+
+    const isOptionEqualToValue = (option: TopicOption, value: TopicOption | null): boolean => {
+        if (!option || !value) return false;
+        return option.key === value.key && option.label === value.label;
+    };
 
     useEffect(() => {
         if (selectedTypeId === null || selectedTypeId === undefined) {
@@ -34,7 +40,6 @@ export default function SelectTopic({ selectedTypeId, onSelectTopic, initialValu
         const fetchTopics = async () => {
             setLoading(true);
             try {
-
                 const response = await fetch(`${URLAPI}/topics?typeId=${selectedTypeId}`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -45,31 +50,31 @@ export default function SelectTopic({ selectedTypeId, onSelectTopic, initialValu
                     label: topic.topic_name
                 }));
                 setTopics(topicsOptions);
+
+                if (initialValue !== null) {
+                    const matchingTopic = topicsOptions.find(topic => topic.key === initialValue);
+                    setSelectedTopic(matchingTopic || null);
+                }
             } catch (error) {
                 console.error('Error fetching topics:', error);
                 setTopics([]);
+                setSelectedTopic(null);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchTopics();
-    }, [selectedTypeId]);
-
-    useEffect(() => {
-        // อัปเดต selectedTopic เมื่อ initialValue เปลี่ยนไป
-        if (initialValue !== null && topics.length > 0) {
-            const initialTopic = topics.find(topic => topic.key === initialValue) || null;
-            setSelectedTopic(initialTopic);
-        }
-    }, [initialValue, topics]);
+    }, [selectedTypeId, initialValue]);
 
     const handleTopicChange = (_event: any, value: TopicOption | null) => {
-        setSelectedTopic(value); // อัปเดต state เมื่อเลือกหัวข้อใหม่
-        if (onSelectTopic) {
-            onSelectTopic(value ? value.key : null);
-        }
+        setSelectedTopic(value);
+        onSelectTopic(value?.key ?? null);
     };
+
+    const validSelectedTopic = selectedTopic && topics.some(topic => 
+        isOptionEqualToValue(topic, selectedTopic)
+    ) ? selectedTopic : null;
 
     return (
         <React.Fragment>
@@ -77,13 +82,24 @@ export default function SelectTopic({ selectedTypeId, onSelectTopic, initialValu
             <Autocomplete
                 placeholder={loading ? "กำลังโหลด..." : "เลือกหัวข้อ..."}
                 options={topics}
-                value={selectedTopic} // ใช้ selectedTopic จาก state
+                value={validSelectedTopic}
                 variant="outlined"
                 color="primary"
                 getOptionLabel={(option: TopicOption) => option.label}
-                isOptionEqualToValue={(option: TopicOption, value: TopicOption) => option.key === value?.key}
+                isOptionEqualToValue={isOptionEqualToValue}
                 onChange={handleTopicChange}
                 disabled={selectedTypeId === null || topics.length === 0 || loading}
+                slotProps={{
+                    listbox: {
+                        sx: { maxHeight: '300px' }
+                    }
+                }}
+                sx={{
+                    minWidth: '200px',
+                    '& .MuiAutocomplete-input': {
+                        padding: '8px 12px'
+                    }
+                }}
             />
         </React.Fragment>
     );

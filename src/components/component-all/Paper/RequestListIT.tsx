@@ -7,6 +7,8 @@ interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
     value: number;
+    role?: string;
+    'aria-labelledby'?: string;
 }
 
 // Styled components with colors
@@ -39,14 +41,14 @@ const StyledTab = styled(Tab)({
 });
 
 function TabPanel(props: TabPanelProps) {
-    const { children, value, index, ...other } = props;
+    const { children, value, index, role, 'aria-labelledby': ariaLabelledby, ...other } = props;
 
     return (
         <div
-            role="tabpanel"
+            role={role || "tabpanel"}
             hidden={value !== index}
             id={`tabpanel-${index}`}
-            aria-labelledby={`tab-${index}`}
+            aria-labelledby={ariaLabelledby || `tab-${index}`}
             {...other}
         >
             {value === index && (
@@ -84,29 +86,71 @@ export default function RequestListIT() {
             backgroundColor: '#ffffff',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-            <Box>
+            <Box 
+                role="navigation" 
+                aria-label="request tabs"
+            >
                 <StyledTabs 
                     value={value} 
-                    onChange={handleChange} 
-                    aria-label="request tabs"
+                    onChange={handleChange}
+                    aria-labelledby="request-tabs-label"
                 >
-                    <StyledTab label="Request Job" {...a11yProps(0)} />
-                    <StyledTab label="Complete Job" {...a11yProps(1)} />
-                    <StyledTab label="Cancel Job" {...a11yProps(2)} />
-                    {admin === 'ADMIN' && <StyledTab label="Manage Data" {...a11yProps(3)} />}
+                    <StyledTab 
+                        label="Request Job" 
+                        {...a11yProps(0)}
+                        tabIndex={value === 0 ? 0 : -1}
+                    />
+                    <StyledTab 
+                        label="Complete Job" 
+                        {...a11yProps(1)}
+                        tabIndex={value === 1 ? 0 : -1}
+                    />
+                    <StyledTab 
+                        label="Cancel Job" 
+                        {...a11yProps(2)}
+                        tabIndex={value === 2 ? 0 : -1}
+                    />
+                    {admin === 'ADMIN' && (
+                        <StyledTab 
+                            label="Manage Data" 
+                            {...a11yProps(3)}
+                            tabIndex={value === 3 ? 0 : -1}
+                        />
+                    )}
                 </StyledTabs>
             </Box>
-            <TabPanel value={value} index={0}>
+            
+            <TabPanel 
+                value={value} 
+                index={0}
+                role="tabpanel"
+                aria-labelledby={`tab-${0}`}
+            >
                 <ListRequestIT tab={1} />
             </TabPanel>
-            <TabPanel value={value} index={1}>
+            <TabPanel 
+                value={value} 
+                index={1}
+                role="tabpanel"
+                aria-labelledby={`tab-${1}`}
+            >
                 <ListRequestIT tab={2} />
             </TabPanel>
-            <TabPanel value={value} index={2}>
+            <TabPanel 
+                value={value} 
+                index={2}
+                role="tabpanel"
+                aria-labelledby={`tab-${2}`}
+            >
                 <ListRequestIT tab={3} />
             </TabPanel>
             {admin === 'ADMIN' && (
-                <TabPanel value={value} index={3}>
+                <TabPanel 
+                    value={value} 
+                    index={3}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${3}`}
+                >
                     <AdminManageData />
                 </TabPanel>
             )}

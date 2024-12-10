@@ -56,7 +56,7 @@ function Login() {
             const data = await response.json();
 
             sessionStorage.setItem('loginAD', JSON.stringify(data));
-            console.log("Login Data stored in sessionStorage:", data);
+            // console.log("Login Data stored in sessionStorage:", data);
             
             if (data.status === "error") {
                 navigate('/nouserad');
@@ -76,15 +76,15 @@ function Login() {
                 navigate('/nouseryh');
             } else {
                 sessionStorage.setItem('userData', JSON.stringify(userData));
-                console.log("User Data stored in sessionStorage:", userData);
+                // console.log("User Data stored in sessionStorage:", userData);
 
                 // ตรวจสอบ admin
                 const adminResponse = await fetch(`${URLAPI}/admin?user=${username}`, { method: 'GET' });
                 if (adminResponse.ok) {
                     const adminData = await adminResponse.json();
-                    console.log("Admin Data del flag:", adminData);
+                    // console.log("Admin Data del flag:", adminData);
                     sessionStorage.setItem('admin', (adminData && adminData.length > 0 && adminData[0].del_flag === 'N') ? 'ADMIN' : 'USER');
-                    console.log("Admin Data stored in sessionStorage:", adminData);
+                    // console.log("Admin Data stored in sessionStorage:", adminData);
                 } else {
                     sessionStorage.setItem('admin', 'USER');
                 }

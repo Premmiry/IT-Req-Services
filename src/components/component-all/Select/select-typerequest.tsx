@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete } from '@mui/joy';
-import { FormLabel, Box, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import URLAPI from '../../../URLAPI';
 import ComputerIcon from '@mui/icons-material/Computer';
-import SecurityIcon from '@mui/icons-material/Security'; 
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
+import ConstructionIcon from '@mui/icons-material/Construction';
 
 interface TypesReq {
     type_id: number;
@@ -59,11 +59,11 @@ export default function SelectTypeRequest({ onSelectType, initialValue }: Select
     };
 
     const getIcon = (typeId: number) => {
-        switch(typeId) {
+        switch (typeId) {
             case 1:
                 return <ComputerIcon sx={{ color: '#1976d2' }} />;
             case 2:
-                return <SecurityIcon sx={{ color: '#2e7d32' }} />;
+                return <ConstructionIcon sx={{ color: '#2e7d32' }} />;
             case 3:
                 return <DeveloperModeIcon sx={{ color: '#ed6c02' }} />;
             default:
@@ -71,30 +71,54 @@ export default function SelectTypeRequest({ onSelectType, initialValue }: Select
         }
     };
 
+    const renderOption = (
+        props: React.HTMLAttributes<HTMLLIElement>,
+        option: TypesReqOption
+    ) => {
+        const { key, ownerState, ...otherProps } = props as any;
+
+        return (
+            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {getIcon(option.key)}
+                <Typography>
+                    <span style={{ fontWeight: 'bold' }}>{option.label}</span>
+                    <span style={{ color: '#666', marginLeft: '5px', fontSize: '12px' }}>({option.description})</span>
+                </Typography>
+            </Box>
+        );
+    };
+
     return (
-        <React.Fragment>
-            <Box sx={{ mt:2 }}>
-            
+        <Box sx={{ mt: 2 }}>
             <Autocomplete
                 placeholder="เลือกประเภท Request..."
                 options={typesreq}
                 value={selectedType}
                 variant="outlined"
                 color="primary"
-                getOptionLabel={(option: TypesReqOption) => `${option.label} (${option.description})`}
-                renderOption={(props, option) => (
-                    <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {getIcon(option.key)}
-                        <Typography>
-                            <span style={{ fontWeight: 'bold' }}>{option.label}</span>
-                            <span style={{ color: '#666', marginLeft: '8px' }}>({option.description})</span>
-                        </Typography>
-                    </Box>
-                )}
-                isOptionEqualToValue={(option: TypesReqOption, value: TypesReqOption) => option.key === value?.key}
+                getOptionLabel={(option: TypesReqOption) =>
+                    `${option.label}`
+                }
+                renderOption={renderOption}
+                isOptionEqualToValue={(option: TypesReqOption, value: TypesReqOption) =>
+                    option.key === value?.key
+                }
                 onChange={handleTypeChange}
+                slotProps={{
+                    listbox: {
+                        sx: {
+                            '& .MuiAutocomplete-option': {
+                                padding: '8px 16px'
+                            }
+                        }
+                    }
+                }}
+                sx={{
+                    '& .MuiAutocomplete-input': {
+                        padding: '8px 12px'
+                    }
+                }}
             />
-            </Box>
-        </React.Fragment>
+        </Box>
     );
 }
