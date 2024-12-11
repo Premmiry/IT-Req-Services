@@ -1282,7 +1282,7 @@ export default function RequestForm() {
                         </Box>
                     )
                     }
-                    {requestData?.type_id === 3 && (requestData?.status_id === 16 || isITStaff) ? (
+                    {requestData?.type_id === 3 && ([16, 7].includes(requestData?.status_id ?? 0) || isITStaff) ? (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
