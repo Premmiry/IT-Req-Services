@@ -32,6 +32,7 @@ interface RowData {
     assignee: string;
     datecreated: string;
     topic: string;
+    name_program: string;
 }
 
 
@@ -168,7 +169,8 @@ export default function ListRequest() {
             const mappedData = data.map((item: any) => ({
                 id: item.id,
                 req_no: item.rs_code,
-                name: item.title_req || `พัฒนาโปรแกรมต่อเนื่อง${item.program_name ? ` (${item.program_name})` : ''}`,
+                name: item.title_req || '',
+                name_program: item.program_name || '' ,
                 status: item.status_name,
                 type_id: item.type_id,
                 type: item.type,
@@ -179,6 +181,7 @@ export default function ListRequest() {
             }));
 
             setRows(mappedData);
+            console.log('mappedData:', mappedData);
         } catch (error) {
             console.error('Error fetching requests:', error);
         }
@@ -205,56 +208,76 @@ export default function ListRequest() {
     const getStatusStyle = (status: string) => {
         const styles = {
             "Request": {
-                backgroundColor: '#42a5f5',
+                backgroundColor: '#42a5f5',  // สีฟ้า
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "Manager Approve": {
-                backgroundColor: '#66bb6a',
+                backgroundColor: '#66bb6a',  // สีเขียว
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "Manager Unapprove": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#ef5350',  // สีแดง
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "Director Approve": {
-                backgroundColor: '#66bb6a',
+                backgroundColor: '#4caf50',  // สีเขียวเข้ม
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "Director Unapprove": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#f44336',  // สีแดงเข้ม
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "IT Manager Approve": {
-                backgroundColor: '#ffa726',
+                backgroundColor: '#8bc34a',  // สีเขียวอ่อน
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "IT Manager Unapprove": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#ff5722',  // สีส้มแดง
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
-            "IT Director Approve": {
-                backgroundColor: '#ffa726',
+            "IT Director / Director Deputy Approve": {
+                backgroundColor: '#4db6ac',  // สีเขียวฟ้า
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
-            "IT Director Unapprove": {
-                backgroundColor: '#ef5350',
+            "IT Director / Director Deputy Unapprove": {
+                backgroundColor: '#ff7043',  // สีส้ม
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
-            "Wait For Assigned": {
-                backgroundColor: '#90a4ae',
+            "Admin Recieve": {
+                backgroundColor: '#90a4ae',  // สีเทา
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "In Progress": {
-                backgroundColor: '#5c6bc0',
+                backgroundColor: '#5c6bc0',  // สีน้ำเงิน
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "Complete": {
-                backgroundColor: '#66bb6a',
+                backgroundColor: '#2e7d32',  // สีเขียวเข้มมาก
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "Cancel": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#d32f2f',  // สีแดงเข้มมาก
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Revise": {
+                backgroundColor: '#ffa726',  // สีส้มอ่อน
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Confirm Close": {
+                backgroundColor: '#7cb342',  // สีเขียวอมเหลือง
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Reject": {
+                backgroundColor: '#c62828',  // สีแดงเลือดหมู
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "To Do": {
+                backgroundColor: '#9575cd',  // สีม่วง
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "UAT": {
+                backgroundColor: '#00acc1',  // สีฟ้าเขียว
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             }
         };
         return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };

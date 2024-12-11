@@ -138,60 +138,80 @@ export default function RequestForm() {
     const [selectedSubtopic, setSelectedSubtopic] = useState<SubtopicOption | null>(null);
     const [uatScore, setUatScore] = React.useState<boolean>(false);
     // console.log('subtopicOption', selectedSubtopic);
-
+    console.log('requestData', requestData);
     const getStatusStyle = (status: string) => {
         const styles = {
             "Request": {
-                backgroundColor: '#42a5f5',
+                backgroundColor: '#42a5f5',  // สีฟ้า
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "Manager Approve": {
-                backgroundColor: '#66bb6a',
+                backgroundColor: '#66bb6a',  // สีเขียว
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "Manager Unapprove": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#ef5350',  // สีแดง
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "Director Approve": {
-                backgroundColor: '#66bb6a',
+                backgroundColor: '#4caf50',  // สีเขียวเข้ม
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "Director Unapprove": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#f44336',  // สีแดงเข้ม
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "IT Manager Approve": {
-                backgroundColor: '#ffa726',
+                backgroundColor: '#8bc34a',  // สีเขียวอ่อน
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "IT Manager Unapprove": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#ff5722',  // สีส้มแดง
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
-            "IT Director Approve": {
-                backgroundColor: '#ffa726',
+            "IT Director / Director Deputy Approve": {
+                backgroundColor: '#4db6ac',  // สีเขียวฟ้า
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
-            "IT Director Unapprove": {
-                backgroundColor: '#ef5350',
+            "IT Director / Director Deputy Unapprove": {
+                backgroundColor: '#ff7043',  // สีส้ม
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
-            "Wait For Assigned": {
-                backgroundColor: '#90a4ae',
+            "Admin Recieve": {
+                backgroundColor: '#90a4ae',  // สีเทา
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "In Progress": {
-                backgroundColor: '#5c6bc0',
+                backgroundColor: '#5c6bc0',  // สีน้ำเงิน
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
             },
             "Complete": {
-                backgroundColor: '#66bb6a',
+                backgroundColor: '#2e7d32',  // สีเขียวเข้มมาก
                 icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             },
             "Cancel": {
-                backgroundColor: '#ef5350',
+                backgroundColor: '#d32f2f',  // สีแดงเข้มมาก
                 icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Revise": {
+                backgroundColor: '#ffa726',  // สีส้มอ่อน
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Confirm Close": {
+                backgroundColor: '#7cb342',  // สีเขียวอมเหลือง
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
+            },
+            "Reject": {
+                backgroundColor: '#c62828',  // สีแดงเลือดหมู
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "To Do": {
+                backgroundColor: '#9575cd',  // สีม่วง
+                icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} />
+            },
+            "UAT": {
+                backgroundColor: '#00acc1',  // สีฟ้าเขียว
+                icon: <CheckCircleIcon sx={{ fontSize: '1rem' }} />
             }
         };
         return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
@@ -408,21 +428,14 @@ export default function RequestForm() {
                 const formattedTotal = String(incrementedTotal).padStart(3, '0'); // Padding เป็น 3 หลัก
                 const dateCode = `${years}/${formattedTotal}`;
 
-                // กำหนด prefix ��ามประเภทที่เลือก
-                const prefix = selectedTypeId === 1 ? 'IT' :
-                    selectedTypeId === 2 ? 'IS' :
-                        selectedTypeId === 3 ? 'DEV' : 'UNK';
-
-                return `${prefix}${dateCode}`; // Generate รหัสที่ไม่ซ้ำโดยเพิ่มเลข request ขึ้น 1
+                return `IT${dateCode}`; // Generate รหัสที่ไม่ซ้ำโดยเพิ่มเลข request ขึ้น 1
             } else {
                 throw new Error('No data received from the API');
             }
         } catch (error) {
             console.error('Error generating code:', error);
-            const prefix = selectedTypeId === 1 ? 'IT' :
-                selectedTypeId === 2 ? 'IS' :
-                    selectedTypeId === 3 ? 'DEV' : 'UNK';
-            return getFallbackCode(prefix);
+
+            return getFallbackCode('IT');
         }
     }, []);
 
@@ -463,7 +476,10 @@ export default function RequestForm() {
             formData.append('id_job_description', userData ? String(userData.id_job_description) : '');
             formData.append('id_division_competency', userData ? String(userData.id_division_competency) : '');
             formData.append('id_section_competency', userData ? String(userData.id_section_competency) : '');
-            formData.append('user_req', userData ? userData.username : '');
+            {!isEditMode && (
+                formData.append('user_req', userData ? userData.username : '')
+            )}
+            
             formData.append('position', userData ? userData.position : '');
             formData.append('name_req', name);
             formData.append('phone', phone);
@@ -476,7 +492,11 @@ export default function RequestForm() {
                 formData.append('title_req', '');
             }
             formData.append('detail_req', details);
-            formData.append('id_program', selectedProgram ? String(selectedProgram.key) : '');
+            if (selectedTypeId === 3) {
+                formData.append('id_program', selectedProgram ? String(selectedProgram.key) : '');
+            } else {
+                formData.append('id_program', '');
+            }   
 
             // จัดการกัคฟล์
             if (uploadedFiles.length > 0) {
@@ -1055,7 +1075,7 @@ export default function RequestForm() {
                                 </Grid>
                             </Box>
                         )}
-                    {![1, 2, 3].includes(requestData?.status_id ?? 0) && (
+                    {(requestData?.status_id && ![1, 2, 3].includes(requestData.status_id)) && (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
@@ -1194,7 +1214,8 @@ export default function RequestForm() {
                             </Button>
                         </Box>
                     )}
-                    {((status_id === 15) && (!isITStaff)) || (uatScore === true && status_id === 16 && (!isITStaff)) && (
+                    {/* {((requestData?.status_id === 15) && (!isITStaff) && (requestData?.type_id !== 3)) || (uatScore === true && requestData?.status_id === 16 && (!isITStaff)) && ( */}
+                    {!isITStaff && (requestData?.status_id === 15 || requestData?.status_id === 16) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
                                 color="success"
