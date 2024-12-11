@@ -151,7 +151,7 @@ export const BoxITManagerApprove = ({
 
         try {
             const response = await fetch(
-                `${URLAPI}/it_m_approve/${itmanagerApprove.req_id}?name=${encodeURIComponent(itmanagerName)}&status=${encodeURIComponent(value1)}&note=${encodeURIComponent(it_m_note ?? "")}&level_job=${encodeURIComponent(levelJob)}`,
+                `${URLAPI}/it_m_approve/${itmanagerApprove.req_id}?name=${encodeURIComponent(itmanagerName)}&status=${encodeURIComponent(value1)}&note=${encodeURIComponent(it_m_note ?? "")}&level_job=${Number(levelJob)}`,
                 {
                     method: "PUT",
                     headers: {

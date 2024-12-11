@@ -19,11 +19,12 @@ import { useEffect } from 'react';
 interface Props {
     window?: () => Window;
     children?: React.ReactElement<{ elevation?: number }>;
-    id: number; // เปลี่ยนเป็น number
+    id: number;
     username: string;
     department: number;
     status: number;
-    onClose?: () => void; // เพิ่ม callback function สำหรับปิด modal
+    onClose?: () => void;
+    onScoreChange?: (score: boolean) => void; // เพิ่ม prop นี้
 }
 
 interface UATRow {
@@ -39,6 +40,7 @@ export default function UAT(props: Props) {
     const [rows, setRows] = React.useState<UATRow[]>([]);
     const [selectedRows, setSelectedRows] = React.useState<number[]>([]);
     const [isAddingRow, setIsAddingRow] = React.useState<boolean>(false);
+    const [score, setScore] = React.useState<boolean>(false);
 
     const fetchUATData = async (req_id: number) => {
         try {
@@ -48,6 +50,18 @@ export default function UAT(props: Props) {
             }
             const data = await response.json();
             setDataUat(data);
+
+            // เช็คว่าทุก row มี result เป็น 1 หรือไม่
+            const allPassed = data.length > 0 && data.every((item: any) => 
+                item.id_uat && // มี id_uat
+                item.testresults === 1 // result เป็น 1
+            );
+            
+            setScore(allPassed);
+            if (props.onScoreChange) {
+                props.onScoreChange(allPassed);
+            }
+
             return data;
         } catch (error) {
             console.error('Error fetching UAT data:', error);
@@ -164,7 +178,7 @@ export default function UAT(props: Props) {
             return; // ถ้าไม่ผ่านการตรวจสอบให้หยุดการทำงาน
         }
 
-        // ถ้าผ่านการตรวจสอบแล้ว ให้เรียกฟังก์ชัน SaveRow
+        // ถ้าผ่านการตรวจสอบแล้ว ให้เรียกฟังก์���ัน SaveRow
         await saveOrUpdateRow(row);
     };
 
@@ -269,7 +283,7 @@ export default function UAT(props: Props) {
                 return;
             }
 
-            // ตรวจสอบว่าถ้าเลือกไม่ผ่านต้องมีการกรอกเหตุผล
+            // ตรวจสอบว่าถ้าเลือกไม่ผ่านต้องมีการกรอกเห��ุผล
             const invalidRows = rowsToUpdate.filter(row =>
                 row.result === 2 && // result = 2 คือไม่ผ่าน
                 (!row.description || row.description.trim() === '')
@@ -282,51 +296,38 @@ export default function UAT(props: Props) {
 
             // สร้าง requests สำหรับ rows ที่จะอัพเดท
             const updatePromises = rowsToUpdate.map(async (row) => {
-                // Make sure to convert types exactly as expected by the backend
                 const data = {
-                    id_uat: parseInt(String(row.id_uat)), // แน่ใจว่าเป็น integer
-                    req_id: parseInt(String(props.id)), // แน่ใจว่าเป็น integer
+                    id_uat: parseInt(String(row.id_uat)),
+                    req_id: parseInt(String(props.id)),
                     assigned_username: String(props.username),
-                    testresults: row.result !== null ? parseInt(String(row.result)) : null, // แน่ใจว่าเป็น integer หรือ null
-                    uat_note: row.description ? String(row.description).trim() : null // trim whitespace
+                    testresults: row.result !== null ? parseInt(String(row.result)) : null,
+                    uat_note: row.description ? String(row.description).trim() : null
                 };
 
-                // Log the data being sent for debugging
-                console.log('Sending data to API:', data);
+                const response = await fetch(`${URLAPI}/assigned_uat/${row.id_uat}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
 
-                try {
-                    const response = await fetch(`${URLAPI}/assigned_uat/${row.id_uat}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(data)
-                    });
-
-                    if (!response.ok) {
-                        // Log the full response for debugging
-                        const errorText = await response.text();
-                        console.error('Error response:', errorText);
-
-                        try {
-                            const errorData = JSON.parse(errorText);
-                            throw new Error(errorData.detail || 'Failed to update UAT');
-                        } catch (e) {
-                            throw new Error(errorText || 'Failed to update UAT');
-                        }
-                    }
-
-                    return await response.json();
-                } catch (err) {
-                    console.error(`Error updating UAT row ${row.id_uat}:`, err);
-                    throw err;
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(errorText || 'Failed to update UAT');
                 }
+
+                return await response.json();
             });
 
             // รอให้ทุก request เสร็จสิ้น
             const results = await Promise.all(updatePromises);
 
             alert(`บันทึกผลการทดสอบ UAT เรียบร้อยแล้ว ${results.length} รายการ`);
+
+            // เพิ่มการเรียก fetchUATData เพื่อรีเฟรชข้อมูลและอัพเดท score
+            await fetchUATData(props.id);
 
             // ปิด modal ถ้ามี
             if (props.onClose) {
@@ -442,7 +443,7 @@ export default function UAT(props: Props) {
                                             value={row.title}
                                             onChange={handleTextChange(row.id, 'title')}
                                             minRows={4}
-                                            placeholder="กรอกหัวข้อ UAT ที่นี่…"
+                                            placeholder="กรอก��ัวข้อ UAT ที่นี่…"
                                             style={{ width: '100%' }}
                                         />
                                     </Box>

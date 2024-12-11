@@ -251,12 +251,12 @@ const AssigneeDepSelector: React.FC<AssigneeDepSelectorProps> = ({ requestId, re
                             icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
                             label={`${dept.name_department}`}
                             onDelete={
-                                !readOnly && isITStaff
+                                !readOnly && admin === 'ADMIN'
                                     ? () => handleRemoveDepartment(dept.id_req_dep)
                                     : undefined
                             }
                             deleteIcon={
-                                !readOnly && isITStaff
+                                !readOnly && admin === 'ADMIN'
                                     ? <DeleteIcon />
                                     : undefined
                             }

@@ -38,6 +38,7 @@ const usePriorityOptions = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
+    const [admin, setAdmin] = useState<string | null>(null);
 
     const isITStaff = useMemo(() => {
         return userData?.id_section === 28 ||
@@ -67,16 +68,20 @@ const usePriorityOptions = () => {
 
         // ดึงข้อมูลผู้ใช้จาก sessionStorage
         const storedUserData = sessionStorage.getItem('userData');
+        const storedAdmin = sessionStorage.getItem('admin');
         if (storedUserData) {
             setUserData(JSON.parse(storedUserData));
         }
+        if (storedAdmin) {
+            setAdmin(storedAdmin);
+        }
     }, []);
 
-    return { priorityOptions, isLoading, error, isITStaff };
+    return { priorityOptions, isLoading, error, isITStaff, admin };
 };
 
 export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readOnly = false }) => {
-    const { priorityOptions, isLoading, error, isITStaff } = usePriorityOptions();
+    const { priorityOptions, isLoading, error, isITStaff, admin } = usePriorityOptions();
     const [selectedPriority, setSelectedPriority] = useState<PriorityOption | null>(null);
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -88,7 +93,7 @@ export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readO
     }, [id_priority, priorityOptions]);
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-        if (!readOnly && isITStaff) {
+        if (!readOnly && admin === 'ADMIN') {
             setAnchorEl(event.currentTarget);
         }
     };
@@ -141,12 +146,12 @@ export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readO
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 1,
-                    cursor: readOnly || !isITStaff ? 'default' : 'pointer',
+                    cursor: readOnly || admin !== 'ADMIN' ? 'default' : 'pointer',
                     padding: '4px 8px',
                     borderRadius: '4px',
                     backgroundColor: selectedPriority ? '#f5f5f5' : 'transparent',
                     '&:hover': {
-                        backgroundColor: readOnly || !isITStaff ? 'transparent' : '#f0f0f0'
+                        backgroundColor: readOnly || admin !== 'ADMIN' ? 'transparent' : '#f0f0f0'
                     }
                 }}
             >
@@ -161,7 +166,7 @@ export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readO
                 <Typography variant="body2">
                     {selectedPriority?.name_priority || 'Priority'}
                 </Typography>
-                {selectedPriority && !readOnly && isITStaff && (
+                {selectedPriority && !readOnly && admin === 'ADMIN' && (
                     <IconButton
                         size="small"
                         onClick={(e) => {
@@ -175,7 +180,7 @@ export const SelectPriority: React.FC<PriorityProps> = ({ id, id_priority, readO
             </Box>
 
             {/* Dropdown Menu */}
-            {isITStaff && (
+            {admin === 'ADMIN' && (
                 <Popover
                     open={open}
                     anchorEl={anchorEl}

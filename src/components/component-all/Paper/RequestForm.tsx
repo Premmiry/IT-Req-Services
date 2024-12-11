@@ -136,6 +136,7 @@ export default function RequestForm() {
     const numericId = id ? parseInt(id) : 0; // Convert string id to number
     const [requestData, setRequestData] = useState<RequestData | null>(null);
     const [selectedSubtopic, setSelectedSubtopic] = useState<SubtopicOption | null>(null);
+    const [uatScore, setUatScore] = React.useState<boolean>(false);
     // console.log('subtopicOption', selectedSubtopic);
 
     const getStatusStyle = (status: string) => {
@@ -362,7 +363,7 @@ export default function RequestForm() {
         if (subtopic !== null) {
             setSelectedSubtopicId(subtopic.key);
             setSelectedSubtopic(subtopic);
-            
+
             if (!isEditMode && subtopic.pattern) {
                 setDetails(subtopic.pattern);
             }
@@ -370,7 +371,7 @@ export default function RequestForm() {
         } else {
             setSelectedSubtopicId(null);
             setSelectedSubtopic(null);
-            
+
             if (!isEditMode) {
                 setDetails('');
             }
@@ -407,7 +408,7 @@ export default function RequestForm() {
                 const formattedTotal = String(incrementedTotal).padStart(3, '0'); // Padding เป็น 3 หลัก
                 const dateCode = `${years}/${formattedTotal}`;
 
-                // กำหนด prefix ตามประเภทที่เลือก
+                // กำหนด prefix ��ามประเภทที่เลือก
                 const prefix = selectedTypeId === 1 ? 'IT' :
                     selectedTypeId === 2 ? 'IS' :
                         selectedTypeId === 3 ? 'DEV' : 'UNK';
@@ -775,6 +776,11 @@ export default function RequestForm() {
         }
     }, [numericId, userData?.username, fetchRequestData]);
 
+    const handleScoreChange = (score: boolean) => {
+        setUatScore(score);
+    };
+
+
     return (
         <React.Fragment>
             <CssBaseline />
@@ -930,7 +936,7 @@ export default function RequestForm() {
                             ) : (
                                 <TitleInput
                                     value={title}
-                                    onChange={(e) => setTitle(e.target.value)}      
+                                    onChange={(e) => setTitle(e.target.value)}
                                 />
                             )}
 
@@ -1049,7 +1055,7 @@ export default function RequestForm() {
                                 </Grid>
                             </Box>
                         )}
-                    {userData && ((['m', 'd'].includes(userData.position) || admin === 'ADMIN') && (isITStaff)) && (
+                    {![1, 2, 3].includes(requestData?.status_id ?? 0) && (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
@@ -1136,7 +1142,7 @@ export default function RequestForm() {
                             </Box>
                         </Box>
                     )}
-                    {((status_id === 14 && (requestData?.type_id === 1 || requestData?.type_id === 3)) || (status_id === 18 && (requestData?.type_id === 2))) && (isITStaff) && (
+                    {(status_id === 18 && (requestData?.type_id === 1 || requestData?.type_id === 2 || requestData?.type_id === 3)) && (isITStaff) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
                                 color="primary"
@@ -1165,7 +1171,7 @@ export default function RequestForm() {
                     {(status_id === 6 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
-                                color="primary"
+                                color="success"
                                 startDecorator={<SaveIcon />}
                                 onClick={() => {
                                     Swal.fire({
@@ -1188,9 +1194,10 @@ export default function RequestForm() {
                             </Button>
                         </Box>
                     )}
-                    {(status_id === 15) && (!isITStaff) && (
+                    {((status_id === 15) && (!isITStaff)) || (uatScore === true && status_id === 16 && (!isITStaff)) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
+                                color="success"
                                 sx={{ mr: 3 }}
                                 startDecorator={<SaveIcon />}
                                 onClick={() => {
@@ -1212,14 +1219,15 @@ export default function RequestForm() {
                             >
                                 Complete Job
                             </Button>
+                            {requestData?.type_id !== 3 && (
                             <Button
                                 sx={{ mr: 3 }}
                                 color="danger"
                                 startDecorator={<SaveIcon />}
                                 onClick={() => {
                                     Swal.fire({
-                                        title: 'ยืนยันการคืนงาน',
-                                        text: 'คุณต้องการคืนงานนี้ใช่หรือไม่?',
+                                        title: 'ยืนยันการส่งแก้ไขงาน',
+                                        text: 'คุณต้องการส่งแก้ไขงานนี้ใช่หรือไม่?',
                                         icon: 'question',
                                         showCancelButton: true,
                                         confirmButtonText: 'ใช่',
@@ -1233,8 +1241,9 @@ export default function RequestForm() {
                                     });
                                 }}
                             >
-                                Return Job
-                            </Button>
+                                Edit Job
+                                </Button>
+                            )}
                         </Box>
                     )}
 
@@ -1273,7 +1282,7 @@ export default function RequestForm() {
                         </Box>
                     )
                     }
-                    {requestData?.type_id === 3 && requestData?.status_id === 16 ? (
+                    {requestData?.type_id === 3 && (requestData?.status_id === 16 || isITStaff) ? (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
@@ -1306,6 +1315,7 @@ export default function RequestForm() {
                                     username={userData.username}
                                     department={userData.id_department}
                                     status={requestData?.status_id ?? 0}
+                                    onScoreChange={handleScoreChange}
                                 />
                             </Box>
                         </Box>

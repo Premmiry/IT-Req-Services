@@ -43,6 +43,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [userData, setUserData] = useState<any | null>(null);
+    const [admin, setAdmin] = useState<string | null>(null);
     const [assignedEmployees, setAssignedEmployees] = useState<AssignedEmployee[]>([]);
 
     // Notification State
@@ -84,8 +85,12 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
     // Lifecycle Hooks
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
+        const storedAdmin = sessionStorage.getItem('admin');
         if (storedUserData) {
             setUserData(JSON.parse(storedUserData));
+        }
+        if (storedAdmin) {
+            setAdmin(storedAdmin);
         }
     }, []);
 
@@ -211,7 +216,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
 
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, flexWrap: 'wrap' }}>
                 {/* Add Employee Trigger */}
-                {!readOnly && isITStaff && (
+                {!readOnly && admin === 'ADMIN' && (
                     <Typography
                         onClick={handleOpenMenu}
                         sx={{
@@ -260,7 +265,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
                                         {emp.emp_name?.[0]?.toUpperCase()}
                                     </Avatar>
                                 </Tooltip>
-                                {!readOnly && isITStaff && (
+                                {!readOnly && admin === 'ADMIN' && (
                                     <IconButton
                                         className="remove-button"
                                         size="small"

@@ -44,18 +44,11 @@ const usePriorityOptions = () => {
         const storedUserData = sessionStorage.getItem('userData');
         const storedAdmin = sessionStorage.getItem('admin');
 
-        // console.log("Stored UserData:", storedUserData);
-        // console.log("Stored Admin:", storedAdmin);
-
         if (storedUserData) {
-            const userDataParsed = JSON.parse(storedUserData);
-            setUserData(userDataParsed);
-            // console.log("UserData:", userDataParsed);
+            setUserData(JSON.parse(storedUserData));
         }
-
         if (storedAdmin) {
             setAdmin(storedAdmin);
-            // console.log("Admin:", storedAdmin);
         }
     }, []);
 
@@ -65,18 +58,11 @@ const usePriorityOptions = () => {
             userData?.id_section_competency === 28;
     }, [userData]);
 
-    useEffect(() => {
-        const storedUserData = sessionStorage.getItem('userData');
-        if (storedUserData) {
-            setUserData(JSON.parse(storedUserData));
-        }
-    }, []);
-
-    return { isITStaff };
+    return { isITStaff, admin };
 };
 
 const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => {
-    const { isITStaff } = usePriorityOptions();
+    const { isITStaff, admin } = usePriorityOptions();
     const [dateStart, setDateStart] = useState<Dayjs | null>(date_start ? dayjs(date_start) : null);
     const [dateEnd, setDateEnd] = useState<Dayjs | null>(date_end ? dayjs(date_end) : null);
     const [isLoading, setIsLoading] = useState(false);
@@ -115,13 +101,13 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
     };
 
     const handleDateStartChange = (newValue: Dayjs | null) => {
-        if (!newValue || !isITStaff) return;
+        if (!newValue || (!isITStaff && admin !== 'ADMIN')) return;
         setDateStart(newValue);
         updateDateWork('date_start', newValue);
     };
 
     const handleDateEndChange = (newValue: Dayjs | null) => {
-        if (!newValue || !isITStaff) return;
+        if (!newValue || (!isITStaff && admin !== 'ADMIN')) return;
         setDateEnd(newValue);
         updateDateWork('date_end', newValue);
     };
@@ -149,7 +135,7 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                                 color: 'primary',
                             },
                         }}
-                        disabled={!isITStaff || isLoading}
+                        disabled={(!isITStaff || admin !== 'ADMIN') || isLoading}
                     />
                 </Grid>
                 <Grid item xs={12} sm={5}>
@@ -172,7 +158,7 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                                 color: 'secondary',
                             },
                         }}
-                        disabled={!isITStaff || isLoading}
+                        disabled={(!isITStaff || admin !== 'ADMIN') || isLoading}
                         minDate={dateStart || undefined}
                     />
                 </Grid>
