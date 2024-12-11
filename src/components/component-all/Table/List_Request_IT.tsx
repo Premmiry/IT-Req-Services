@@ -636,6 +636,14 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
     useEffect(() => {
         if (userData?.username && admin && tab !== undefined) {
             fetchRequests();
+
+            // ตั้งเวลา fetch ทุก 5 นาที
+            const interval = setInterval(() => {
+                fetchRequests();
+            }, 5 * 60 * 1000);
+
+            // Cleanup interval เมื่อ unmount
+            return () => clearInterval(interval);
         }
     }, [userData, admin, tab, fetchRequests]);
 

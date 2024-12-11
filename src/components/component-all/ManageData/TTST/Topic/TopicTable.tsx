@@ -77,16 +77,24 @@ export default function TopicTable({
     const handleEditSave = async () => {
         if (!selectedTopic) return;
 
-        const response = await fetch(`${URLAPI}/topics/${selectedTopic.topic_id}?topic_name=${editedTopicName}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
+        try {
+            const response = await fetch(`${URLAPI}/topics/${selectedTopic.topic_id}?topic_name=${editedTopicName}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                setSnackbar({ open: true, message: 'Topic updated successfully', severity: 'success' });
+                onTopicUpdated();
+                setEditDialogOpen(false);
+                setEditedTopicName('');
+            } else {
+                setSnackbar({ open: true, message: 'Failed to update topic', severity: 'error' });
             }
-        });
-        if (response.ok) {
-            setSnackbar({ open: true, message: 'Topic updated successfully', severity: 'success' });
-            onTopicUpdated();
-        } else {
+        } catch (error) {
+            console.error('Error updating topic:', error);
             setSnackbar({ open: true, message: 'Failed to update topic', severity: 'error' });
         }
     };

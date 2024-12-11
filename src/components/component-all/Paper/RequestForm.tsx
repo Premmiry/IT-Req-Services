@@ -432,7 +432,6 @@ export default function RequestForm() {
         if (!selectedDepartment) newErrors.department = 'กรุณาเลือกแผนก';
         if (!selectedTypeId) newErrors.typeId = 'กรุณาเลือกประเภทคำร้อง';
         if (!selectedTopicId) newErrors.topicId = 'กรุณาเลือกหัวข้อคำร้อง';
-        if (!selectedSubtopicId) newErrors.subtopicId = 'กรุณาเลือกหัวข้อ Subtask';
         if (!name) newErrors.name = 'กรุณากรอกชื่อ';
         if (!phone) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์';
         if (!details || details.replace(/<[^>]*>/g, '').trim() === '') {
@@ -1274,7 +1273,7 @@ export default function RequestForm() {
                         </Box>
                     )
                     }
-                    {requestData?.type_id === 3 ? (
+                    {requestData?.type_id === 3 && requestData?.status_id === 16 ? (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
