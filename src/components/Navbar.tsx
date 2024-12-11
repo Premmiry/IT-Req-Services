@@ -20,8 +20,10 @@ interface UserData {
   position: string;
   name_employee: string;
   id_department: number;
+  name_department: string;
   id_division: number;
   id_section: number;
+  id_job_description: number;
   name_job_description: string;
 }
 
@@ -41,7 +43,9 @@ const Navbar: React.FC = () => {
     if (storedUserData) {
       const userDataParsed: UserData = JSON.parse(storedUserData);
       setUserData(userDataParsed);
-      // console.log("UserData:", userDataParsed);
+      // console.log("id_job_description for Navbar:", userDataParsed.id_job_description);
+      // console.log("name_job_description for Navbar:", userDataParsed.name_job_description);
+      // console.log("name_department for Navbar:", userDataParsed.name_department);
     }
 
     if (storedAdmin) {
@@ -162,14 +166,16 @@ const Navbar: React.FC = () => {
 
           {userData ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* แสดงชื่อพนักงานบนหน้าจอขนาดกลาง-ใหญ่ */}
+              {/* แสดงชื่อพนักงานและตำแหน่งบนหน้าจอขนาดกลาง-ใหญ่ */}
               <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
                 <PersonIcon sx={{ fontSize: 20 }} />
                 <Typography>
-                  {userData.name_employee}
+                  {userData?.name_employee}
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
-                  ({userData.name_job_description})
+                  {userData?.name_job_description === null || userData?.id_job_description === 0
+                      ? `(${userData?.name_department})`
+                      : `(${userData?.name_job_description})`}
                 </Typography>
               </Box>
 
@@ -203,7 +209,9 @@ const Navbar: React.FC = () => {
                       {userData.name_employee}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {userData.name_job_description}
+                      {userData?.name_job_description === null || userData?.id_job_description === 0
+                          ? userData?.name_department 
+                          : userData?.name_job_description}
                     </Typography>
                   </Box>
 

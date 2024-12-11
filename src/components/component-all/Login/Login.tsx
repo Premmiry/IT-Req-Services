@@ -76,7 +76,7 @@ function Login() {
                 navigate('/nouseryh');
             } else {
                 sessionStorage.setItem('userData', JSON.stringify(userData));
-                // console.log("User Data stored in sessionStorage:", userData);
+                console.log("User Data stored in sessionStorage:", userData);
 
                 // ตรวจสอบ admin
                 const adminResponse = await fetch(`${URLAPI}/admin?user=${username}`, { method: 'GET' });
