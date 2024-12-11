@@ -62,12 +62,21 @@ const usePriorityOptions = () => {
 };
 
 const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => {
+    console.log('DateWork props:', { req_id, date_start, date_end });
+
     const { isITStaff, admin } = usePriorityOptions();
-    const [dateStart, setDateStart] = useState<Dayjs | null>(date_start ? dayjs(date_start) : null);
-    const [dateEnd, setDateEnd] = useState<Dayjs | null>(date_end ? dayjs(date_end) : null);
+    const [dateStart, setDateStart] = useState<Dayjs | null>(null);
+    const [dateEnd, setDateEnd] = useState<Dayjs | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-
+    useEffect(() => {
+        if (date_start) {
+            setDateStart(dayjs(date_start));
+        }
+        if (date_end) {
+            setDateEnd(dayjs(date_end));
+        }
+    }, [date_start, date_end]);
 
     const updateDateWork = async (field: 'date_start' | 'date_end', value: Dayjs | null) => {
         if (!value || !isITStaff) return;
@@ -101,13 +110,13 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
     };
 
     const handleDateStartChange = (newValue: Dayjs | null) => {
-        if (!newValue || (!isITStaff && admin !== 'ADMIN')) return;
+        if (!newValue || (!isITStaff)) return;
         setDateStart(newValue);
         updateDateWork('date_start', newValue);
     };
 
     const handleDateEndChange = (newValue: Dayjs | null) => {
-        if (!newValue || (!isITStaff && admin !== 'ADMIN')) return;
+        if (!newValue || (!isITStaff)) return;
         setDateEnd(newValue);
         updateDateWork('date_end', newValue);
     };
