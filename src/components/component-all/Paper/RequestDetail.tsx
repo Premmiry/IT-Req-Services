@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Box,
@@ -27,7 +27,6 @@ import AssigneeDepSelector from "../Select/AssigneeDepSelector";
 import AssigneeEmpSelector from "../Select/AssigneeEmpSelector";
 import { SelectPriority } from "../Select/select-priority";
 import DateWork from "../DatePicker/datework";
-import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 
 const style = {
     position: "absolute",
@@ -102,8 +101,6 @@ interface RequestDetailProps {
 const RequestDetail: React.FC<RequestDetailProps> = ({
     id,
     isModal,
-    onClose,
-    readOnly = false,
 }: RequestDetailProps) => {
     const navigate = useNavigate();
 
@@ -125,13 +122,13 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
         return `${day}/${month}/${buddhistYear}`;
     }, []);
 
-    const isITStaff = useMemo(() => {
-        return (
-            userData?.id_section === 28 ||
-            userData?.id_division_competency === 86 ||
-            userData?.id_section_competency === 28
-        );
-    }, [userData]);
+    // const isITStaff = useMemo(() => {
+    //     return (
+    //         userData?.id_section === 28 ||
+    //         userData?.id_division_competency === 86 ||
+    //         userData?.id_section_competency === 28
+    //     );
+    // }, [userData]);
 
     // Fetch Functions
     const fetchRequestData = useCallback(async () => {
@@ -304,62 +301,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
             }
         };
         return styles[status as keyof typeof styles] || { backgroundColor: '#81b1c9', icon: <RadioButtonCheckedSharpIcon sx={{ fontSize: '1rem' }} /> };
-    };
-
-    const handleConfirmJob = async () => {
-        try {
-            const response = await fetch(
-                `${URLAPI}/change_status/${requestData.id}?change=complete`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json", // ถ้ามี token ให้ใส่ตรงนี้
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Error: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log("Job confirmed successfully:", data);
-            alert("Job confirmed successfully!"); // แจ้งเตือนเมื่อสำเร็จ
-            if (onClose) {
-                onClose();
-            }
-        } catch (error) {
-            console.error("Failed to confirm job:", error);
-            alert("Failed to confirm job. Please try again.");
-        }
-    };
-
-    const handleCancelJob = async () => {
-        try {
-            const response = await fetch(
-                `${URLAPI}/change_status/${requestData.id}?change=cancel`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json", // ถ้ามี token ให้ใส่ตรงนี้
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Error: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log("Job canceled successfully:", data);
-            alert("Job canceled successfully!"); // แจ้งเตือนเมื่อสำเร็จ
-            if (onClose) {
-                onClose();
-            }
-        } catch (error) {
-            console.error("Failed to cancel job:", error);
-            alert("Failed to cancel job. Please try again.");
-        }
     };
 
     return (
