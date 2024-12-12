@@ -24,7 +24,8 @@ interface Props {
     department: number;
     status: number;
     onClose?: () => void;
-    onScoreChange?: (score: boolean) => void; // เพิ่ม prop นี้
+    onScoreChange?: (score: boolean) => void;
+    onUpdateComplete?: () => void;
 }
 
 interface UATRow {
@@ -175,10 +176,10 @@ export default function UAT(props: Props) {
         // ตรวจสอบว่า title ไม่เป็นค่าว่างหรือ null
         if (!row.title || row.title.trim() === "") {
             alert("หัวข้อ UAT ห้ามเป็นค่าว่าง");
-            return; // ถ้าไม่ผ่านการตรวจสอบให้หยุดการทำงาน
+            return; // ถ้าไม่ผ่านการตรวจสอบใ��้หยุดการทำงาน
         }
 
-        // ถ้าผ่านการตรวจสอบแล้ว ให้เรียกฟังก์���ัน SaveRow
+        // ถ้าผ่านการตรวจสอบแล้ว ให้เรียกฟังก์ัน SaveRow
         await saveOrUpdateRow(row);
     };
 
@@ -283,7 +284,7 @@ export default function UAT(props: Props) {
                 return;
             }
 
-            // ตรวจสอบว่าถ้าเลือกไม่ผ่านต้องมีการกรอกเห��ุผล
+            // ตรวจสอบว่าถ้าเลือกไม่��่านต้องมีการกรอกเหุผล
             const invalidRows = rowsToUpdate.filter(row =>
                 row.result === 2 && // result = 2 คือไม่ผ่าน
                 (!row.description || row.description.trim() === '')
@@ -326,8 +327,13 @@ export default function UAT(props: Props) {
 
             alert(`บันทึกผลการทดสอบ UAT เรียบร้อยแล้ว ${results.length} รายการ`);
 
-            // เพิ่มการเรียก fetchUATData เพื่อรีเฟรชข้อมูลและอัพเดท score
+            // เพียก fetchUATData เพื่อรีเฟรชข้อมูลและอัพเดท score
             await fetchUATData(props.id);
+
+            // เรียก callback เพื่อรีเฟรชข้อมูลใน RequestForm
+            if (props.onUpdateComplete) {
+                props.onUpdateComplete();
+            }
 
             // ปิด modal ถ้ามี
             if (props.onClose) {
@@ -443,7 +449,7 @@ export default function UAT(props: Props) {
                                             value={row.title}
                                             onChange={handleTextChange(row.id, 'title')}
                                             minRows={4}
-                                            placeholder="กรอก��ัวข้อ UAT ที่นี่…"
+                                            placeholder="กรอกหัวข้อ UAT ที่นี่…"
                                             style={{ width: '100%' }}
                                         />
                                     </Box>

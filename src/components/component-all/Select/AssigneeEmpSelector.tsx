@@ -216,7 +216,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
 
             <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, flexWrap: 'wrap' }}>
                 {/* Add Employee Trigger */}
-                {!readOnly && admin === 'ADMIN' && (
+                {!readOnly && (admin === 'ADMIN' || typedata === 'subtask') && (
                     <Typography
                         onClick={handleOpenMenu}
                         sx={{
@@ -265,7 +265,7 @@ const AssigneeEmpSelector: React.FC<AssigneeEmpSelectorProps> = ({
                                         {emp.emp_name?.[0]?.toUpperCase()}
                                     </Avatar>
                                 </Tooltip>
-                                {!readOnly && admin === 'ADMIN' && (
+                                {!readOnly && (admin === 'ADMIN' || typedata === 'subtask') && (
                                     <IconButton
                                         className="remove-button"
                                         size="small"
