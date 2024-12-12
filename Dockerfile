@@ -1,21 +1,35 @@
-FROM node as vite-app
+# Build stage
+FROM node:20-alpine AS build
 
+# Set working directory
 WORKDIR /app
+
+# Install global dependencies
+RUN npm install -g npm@latest
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm ci --silent
+
+# Copy project files
 COPY . .
 
-RUN ["npm", "i"]
-RUN ["npm", "run", "build"]
+# Build the project
+RUN npm run build
 
+# Production stage
 FROM nginx:alpine
 
-WORKDIR /usr/share/nginx/
+# Copy build files
+COPY --from=build /app/dist /usr/share/nginx/html
 
-RUN rm -rf html
-RUN mkdir html
+# Custom Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-WORKDIR /
+# Expose port
+EXPOSE 80
 
-COPY ./nginx/nginx.conf /etc/nginx
-COPY --from=vite-app ./app/dist /usr/share/nginx/html
-
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
