@@ -1,17 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-    Dialog, 
-    DialogTitle, 
-    DialogContent, 
-    DialogActions, 
-    TextField, 
-    Button,
-    Box, 
-    FormControlLabel, 
-    Checkbox, 
-    Typography, 
-    Alert
-} from '@mui/material';
+import {  Dialog,  DialogTitle,  DialogContent,  DialogActions,  TextField,  Button, Box,  FormControlLabel,  Checkbox,  Typography,  Alert } from '@mui/material';
 import { DetailsTextarea } from '../../../Input/input-requestform';
 import URLAPI from '../../../../../URLAPI';
 import { styled } from '@mui/material/styles';
@@ -34,6 +22,7 @@ interface SubTopic {
     check_d: number;
     check_it_m: number;
     check_it_d: number;
+    knowledge: string;
 }
 
 interface CheckboxField {
@@ -141,6 +130,7 @@ const SubTopicDialog: React.FC<SubTopicDialogProps> = ({
                     check_d: editedSubTopic.check_d,
                     check_it_m: editedSubTopic.check_it_m,
                     check_it_d: editedSubTopic.check_it_d,
+                    knowledge: editedSubTopic.knowledge,
                 }),
             });
 
@@ -184,7 +174,8 @@ const SubTopicDialog: React.FC<SubTopicDialogProps> = ({
                 check_m: 0,
                 check_d: 0,
                 check_it_m: 0,
-                check_it_d: 0
+                check_it_d: 0,
+                knowledge: ''
             });
         }
     }, [isEditMode, topic_id]);
@@ -263,6 +254,17 @@ const SubTopicDialog: React.FC<SubTopicDialogProps> = ({
                                 label={field.label}
                             />
                         ))}
+                    </Box>
+                    <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                            Knowledge:
+                        </Typography>
+                        <DetailsTextarea
+                            value={editedSubTopic.knowledge}
+                            onChange={(e) => handleInputChange('knowledge', e.target.value)}
+                            label=""
+                            placeholder="Enter knowledge details"
+                        />
                     </Box>
                 </Box>
             </StyledDialogContent>

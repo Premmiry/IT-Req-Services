@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Button, Typography } from '@mui/joy';
+import { Box, Button, Typography, Card } from '@mui/joy';
 import Chip from "@mui/material/Chip";
 import SelectDepartment from '../Select/select-department';
 import SelectTypeRequest from '../Select/select-typerequest';
@@ -28,6 +28,8 @@ import RadioButtonCheckedSharpIcon from "@mui/icons-material/RadioButtonCheckedS
 import dayjs from 'dayjs';
 import SelectSubtopic from '../Select/select-subtopic';
 import Swal from 'sweetalert2';
+import BasicRating from '../ContentTypeR/boxrating';
+import Rating from '@mui/material/Rating';
 
 interface ApproveProps {
     name: string;
@@ -112,7 +114,20 @@ interface SubtopicOption {
     check_it_d: number;
 }
 
+// เพิ่ม interface สำหรับ rating
+interface RatingScore {
+    id_rating_score: number;
+    id_rating: number;
+    rating_name: string;
+    score: number;
+}
 
+// เพิ่ม interface
+interface RatingOption {
+    id_rating: number;
+    type_id: number;
+    rating_name: string;
+}
 
 export default function RequestForm() {
     const { id } = useParams();
@@ -148,6 +163,10 @@ export default function RequestForm() {
     const [uatScore, setUatScore] = React.useState<boolean>(false);
     // console.log('subtopicOption', selectedSubtopic);
     console.log('date_estimate', requestData?.date_estimate);
+    const [showRating, setShowRating] = useState(false);
+    const [ratingScores, setRatingScores] = useState<RatingScore[]>([]);
+    const [ratingOptions, setRatingOptions] = useState<RatingOption[]>([]);
+
     const getStatusStyle = (status: string) => {
         const styles = {
             "Request": {
@@ -727,7 +746,7 @@ export default function RequestForm() {
         } catch (error) {
             console.error('Error fetching requests:', error);
             Swal.fire({
-                title: 'Error!',
+                title: 'Error!', 
                 html: 'เกิดข้อผิดพลาดในการรับงาน', 
                 icon: 'error',
                 confirmButtonText: 'OK',
@@ -789,45 +808,130 @@ export default function RequestForm() {
         if (!numericId) return;
 
         try {
-            const response = await fetch(
+            // เช็คคะแนนที่มีอยู่
+            const response = await fetch(`${URLAPI}/rating_score/${numericId}`);
+            if (!response.ok) throw new Error('Failed to fetch rating scores');
+            const existingScores = await response.json();
+
+            // เช็คคะแนนที่ต้องการทั้งหมด
+            const ratingResponse = await fetch(`${URLAPI}/rating?type_id=${requestData?.type_id}`);
+            if (!ratingResponse.ok) throw new Error('Failed to fetch rating options');
+            const requiredRatings = await ratingResponse.json();
+
+            // ถ้ายังไม่มีคะแนนเลย หรือคะแนนไม่ครบทุกหัวข้อ
+            if (existingScores.length < requiredRatings.length) {
+                setShowRating(true);
+                return;
+            }
+
+            // เช็คว่ามีคะแนน 0 หรือ null หรือไม่
+            const hasInvalidScore = existingScores.some((score: { score: number }) => !score.score);
+            if (hasInvalidScore) {
+                Swal.fire({
+                    title: 'ไม่สามารถปิดงานได้',
+                    text: 'กรุณาให้คะแนนให้ครบทุกหัวข้อ',
+                    icon: 'warning',
+                    confirmButtonText: 'ตกลง'
+                });
+                setShowRating(true);
+                return;
+            }
+
+            // ถ้าผ่านการตรวจสอบทั้งหมด ทำการ change status
+            const statusResponse = await fetch(
                 `${URLAPI}/change_status/${numericId}?change=complete&username=${userData?.username}`,
                 {
                     method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: {"Content-Type": "application/json"},
                 }
             );
-            if (!response.ok) {
-                throw new Error('Failed to fetch data from API');
-            }
+
+            if (!statusResponse.ok) throw new Error('Failed to update status');
 
             Swal.fire({
                 title: 'สำเร็จ!',
                 icon: 'success',
-                confirmButtonText: 'OK',
-                customClass: {
-                    title: 'alert-title',
-                    confirmButton: 'alert-button'
-                },
-                buttonsStyling: false,
+                confirmButtonText: 'OK'
             });
             fetchRequestData();
+
         } catch (error) {
-            console.error('Error fetching requests:', error);
+            console.error('Error:', error);
             Swal.fire({
                 title: 'Error!',
-                html: 'เกิดข้อผิดพลาดในการสำเร็จงาน',
+                text: 'เกิดข้อผิดพลาดในการดำเนินการ',
                 icon: 'error',
-                confirmButtonText: 'OK',
-                customClass: {
-                    title: 'alert-title',
-                    confirmButton: 'alert-button'
-                },
-                buttonsStyling: false,
+                confirmButtonText: 'OK'
             });
         }
-    }, [numericId, userData?.username, fetchRequestData]);
+    }, [numericId, userData?.username, requestData?.type_id, fetchRequestData]);
+
+    const handleCloseRating = useCallback(() => {
+        setShowRating(false);
+    }, []);
+
+    const handleRatingSubmit = useCallback(async () => {
+        try {
+            // เช็คคะแนนอีกครั้งหลังจากบันทึก
+            const response = await fetch(`${URLAPI}/rating_score/${numericId}`);
+            if (!response.ok) throw new Error('Failed to fetch rating scores');
+            const existingScores = await response.json();
+
+            const ratingResponse = await fetch(`${URLAPI}/rating?type_id=${requestData?.type_id}`);
+            if (!ratingResponse.ok) throw new Error('Failed to fetch rating options');
+            const requiredRatings = await ratingResponse.json();
+
+            // ตรวจสอบว่าคะแนนครบทุกหัวข้อ
+            if (existingScores.length < requiredRatings.length) {
+                Swal.fire({
+                    title: 'ไม่สามารถปิดงานได้',
+                    text: 'กรุณาให้คะแนนให้ครบทุกหัวข้อ',
+                    icon: 'warning',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            // เช็คว่ามีคะแนน 0 หรือ null หรือไม่
+            const hasInvalidScore = existingScores.some((score: { score: number }) => !score.score);
+            if (hasInvalidScore) {
+                Swal.fire({
+                    title: 'ไม่สามารถปิดงานได้',
+                    text: 'กรุณาให้คะแนนให้ครบทุกหัวข้อ',
+                    icon: 'warning',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            // ถ้าผ่านการตรวจสอบทั้งหมด ทำการ change status
+            const statusResponse = await fetch(
+                `${URLAPI}/change_status/${numericId}?change=complete&username=${userData?.username}`,
+                {
+                    method: "PUT",
+                    headers: {"Content-Type": "application/json"},
+                }
+            );
+
+            if (!statusResponse.ok) throw new Error('Failed to update status');
+
+            Swal.fire({
+                title: 'ปิดงานสำเร็จ!',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+            fetchRequestData();
+
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'เกิดข้อผิดพลาดในการดำเนินการ',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }, [numericId, userData?.username, requestData?.type_id, fetchRequestData]);
 
     const handleReturn = useCallback(async () => {
         if (!numericId) return;
@@ -877,6 +981,28 @@ export default function RequestForm() {
         setUatScore(score);
     };
 
+    const fetchRatingData = useCallback(async () => {
+        if (!numericId || !requestData?.type_id) return;
+        try {
+            const [scoresRes, optionsRes] = await Promise.all([
+                fetch(`${URLAPI}/rating_score/${numericId}`),
+                fetch(`${URLAPI}/rating?type_id=${requestData.type_id}`)
+            ]);
+            
+            if (scoresRes.ok && optionsRes.ok) {
+                const scores = await scoresRes.json();
+                const options = await optionsRes.json();
+                setRatingScores(scores);
+                setRatingOptions(options);
+            }
+        } catch (error) {
+            console.error('Error fetching rating data:', error);
+        }
+    }, [numericId, requestData?.type_id]);
+
+    useEffect(() => {
+        fetchRatingData();
+    }, [fetchRatingData]);
 
     return (
         <React.Fragment>
@@ -1305,7 +1431,8 @@ export default function RequestForm() {
                                 </Button>
                             </Box>
                         )}
-                    {(status_id === 8 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) && (
+                    {(status_id === 8 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) &&
+                        requestData?.date_end && (
                         <Box sx={{ mt: 4 }}>
                             <Button
                                 color="success"
@@ -1459,6 +1586,134 @@ export default function RequestForm() {
                             </Box>
                         </Box>
                     ) : null}
+                    {ratingOptions.length > 0 && ratingScores.length > 0 && requestData?.status_id === 11 && (
+                        <Box sx={{ mt: 4 }}>
+                            <Card variant="outlined" sx={{ maxWidth: 1200 }}>
+                                <Box sx={{ p: 2 }}>
+                                    <Typography 
+                                        level="h4" 
+                                        gutterBottom
+                                        sx={{
+                                            borderBottom: '2px solid #1976d2',
+                                            pb: 1,
+                                            mb: 2,
+                                            color: '#1976d2',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        ผลการประเมินการให้บริการ
+                                    </Typography>
+                                    
+                                    <Box 
+                                        sx={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: 2,
+                                            p: 2,
+                                            backgroundColor: '#f5f5f5',
+                                            borderRadius: '4px 4px 0 0',
+                                            borderBottom: '2px solid #1976d2',
+                                            mb: 2
+                                        }}
+                                    >
+                                        <Typography 
+                                            sx={{ 
+                                                width: '80%',
+                                                fontWeight: 600,
+                                                color: '#1976d2'
+                                            }}
+                                        >
+                                            หัวข้อการประเมิน
+                                        </Typography>
+                                        <Box 
+                                            sx={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                width: '20%',
+                                                justifyContent: 'flex-end'
+                                            }}
+                                        >
+                                            <Typography 
+                                                sx={{
+                                                    fontWeight: 600,
+                                                    color: '#1976d2'
+                                                }}
+                                            >
+                                                คะแนนการประเมิน
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+
+                                    <Grid container spacing={2}>
+                                        {ratingOptions.map((option, index) => {
+                                            const score = ratingScores.find(s => s.id_rating === option.id_rating);
+                                            return (
+                                                <Grid item xs={12} key={option.id_rating}>
+                                                    <Box 
+                                                        sx={{ 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            gap: 2,
+                                                            p: 2,
+                                                            backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white',
+                                                            borderRadius: 1,
+                                                            '&:hover': {
+                                                                backgroundColor: '#e3f2fd'
+                                                            },
+                                                            border: '1px solid #e0e0e0',
+                                                            mb: 1
+                                                        }}
+                                                    >
+                                                        <Typography 
+                                                            sx={{ 
+                                                                width: '80%',
+                                                                fontWeight: 500,
+                                                                color: '#424242'
+                                                            }}
+                                                        >
+                                                            {option.rating_name}
+                                                        </Typography>
+                                                        <Box 
+                                                            sx={{ 
+                                                                display: 'flex', 
+                                                                alignItems: 'center', 
+                                                                gap: 1,
+                                                                width: '20%',
+                                                                justifyContent: 'flex-end'
+                                                            }}
+                                                        >
+                                                            <Rating
+                                                                value={score?.score || 0}
+                                                                readOnly
+                                                                size="medium"
+                                                                sx={{
+                                                                    color: '#ffc107',
+                                                                    '& .MuiRating-iconFilled': {
+                                                                        filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.2))'
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <Typography 
+                                                                level="body-sm" 
+                                                                sx={{
+                                                                    color: '#757575',
+                                                                    fontWeight: 500,
+                                                                    ml: 1,
+                                                                    minWidth: '45px'
+                                                                }}
+                                                            >
+                                                                ({score?.score || 0}/5)
+                                                            </Typography>
+                                                        </Box>
+                                                    </Box>
+                                                </Grid>
+                                            );
+                                        })}
+                                    </Grid>
+                                </Box>
+                            </Card>
+                        </Box>
+                    )}
                     <Grid item xs={12}>
                         <Box sx={{ my: 2, p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             {
@@ -1496,6 +1751,13 @@ export default function RequestForm() {
                     </Grid>
                 </Paper>
             </Container>
+            <BasicRating 
+                req_id={numericId}
+                type_id={requestData?.type_id || null}
+                open={showRating}
+                onClose={handleCloseRating}
+                onSubmit={handleRatingSubmit}
+            />
         </React.Fragment>
     );
 }

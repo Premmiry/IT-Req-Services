@@ -8,6 +8,7 @@ export interface SubTopic {
     check_it_m: number;
     check_it_d: number;
     del_flag: string;
+    knowledge: string;
 }
 
 export interface SubTopicDialogProps {

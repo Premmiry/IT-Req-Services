@@ -12,6 +12,7 @@ interface InputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   type?: 'text' | 'textarea';
   readOnly?: boolean;
+  modules?: any;
 }
 
 interface StyledTextareaProps extends InputProps {
@@ -199,7 +200,7 @@ export const DetailsTextarea = React.forwardRef<ReactQuill, Omit<InputProps, 'ty
             } as React.ChangeEvent<HTMLTextAreaElement>;
             props.onChange(syntheticEvent);
           }}
-          modules={{
+          modules={props.modules || {
             toolbar: [
               [{ 'header': [1, 2, 3, false] }],
               ['bold', 'italic', 'underline', 'strike'],

@@ -6,10 +6,14 @@ import {
     Typography,
     Chip,
     IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent
 } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { SubTopic } from './types';
 import SubTopicDialog from './SubTopicDialog';
+import { DetailsTextarea } from '../../../Input/input-requestform';
 
 interface CheckLabel {
     check: number;
@@ -29,6 +33,7 @@ const SubTopicItem: React.FC<SubTopicItemProps> = React.memo(({
 }) => {
     const [dialogOpen, setDialogOpen] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [knowledgeModalOpen, setKnowledgeModalOpen] = useState<boolean>(false);
 
     const checkLabels: CheckLabel[] = React.useMemo(() => [
         { check: subtopic.check_m, label: 'M' },
@@ -80,6 +85,20 @@ const SubTopicItem: React.FC<SubTopicItemProps> = React.memo(({
                             <Typography variant="body2" component="span">
                                 {`${index + 1}. ${subtopic.subtopic_name}`}
                             </Typography>
+                            <Typography
+                                variant="body2"
+                                component="span"
+                                sx={{
+                                    cursor: 'pointer',
+                                    color: 'primary.main',
+                                    '&:hover': {
+                                        textDecoration: 'underline'
+                                    }
+                                }}
+                                onClick={() => setKnowledgeModalOpen(true)}
+                            >
+                                View Knowledge
+                            </Typography>
                             {checkLabels
                                 .filter(item => item.check === 1)
                                 .map((item, i) => (
@@ -126,6 +145,27 @@ const SubTopicItem: React.FC<SubTopicItemProps> = React.memo(({
                     subtopicId={subtopic.subtopic_id}
                 />
             )}
+
+            <Dialog
+                open={knowledgeModalOpen}
+                onClose={() => setKnowledgeModalOpen(false)}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>Knowledge Details</DialogTitle>
+                <DialogContent sx={{ p: 2 }}>
+                    <DetailsTextarea
+                        value={subtopic.knowledge}
+                        label=""
+                        placeholder="No knowledge details available"
+                        readOnly={true}
+                        modules={{
+                            toolbar: false
+                        }}
+                        onChange={() => {}}
+                    />
+                </DialogContent>
+            </Dialog>
         </Box>
     );
 });

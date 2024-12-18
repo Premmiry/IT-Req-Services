@@ -10,6 +10,7 @@ import RequestDetail from './components/component-all/Paper/RequestDetail';
 import UAT from './components/component-all/ContentTypeR/boxUAT';
 import { SelectPriority } from './components/component-all/Select/select-priority'
 import Boxsubtask from './components/component-all/Paper/SubtaskList';
+import Boxrating from './components/component-all/ContentTypeR/boxrating';
 function App() {
   return (
     <UserProvider>
@@ -52,6 +53,7 @@ function App() {
         <Route path="/boxUAT/:id" element={<UAT id={0} username={''} department={0} status={0} />} />
         <Route path="/priority/:id" element={<SelectPriority id={0} id_priority={0} />} />
         <Route path="/subtask" element={<Boxsubtask />} />
+        <Route path="/rating/:id" element={<Boxrating req_id={0} type_id={1} open={false} onClose={() => {}} onSubmit={() => {}} />} />
       </Routes>
       {/* <Footer /> */}
     </Router>

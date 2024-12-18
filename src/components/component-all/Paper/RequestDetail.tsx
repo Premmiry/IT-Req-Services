@@ -27,6 +27,7 @@ import AssigneeDepSelector from "../Select/AssigneeDepSelector";
 import AssigneeEmpSelector from "../Select/AssigneeEmpSelector";
 import { SelectPriority } from "../Select/select-priority";
 import DateWork from "../DatePicker/datework";
+import Rating from '@mui/material/Rating';
 
 const style = {
     position: "absolute",
@@ -81,6 +82,7 @@ interface RequestData {
     name_priority?: string | null;
     date_start?: Date | null;
     date_end?: Date | null;
+    date_estimate?: Date | null;
 }
 
 interface FileInfo {
@@ -95,6 +97,21 @@ interface RequestDetailProps {
     isModal?: boolean;
     onClose?: () => void;
     readOnly?: boolean; // Add this
+}
+
+// เพิ่ม interface สำหรับ rating
+interface RatingScore {
+    id_rating_score: number;
+    id_rating: number;
+    rating_name: string;
+    score: number;
+}
+
+// เพิ่ม interface
+interface RatingOption {
+    id_rating: number;
+    type_id: number;
+    rating_name: string;
 }
 
 // Component
@@ -112,6 +129,8 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
     // const [userData, setUserData] = useState<any | null>(null);
     const [userData, setUserData] = useState<any | null>(null);
     const [admin, setAdmin] = useState<string | null>(null);
+    const [ratingScores, setRatingScores] = useState<RatingScore[]>([]);
+    const [ratingOptions, setRatingOptions] = useState<RatingOption[]>([]);
 
     // Helper function to format dates
     const formatDate = useCallback((dateString: string): string => {
@@ -121,14 +140,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
         const month = String(date.getMonth() + 1).padStart(2, "0");
         return `${day}/${month}/${buddhistYear}`;
     }, []);
-
-    // const isITStaff = useMemo(() => {
-    //     return (
-    //         userData?.id_section === 28 ||
-    //         userData?.id_division_competency === 86 ||
-    //         userData?.id_section_competency === 28
-    //     );
-    // }, [userData]);
 
     // Fetch Functions
     const fetchRequestData = useCallback(async () => {
@@ -162,12 +173,40 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
         }
     }, [id]);
 
+    // เพิ่ม function สำหรับดึงข้อมูล rating
+    const fetchRatingScores = useCallback(async () => {
+        if (!id) return;
+        try {
+            const response = await fetch(`${URLAPI}/rating_score/${id}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data && data.length > 0) {
+                setRatingScores(data);
+            }
+        } catch (error) {
+            console.error('Error fetching rating scores:', error);
+        }
+    }, [id]);
+
+    // เพิ่ม function สำหรับดึงข้อมูล rating options
+    const fetchRatingOptions = useCallback(async () => {
+        if (!requestData?.type_id) return;
+        try {
+            const response = await fetch(`${URLAPI}/rating?type_id=${requestData.type_id}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            setRatingOptions(data);
+        } catch (error) {
+            console.error('Error fetching rating options:', error);
+        }
+    }, [requestData?.type_id]);
+
     // Effects
     useEffect(() => {
         const fetchAllData = async () => {
             setIsLoading(true);
             try {
-                await Promise.all([fetchRequestData()]);
+                await Promise.all([fetchRequestData(), fetchRatingScores(), fetchRatingOptions()]);
             } catch (error) {
                 setError(error instanceof Error ? error.message : "An error occurred");
             } finally {
@@ -176,7 +215,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
         };
 
         fetchAllData();
-    }, [fetchRequestData]);
+    }, [fetchRequestData, fetchRatingScores, fetchRatingOptions]);
 
     // Handlers
     const handleEdit = () => navigate(`/edit-request/${id}`);
@@ -598,24 +637,6 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                 <br />
 
                 <Card variant="outlined" sx={{ maxWidth: 1200 }}>
-                    {/* <Typography
-                        gutterBottom
-                        variant="h6"
-                        sx={{
-                            p: 2,
-                            // color: '#1976d2',
-                            textAlign: "center",
-                            fontWeight: "bold",
-                            // textTransform: 'uppercase',
-                            textDecoration: "underline",
-                            textDecorationThickness: 2,
-                            textUnderlineOffset: 6,
-                            // textDecorationColor: '#1976d2',
-                            textShadow: "2px 2px 4px rgba(0, 0, 0, 0.5)",
-                        }}
-                    >
-                        Admin IT Assign Job
-                    </Typography> */}
                     <Box sx={{ p: 2 }}>
                         {(requestData?.it_m_name || requestData?.it_d_name) && (
                             <Grid
@@ -738,7 +759,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                                             <ListItemText
                                                 primary={
                                                     <>
-                                                        <span>{requestData.it_d_name} : </span>
+                                                        {requestData.it_d_name} :
                                                         <span style={{ color: "green" }}>
                                                             {requestData.itdapp}
                                                         </span>
@@ -796,13 +817,11 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                         >
                             {/* Dates */}
                             <Box>
-                                {/* <Typography color="text.secondary" fontSize="0.75rem" mb={0.5}>
-                                    Dates
-                                </Typography> */}
                                 <DateWork
                                     req_id={requestData.id}
                                     date_start={requestData.date_start}
                                     date_end={requestData.date_end}
+                                    date_estimate={requestData.date_estimate}
                                 />
                             </Box>
 
@@ -833,25 +852,137 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                         </Stack>
 
                     </Box>
+                    <Divider />
+                    
                 </Card>
-                {/* {!isITStaff &&
-                    ((requestData.status_id === 6 && requestData.type_id !== 3) ||
-                        (requestData.status_id === 16 && requestData.type_id === 3)) ? (
-                    <>
-                        <Box sx={{ p: 2 }}>
-                            <Button
-                                color="primary"
-                                startIcon={<ThumbUpAltIcon />}
-                                onClick={handleConfirmJob}
-                            >
-                                Complete Job
-                            </Button>
-                        </Box>
-                    </>
-                ) : null}
-                <br /> */}
-
             </Box>
+            {ratingOptions.length > 0 && ratingScores.length > 0 && (
+                <Card variant="outlined" sx={{ maxWidth: 1200, mt: 2 }}>
+                    <Box sx={{ p: 2 }}>
+                        <Typography 
+                            variant="h6" 
+                            gutterBottom
+                            sx={{
+                                borderBottom: '2px solid #1976d2',
+                                pb: 1,
+                                mb: 2,
+                                color: '#1976d2',
+                                fontWeight: 500
+                            }}
+                        >
+                            ผลการประเมินการให้บริการ
+                        </Typography>
+                        
+                        {/* เพิ่ม Header */}
+                        <Box 
+                            sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 2,
+                                p: 2,
+                                backgroundColor: '#f5f5f5',
+                                borderRadius: '4px 4px 0 0',
+                                borderBottom: '2px solid #1976d2',
+                                mb: 2
+                            }}
+                        >
+                            <Typography 
+                                sx={{ 
+                                    width: '80%',
+                                    fontWeight: 600,
+                                    color: '#1976d2'
+                                }}
+                            >
+                                หัวข้อการประเมิน
+                            </Typography>
+                            <Box 
+                                sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    width: '20%',
+                                    justifyContent: 'flex-end'
+                                }}
+                            >
+                                <Typography 
+                                    sx={{
+                                        fontWeight: 600,
+                                        color: '#1976d2'
+                                    }}
+                                >
+                                    คะแนนการประเมิน
+                                </Typography>
+                            </Box>
+                        </Box>
+
+                        <Grid container spacing={2}>
+                            {ratingOptions.map((option, index) => {
+                                const score = ratingScores.find(s => s.id_rating === option.id_rating);
+                                return (
+                                    <Grid item xs={12} key={option.id_rating}>
+                                        <Box 
+                                            sx={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: 2,
+                                                p: 2,
+                                                backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white',
+                                                borderRadius: 1,
+                                                '&:hover': {
+                                                    backgroundColor: '#e3f2fd'
+                                                },
+                                                border: '1px solid #e0e0e0',
+                                                mb: 1
+                                            }}
+                                        >
+                                            <Typography 
+                                                sx={{ 
+                                                    width: '80%',
+                                                    fontWeight: 500,
+                                                    color: '#424242'
+                                                }}
+                                            >
+                                                {option.rating_name}
+                                            </Typography>
+                                            <Box 
+                                                sx={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: 1,
+                                                    width: '20%',
+                                                    justifyContent: 'flex-end'
+                                                }}
+                                            >
+                                                <Rating
+                                                    value={score?.score || 0}
+                                                    readOnly
+                                                    size="medium"
+                                                    sx={{
+                                                        color: '#ffc107',
+                                                        '& .MuiRating-iconFilled': {
+                                                            filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.2))'
+                                                        }
+                                                    }}
+                                                />
+                                                <Typography 
+                                                    variant="body2" 
+                                                    sx={{
+                                                        color: '#757575',
+                                                        fontWeight: 500,
+                                                        ml: 1,
+                                                        minWidth: '45px'
+                                                    }}
+                                                >
+                                                    ({score?.score || 0}/5)
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+                                );
+                            })}
+                        </Grid>
+                    </Box>
+                </Card>
+            )}
             {!isModal && (
                 <Button
                     variant="contained"
