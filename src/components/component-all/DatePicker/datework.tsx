@@ -22,6 +22,8 @@ interface DateWorkProps {
     req_id: number;
     date_start?: Date | null;
     date_end?: Date | null;
+    date_estimate?: Date | null;
+    onUpdateComplete?: () => void; // เพิ่ม prop สำหรับ callback
 }
 
 const StyledButton = styled(IconButton)(({ theme }) => ({
@@ -61,12 +63,14 @@ const usePriorityOptions = () => {
     return { isITStaff, admin };
 };
 
-const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => {
-    console.log('DateWork props:', { req_id, date_start, date_end });
+const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end, date_estimate, onUpdateComplete }) => {
+    console.log('DateWork props:', { req_id, date_start, date_end, date_estimate });
 
     const { isITStaff, admin } = usePriorityOptions();
     const [dateStart, setDateStart] = useState<Dayjs | null>(null);
+    const [currentDate, setCurrentDate] = useState<Dayjs | null>(null);
     const [dateEnd, setDateEnd] = useState<Dayjs | null>(null);
+    const [dateEstimate, setDateEstimate] = useState<Dayjs | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -76,10 +80,14 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
         if (date_end) {
             setDateEnd(dayjs(date_end));
         }
-    }, [date_start, date_end]);
+        if (date_estimate) {
+            setDateEstimate(dayjs(date_estimate));
+        }
+        setCurrentDate(dayjs());
+    }, [date_start, date_end, date_estimate]);
 
-    const updateDateWork = async (field: 'date_start' | 'date_end', value: Dayjs | null) => {
-        if (!value || !isITStaff) return;
+    const updateDateWork = async (field: 'date_start' | 'date_end' | 'date_estimate', value: Dayjs | null) => {
+        if (!value) return;
 
         setIsLoading(true);
         const params = new URLSearchParams();
@@ -101,6 +109,11 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
 
             const data = await response.json();
             console.log(`${field} updated successfully:`, data);
+            
+            // เรียก callback function หลังจากอัพเดตสำเร็จ
+            if (onUpdateComplete) {
+                onUpdateComplete();
+            }
         } catch (error) {
             console.error('Error updating date:', error);
             alert(error instanceof Error ? error.message : 'An error occurred while updating the date');
@@ -119,6 +132,12 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
         if (!newValue || (!isITStaff)) return;
         setDateEnd(newValue);
         updateDateWork('date_end', newValue);
+    };
+
+    const handleDateEstimateChange = (newValue: Dayjs | null) => {
+        if (!newValue || (!isITStaff)) return;
+        setDateEstimate(newValue);
+        updateDateWork('date_estimate', newValue);
     };
 
     return (
@@ -144,7 +163,30 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                                 color: 'primary',
                             },
                         }}
-                        disabled={(!isITStaff || admin !== 'ADMIN') || isLoading}
+                        disabled={true}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={5}>
+                        <DatePicker
+                            label="วันที่ประมาณการ (Date Estimate)"
+                            value={dateEstimate}
+                            onChange={handleDateEstimateChange}
+                            format="DD-MM-YYYY"
+                            slots={{
+                                openPickerIcon: EditCalendarRoundedIcon,
+                                openPickerButton: StyledButton,
+                                day: StyledDay,
+                            }}
+                            slotProps={{
+                                openPickerIcon: { fontSize: 'large' },
+                                openPickerButton: { color: 'warning' },
+                                textField: {
+                                    variant: 'standard',
+                                    focused: true,
+                                    color: 'primary',
+                                },
+                            }}
+                        disabled={(!isITStaff) || isLoading}
                     />
                 </Grid>
                 <Grid item xs={12} sm={5}>
@@ -167,10 +209,11 @@ const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end }) => 
                                 color: 'secondary',
                             },
                         }}
-                        disabled={(!isITStaff || admin !== 'ADMIN') || isLoading}
-                        minDate={dateStart || undefined}
+                        disabled={(!isITStaff) || isLoading}
+                        minDate={currentDate || undefined}
                     />
                 </Grid>
+                
             </Grid>
         </LocalizationProvider>
     );

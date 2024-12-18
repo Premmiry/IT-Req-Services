@@ -489,6 +489,14 @@ export default function ListRequest() {
     useEffect(() => {
         if (userData?.username && admin) {
             fetchRequests();
+
+            // ตั้งเวลา fetch ทุก 5 นาที
+            const interval = setInterval(() => {
+                fetchRequests();
+            }, 5 * 60 * 1000);
+
+            // Cleanup interval เมื่อ unmount
+            return () => clearInterval(interval);
         }
     }, [userData, admin, fetchRequests]);
 

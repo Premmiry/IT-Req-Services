@@ -551,7 +551,7 @@ export default function UAT(props: Props) {
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 2 }}>
-                {dataUat && (![7, 8, 17].includes(props.status)) && props.department !== 292 && (
+                {dataUat && ([6].includes(props.status)) && props.department !== 292 && (
                     <>
                         <Button
                             variant="contained"

@@ -91,7 +91,14 @@ interface RequestData {
     files?: string;
     date_start?: string | null;  // Changed from Date to string
     date_end?: string | null;    // Changed from Date to string
+    date_estimate?: string | null;
     id_priority?: number | null;
+    admin_recieve_username?: string | null;
+    it_user_recieve?: string | null;
+    check_m?: number;
+    check_d?: number;
+    check_it_m?: number;
+    check_it_d?: number;
 }
 
 interface SubtopicOption {
@@ -140,7 +147,7 @@ export default function RequestForm() {
     const [selectedSubtopic, setSelectedSubtopic] = useState<SubtopicOption | null>(null);
     const [uatScore, setUatScore] = React.useState<boolean>(false);
     // console.log('subtopicOption', selectedSubtopic);
-    console.log('requestData', requestData);
+    console.log('date_estimate', requestData?.date_estimate);
     const getStatusStyle = (status: string) => {
         const styles = {
             "Request": {
@@ -233,9 +240,15 @@ export default function RequestForm() {
                 setRequestData({
                     ...reqData,
                     date_start: reqData.date_start ? reqData.date_start.split('T')[0] : null,
-                    date_end: reqData.date_end ? reqData.date_end.split('T')[0] : null
+                    date_end: reqData.date_end ? reqData.date_end.split('T')[0] : null,
+                    date_estimate: reqData.date_estimate ? reqData.date_estimate.split('T')[0] : null
                 });
 
+                setRequestData({
+                    ...reqData,
+                    admin_recieve_username: reqData.admin_recieve_username || null,
+                    it_user_recieve: reqData.it_user_recieve || null
+                });
                 // อัพเดทค่าต่างๆ
                 setSelectedDepartment({ key: reqData.id_department, label: '' });
                 setSelectedTypeId(reqData.type_id || null);
@@ -501,9 +514,22 @@ export default function RequestForm() {
             formData.append('detail_req', details);
             if (selectedTypeId === 3) {
                 formData.append('id_program', selectedProgram ? String(selectedProgram.key) : '');
+                if (selectedTypeId === 3 && selectedTopicId !== 2) {
+                    formData.append('title_req', title);
+                }
             } else {
                 formData.append('id_program', '');
-            }   
+            }
+
+            if (!isEditMode) {
+                if (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?. check_it_d === 0 || selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 1) {
+                    formData.append('status_id', '2');
+                } else if (selectedSubtopic?.check_it_m === 0 && selectedSubtopic?.check_it_d === 1) {
+                    formData.append('status_id', '3');
+                } else {
+                    formData.append('status_id', '1');
+                }
+            }
 
             // จัดการกัคฟล์
             if (uploadedFiles.length > 0) {
@@ -594,7 +620,7 @@ export default function RequestForm() {
         if (isEditMode) return true;
 
         // Allow editing for IT staff with specific status_id
-        if (isITStaff && [4, 5].includes(status_id || 0)) {
+        if (isITStaff && [5, 6].includes(status_id || 0)) {
             return false;
         }
 
@@ -604,7 +630,7 @@ export default function RequestForm() {
         }
 
         // Allow editing if status is pending (status_id = 1)
-        if (status_id === 1) {
+        if ((userData.type_id === 2 && status_id === 1) || (userData.type_id !== 2 && status_id === 2)) {
             return false;
         }
 
@@ -617,24 +643,74 @@ export default function RequestForm() {
         return isEditMode;
     }, [isEditMode, isITStaff, status_id, userData?.position, userData?.username, rsCode]);
 
-    const handleITRecieve = useCallback(async () => {
+    const handleAdminRecieve = useCallback(async () => {
         if (!numericId) return;
 
         try {
-            const response = await fetch(
-                `${URLAPI}/change_status/${numericId}?change=inprogress&username=${userData?.username}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-            if (!response.ok) {
-                throw new Error('Failed to fetch data from API');
+            let changeStatus = 'todo';
+            if (requestData?.type_id !== 2) {
+                changeStatus = requestData?.check_m === 1 ? 'it_manager' :
+                    (requestData?.check_m === 0 && requestData?.check_d === 1) ? 'it_director' : 'todo';
             }
 
-            // แสดง Alert แจ้งสำเร็จ
+            const response = await fetch(
+                `${URLAPI}/change_status/${numericId}?change=${changeStatus}&username=${userData?.username}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" }
+                }
+            );
+
+            if (!response?.ok) throw new Error("Network response was not ok");
+
+            await Swal.fire({
+                title: 'รับงานสำเร็จ!',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+
+            fetchRequestData();
+
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                html: 'เกิดข้อผิดพลาดในการรับงาน',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }, [numericId, userData?.username, fetchRequestData]);
+
+    const handleITRecieve = useCallback(async () => {
+        if (!numericId || !requestData?.date_estimate) {
+            !requestData?.date_estimate && Swal.fire({
+                title: 'Error!',
+                html: 'กรุณากรอกวันที่ประมาณการ',
+                icon: 'error',
+                confirmButtonText: 'OK',
+            });
+            return;
+        }
+
+        try {
+            // บันทึกวันที่เริ่มงาน
+            const dateParams = new URLSearchParams({
+                date_start: dayjs().format('YYYY-MM-DD')
+            });
+
+            await Promise.all([
+                // บันทึกวันที่เริ่มงาน
+                fetch(`${URLAPI}/datework/${numericId}?${dateParams.toString()}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                }),
+                // เปลี่ยนสถานะงาน 
+                fetch(`${URLAPI}/change_status/${numericId}?change=inprogress&username=${userData?.username}`, {
+                    method: "PUT",
+                    headers: {'Content-Type': 'application/json'},
+                })
+            ]);
+
             Swal.fire({
                 title: 'รับงานสำเร็จ!',
                 icon: 'success',
@@ -646,15 +722,13 @@ export default function RequestForm() {
                 buttonsStyling: false,
             });
 
-            // รีเฟรชข้อมูลใหม่
             fetchRequestData();
 
         } catch (error) {
             console.error('Error fetching requests:', error);
-            // แสดง Alert แจ้งเตือนเมื่อเกิดข้อผิดพลาด
             Swal.fire({
                 title: 'Error!',
-                html: 'เกิดข้อผิดพลาดในการรับงาน',
+                html: 'เกิดข้อผิดพลาดในการรับงาน', 
                 icon: 'error',
                 confirmButtonText: 'OK',
                 customClass: {
@@ -664,7 +738,7 @@ export default function RequestForm() {
                 buttonsStyling: false,
             });
         }
-    }, [numericId, userData?.username, fetchRequestData]);
+    }, [numericId, userData?.username, fetchRequestData, requestData]);
 
     const handleITConfirm = useCallback(async () => {
         if (!numericId) return;
@@ -674,17 +748,13 @@ export default function RequestForm() {
                 `${URLAPI}/change_status/${numericId}?change=confirm&username=${userData?.username}`,
                 {
                     method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: {"Content-Type": "application/json"}
                 }
             );
-            if (!response.ok) {
-                throw new Error('Failed to fetch data from API');
-            }
 
-            const result = await response.json();
-            console.log('IT Confirm request:', result);
+            if (!response.ok) throw new Error('Failed to fetch data from API');
+
+            console.log('IT Confirm request:', await response.json());
 
             Swal.fire({
                 title: 'ยืนยันการคอนฟิรมสำเร็จ!',
@@ -694,15 +764,15 @@ export default function RequestForm() {
                     title: 'alert-title',
                     confirmButton: 'alert-button'
                 },
-                buttonsStyling: false,
+                buttonsStyling: false
             });
+
             fetchRequestData();
 
         } catch (error) {
             console.error('Error fetching requests:', error);
-            // แสดง Alert แจ้งเตือนเมื่อเกิดข้อผิดพลาด
             Swal.fire({
-                title: 'Error!',
+                title: 'Error!', 
                 html: 'เกิดข้อผิดพลาดในการรับงาน',
                 icon: 'error',
                 confirmButtonText: 'OK',
@@ -710,7 +780,7 @@ export default function RequestForm() {
                     title: 'alert-title',
                     confirmButton: 'alert-button'
                 },
-                buttonsStyling: false,
+                buttonsStyling: false
             });
         }
     }, [numericId, userData?.username, fetchRequestData]);
@@ -902,33 +972,22 @@ export default function RequestForm() {
                             <Box sx={{ mt: 2 }}>
                                 {(admin === 'ADMIN' || (userData?.position && (userData.position === 'm' || userData.position === 'd'))) && selectedTypeId !== 2 && (
                                     <>
-                                        {managerApprove !== null ? (
                                             <BoxManagerApprove
-                                                managerApprove={managerApprove}
-                                                id_division_competency={userData.id_division_competency || 0}
+                                                managerApprove={managerApprove || { name: '', status: '', req_id: '', m_name: '' }}
+                                                id_division_competency={userData?.id_division_competency || 0}
+                                                check_m={selectedSubtopic?.check_m || 0}
+                                                check_d={selectedSubtopic?.check_d || 0}
                                             />
-                                        ) : (
-                                            <BoxManagerApprove
-                                                managerApprove={{ name: '', status: '', req_id: '', m_name: '' }}
-                                                id_division_competency={userData.id_division_competency || 0}
-                                            />
-                                        )}
-                                        {directorApprove !== null ? (
+                                        
                                             <BoxDirectorApprove
-                                                directorApprove={directorApprove}
+                                                directorApprove={directorApprove || { name: '', status: '', req_id: '', m_name: '' }}
                                                 m_name={managerApprove?.name ?? null}
-                                                id_section_competency={userData.id_section_competency || 0}
+                                                id_section_competency={userData?.id_section_competency || 0}
+                                                check_m={selectedSubtopic?.check_m || 0}
+                                                check_d={selectedSubtopic?.check_d || 0}
                                             />
-                                        ) : (
-                                            <BoxDirectorApprove
-                                                directorApprove={{ name: '', status: '', req_id: '', m_name: '' }}
-                                                m_name={null}
-                                                id_section_competency={userData.id_section_competency || 0}
-                                            />
-                                        )}
                                     </>
-                                )
-                                }
+                                )}
                             </Box>
                         </Grid>
                         <Grid item xs={8}>
@@ -970,7 +1029,7 @@ export default function RequestForm() {
                             <DetailsTextarea
                                 value={details}
                                 onChange={(e) => setDetails(e.target.value)}
-                                placeholder={!isEditMode && selectedSubtopic?.pattern ? selectedSubtopic.pattern : 'กรุณากรอกรายละเอียด'}
+                                placeholder={!isEditMode && selectedSubtopic?.pattern ? selectedSubtopic.pattern : 'กรุณากรอกรายลเอียด'}
                             />
                             {errors.details && <Typography color="danger">{errors.details}</Typography>}
                             <Fileupload onFilesChange={handleFilesChange} initialFiles={uploadedFiles} />
@@ -978,224 +1037,275 @@ export default function RequestForm() {
                         </Grid>
                     </Grid>
 
-                    {((admin === 'ADMIN' && selectedTypeId !== 2) || (
-                        userData?.position &&
-                        (userData.position === 'm' || userData.position === 'd') &&
-                        isITStaff && selectedTypeId !== 2
-                    )) && (
-                            <Box sx={{
-                                backgroundColor: '#fff',
-                                padding: 2,
-                                borderRadius: 2,
-                                marginTop: 4,
-                                border: '1px dashed',
-                                borderColor: 'lightblue',
-                            }}>
-                                <Typography
+                    {requestData?.admin_recieve_username && (
+                        <>
+                            {((admin === 'ADMIN' && selectedTypeId !== 2) || (
+                                userData?.position &&
+                                (userData.position === 'm' || userData.position === 'd') &&
+                                isITStaff && selectedTypeId !== 2
+                            )) && (
+                                <>
+                                    <Box sx={{
+                                        backgroundColor: '#fff',
+                                        padding: 2,
+                                        borderRadius: 2,
+                                        marginTop: 4,
+                                        border: '1px dashed',
+                                        borderColor: 'lightblue',
+                                    }}>
+                                        <Typography
+                                            sx={{
+                                                mb: 2,
+                                                fontWeight: 'bold',
+                                                fontSize: 20,
+                                                color: '#1976d2',
+                                                textAlign: 'left',
+                                                textDecoration: 'underline',
+                                                textDecorationThickness: 2,
+                                                textUnderlineOffset: 6,
+                                                textDecorationColor: '#1976d2',
+                                                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                            }}
+                                        >
+                                            IT Approve
+                                        </Typography>
+
+                                        <Grid container spacing={4}>
+                                            <Grid item xs={12} sm={6}>
+                                                {itmanagerApprove !== null ? (
+                                                    <BoxITManagerApprove
+                                                        itmanagerApprove={{
+                                                            name: itmanagerApprove.name,
+                                                            status: itmanagerApprove.status,
+                                                            req_id: itmanagerApprove.req_id,
+                                                            level_job: itmanagerApprove.level_job ?? null
+                                                        }}
+                                                        id_division_competency={userData.id_division_competency}
+                                                        it_m_note={itmanagerNote}
+                                                        check_it_m={selectedSubtopic?.check_it_m || 0}
+                                                        check_it_d={selectedSubtopic?.check_it_d || 0}
+                                                        onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
+                                                    />
+                                                ) : (
+                                                    <BoxITManagerApprove
+                                                        itmanagerApprove={{
+                                                            name: '',
+                                                            status: '',
+                                                            req_id: '',
+                                                            level_job: null
+                                                        }}
+                                                        id_division_competency={userData.id_division_competency}
+                                                        it_m_note={null}
+                                                        check_it_m={selectedSubtopic?.check_it_m || 0}
+                                                        check_it_d={selectedSubtopic?.check_it_d || 0}
+                                                        onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
+                                                    />
+                                                )}
+                                                <ITManagerTextarea
+                                                    value={itmanagerNote}
+                                                    onChange={(e) => setITManagerNote(e.target.value)}
+                                                    readOnly={!(isITStaff && userData?.position === 'm')}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                {itdirectorApprove !== null ? (
+                                                    <BoxITDirectorApprove
+                                                        itdirectorApprove={{
+                                                            name: itdirectorApprove.name,
+                                                            status: itdirectorApprove.status,
+                                                            req_id: itdirectorApprove.req_id,
+                                                            level_job: itdirectorApprove.level_job ?? null
+                                                        }}
+                                                        it_m_name={itmanagerApprove?.name ?? null}
+                                                        id_section_competency={userData.id_section_competency}
+                                                        it_d_note={itdirectorNote}
+                                                        check_it_m={selectedSubtopic?.check_it_m || 0}
+                                                        check_it_d={selectedSubtopic?.check_it_d || 0}
+                                                        levelJob={levelJob} // Pass levelJob as prop
+                                                    />
+                                                ) : (
+                                                    <BoxITDirectorApprove
+                                                        itdirectorApprove={{
+                                                            name: '',
+                                                            status: '',
+                                                            req_id: '',
+                                                            level_job: null
+                                                        }}
+                                                        it_m_name={null}
+                                                        id_section_competency={userData.id_section_competency}
+                                                        it_d_note={null}
+                                                        levelJob={levelJob} // Pass levelJob as prop
+                                                        check_it_m={selectedSubtopic?.check_it_m || 0}
+                                                        check_it_d={selectedSubtopic?.check_it_d || 0}
+                                                    />
+                                                )}
+                                                <Box sx={{ mb: 8 }}>
+
+                                                </Box>
+                                                <ITDirectorTextarea
+                                                    value={itdirectorNote}
+                                                    onChange={(e) => setITDirectorNote(e.target.value)}
+                                                    readOnly={!(isITStaff && userData?.position === 'd')}
+                                                />
+                                            </Grid>
+
+                                        </Grid>
+                                    </Box>
+                                </>
+                            )}
+                            {(requestData?.status_id && ![1, 2, 3].includes(requestData.status_id)) && (
+                                <Box
                                     sx={{
-                                        mb: 2,
-                                        fontWeight: 'bold',
-                                        fontSize: 20,
-                                        color: '#1976d2',
-                                        textAlign: 'left',
-                                        textDecoration: 'underline',
-                                        textDecorationThickness: 2,
-                                        textUnderlineOffset: 6,
-                                        textDecorationColor: '#1976d2',
-                                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                        backgroundColor: '#fff',
+                                        padding: 2,
+                                        borderRadius: 2,
+                                        marginTop: 4,
+                                        border: '1px dashed',
+                                        borderColor: 'lightblue',
                                     }}
                                 >
-                                    IT Approve
-                                </Typography>
+                                    <Typography
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            fontSize: 20,
+                                            color: '#1976d2',
+                                            textAlign: 'left',
+                                            textDecoration: 'underline',
+                                            textDecorationThickness: 2,
+                                            textUnderlineOffset: 6,
+                                            textDecorationColor: '#1976d2',
+                                            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                        }}
+                                    >
+                                        Admin Assign
+                                    </Typography>
 
-                                <Grid container spacing={4}>
-                                    <Grid item xs={12} sm={6}>
-                                        {itmanagerApprove !== null ? (
-                                            <BoxITManagerApprove
-                                                itmanagerApprove={{
-                                                    name: itmanagerApprove.name,
-                                                    status: itmanagerApprove.status,
-                                                    req_id: itmanagerApprove.req_id,
-                                                    level_job: itmanagerApprove.level_job ?? null
-                                                }}
-                                                id_division_competency={userData.id_division_competency}
-                                                it_m_note={itmanagerNote}
-                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
-                                            />
-                                        ) : (
-                                            <BoxITManagerApprove
-                                                itmanagerApprove={{
-                                                    name: '',
-                                                    status: '',
-                                                    req_id: '',
-                                                    level_job: null
-                                                }}
-                                                id_division_competency={userData.id_division_competency}
-                                                it_m_note={null}
-                                                onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
-                                            />
-                                        )}
-                                        <ITManagerTextarea
-                                            value={itmanagerNote}
-                                            onChange={(e) => setITManagerNote(e.target.value)}
-                                            readOnly={!(isITStaff && userData?.position === 'm')}
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        {itdirectorApprove !== null ? (
-                                            <BoxITDirectorApprove
-                                                itdirectorApprove={{
-                                                    name: itdirectorApprove.name,
-                                                    status: itdirectorApprove.status,
-                                                    req_id: itdirectorApprove.req_id,
-                                                    level_job: itdirectorApprove.level_job ?? null
-                                                }}
-                                                it_m_name={itmanagerApprove?.name ?? null}
-                                                id_section_competency={userData.id_section_competency}
-                                                it_d_note={itdirectorNote}
-                                                levelJob={levelJob} // Pass levelJob as prop
-                                            />
-                                        ) : (
-                                            <BoxITDirectorApprove
-                                                itdirectorApprove={{
-                                                    name: '',
-                                                    status: '',
-                                                    req_id: '',
-                                                    level_job: null
-                                                }}
-                                                it_m_name={null}
-                                                id_section_competency={userData.id_section_competency}
-                                                it_d_note={null}
-                                                levelJob={levelJob} // Pass levelJob as prop
-                                            />
-                                        )}
-                                        <Box sx={{ mb: 8 }}>
+                                    <Box sx={{ p: 1 }}>
+                                        <Stack
+                                            direction="row"
+                                            spacing={2}
+                                            alignItems="center"
+                                            sx={{ mt: 2 }}
+                                        >
+                                            <Box>
 
-                                        </Box>
-                                        <ITDirectorTextarea
-                                            value={itdirectorNote}
-                                            onChange={(e) => setITDirectorNote(e.target.value)}
-                                            readOnly={!(isITStaff && userData?.position === 'd')}
-                                        />
-                                    </Grid>
+                                                <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
+                                                    Tags
+                                                </Typography>
+                                                <Stack direction="row" spacing={1}>
+                                                    <AssigneeDepSelector requestId={numericId} />
+                                                </Stack>
+                                            </Box>
+                                        </Stack>
 
-                                </Grid>
+                                        <Stack
+                                            direction="row"
+                                            alignItems="center"
+                                            spacing={4}
+                                            sx={{
+                                                p: 1,
+                                                bgcolor: "#ffffff",
+                                            }}
+                                        >
+                                            <Box>
+                                                <DateWork
+                                                    req_id={requestData?.id ?? 0}
+                                                    date_start={requestData?.date_start ? new Date(requestData.date_start) : null}
+                                                    date_end={requestData?.date_end ? new Date(requestData.date_end) : null}
+                                                    date_estimate={requestData?.date_estimate ? new Date(requestData.date_estimate) : null}
+                                                    onUpdateComplete={fetchRequestData}
+                                                />
+                                            </Box>
+
+                                            <Box>
+                                                <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
+                                                    Assignees
+                                                </Typography>
+                                                <Stack direction="row" spacing={1}>
+                                                    <AssigneeEmpSelector
+                                                        requestId={numericId}
+                                                        typedata="main"
+                                                    />
+                                                </Stack>
+                                            </Box>
+
+                                            <Box>
+                                                <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
+                                                    Priority
+                                                </Typography>
+                                                <SelectPriority
+                                                    id={numericId}
+                                                    id_priority={requestData?.id_priority ?? null}
+                                                />
+                                            </Box>
+                                        </Stack>
+                                    </Box>
+                                </Box>
+                            )}
+                        </>
+                    )}
+                    {admin === "ADMIN" &&
+                        (([1, 3].includes(requestData?.type_id ?? 0) &&
+                        (status_id == 2 && (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 0 ) 
+                        || (status_id == 3 && (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 1) 
+                        || (selectedSubtopic?.check_it_m === 0 && selectedSubtopic?.check_it_d === 1)))) 
+                        || (requestData?.type_id === 2 && status_id == 1)) && (
+                            <Box sx={{ mt: 4 }}>
+                                <Button
+                                    color="primary"
+                                    startDecorator={<SaveIcon />}
+                                    onClick={() => {
+                                        Swal.fire({
+                                            title: 'ยืนยันการรับงาน',
+                                            text: 'คุณต้องการรับงานนี้ใช่หรือไม่?',
+                                            icon: 'question',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'ใช่',
+                                            cancelButtonText: 'ไม่',
+                                            confirmButtonColor: '#3085d6',
+                                            cancelButtonColor: '#d33'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                handleAdminRecieve();
+                                            }
+                                        });
+                                    }}
+                                >
+                                    Admin Recieve
+                                </Button>
                             </Box>
                         )}
-                    {(requestData?.status_id && ![1, 2, 3].includes(requestData.status_id)) && (
-                        <Box
-                            sx={{
-                                backgroundColor: '#fff',
-                                padding: 2,
-                                borderRadius: 2,
-                                marginTop: 4,
-                                border: '1px dashed',
-                                borderColor: 'lightblue',
-                            }}
-                        >
-                            <Typography
-                                sx={{
-                                    fontWeight: 'bold',
-                                    fontSize: 20,
-                                    color: '#1976d2',
-                                    textAlign: 'left',
-                                    textDecoration: 'underline',
-                                    textDecorationThickness: 2,
-                                    textUnderlineOffset: 6,
-                                    textDecorationColor: '#1976d2',
-                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                                }}
-                            >
-                                Admin Assign
-                            </Typography>
-
-                            <Box sx={{ p: 1 }}>
-                                <Stack
-                                    direction="row"
-                                    spacing={2}
-                                    alignItems="center"
-                                    sx={{ mt: 2 }}
-                                >
-                                    <Box>
-
-                                        <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
-                                            Tags
-                                        </Typography>
-                                        <Stack direction="row" spacing={1}>
-                                            <AssigneeDepSelector requestId={numericId} />
-                                        </Stack>
-                                    </Box>
-                                </Stack>
-
-                                <Stack
-                                    direction="row"
-                                    alignItems="center"
-                                    spacing={4}
-                                    sx={{
-                                        p: 1,
-                                        bgcolor: "#ffffff",
+                    {(status_id === 7 &&
+                        (requestData?.type_id === 1 || requestData?.type_id === 2 || requestData?.type_id === 3)) &&
+                        isITStaff &&
+                        requestData?.date_estimate && // ใช้ requestData?.date_estimate
+                        (
+                            <Box sx={{ mt: 4 }}>
+                                <Button
+                                    color="primary"
+                                    startDecorator={<SaveIcon />}
+                                    onClick={() => {
+                                        Swal.fire({
+                                            title: 'ยืนยันการรับงาน',
+                                            text: 'คุณต้องการรับงานนี้ใช่หรือไม่?',
+                                            icon: 'question',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'ใช่',
+                                            cancelButtonText: 'ไม่',
+                                            confirmButtonColor: '#3085d6',
+                                            cancelButtonColor: '#d33'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                handleITRecieve();
+                                            }
+                                        });
                                     }}
                                 >
-                                    <Box>
-                                        <DateWork
-                                            req_id={numericId}
-                                            date_start={requestData?.date_start ? dayjs(requestData.date_start).toDate() : null}
-                                            date_end={requestData?.date_end ? dayjs(requestData.date_end).toDate() : null}
-                                        />
-                                    </Box>
-
-                                    <Box>
-                                        <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
-                                            Assignees
-                                        </Typography>
-                                        <Stack direction="row" spacing={1}>
-                                            <AssigneeEmpSelector
-                                                requestId={numericId}
-                                                typedata="main"
-                                            />
-                                        </Stack>
-                                    </Box>
-
-                                    <Box>
-                                        <Typography color="neutral" variant="plain" fontSize="0.75rem" mb={0.5}>
-                                            Priority
-                                        </Typography>
-                                        <SelectPriority
-                                            id={numericId}
-                                            id_priority={requestData?.id_priority ?? null}
-                                        />
-                                    </Box>
-                                </Stack>
+                                    เจ้าหน้าที่ IT รับงาน
+                                </Button>
                             </Box>
-                        </Box>
-                    )}
-                    {(status_id === 18 && (requestData?.type_id === 1 || requestData?.type_id === 2 || requestData?.type_id === 3)) && (isITStaff) && (
-                        <Box sx={{ mt: 4 }}>
-                            <Button
-                                color="primary"
-                                startDecorator={<SaveIcon />}
-                                onClick={() => {
-                                    Swal.fire({
-                                        title: 'ยืนยันการรับงาน',
-                                        text: 'คุณต้องการรับงานนี้ใช่หรือไม่?',
-                                        icon: 'question',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'ใช่',
-                                        cancelButtonText: 'ไม่',
-                                        confirmButtonColor: '#3085d6',
-                                        cancelButtonColor: '#d33'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            handleITRecieve();
-                                        }
-                                    });
-                                }}
-                            >
-                                เจ้าหน้าที่ IT รับงาน
-                            </Button>
-                        </Box>
-                    )}
-                    {(status_id === 6 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) && (
+                        )}
+                    {(status_id === 8 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
                                 color="success"
@@ -1221,8 +1331,7 @@ export default function RequestForm() {
                             </Button>
                         </Box>
                     )}
-                    {/* {((requestData?.status_id === 15) && (!isITStaff) && (requestData?.type_id !== 3)) || (uatScore === true && requestData?.status_id === 16 && (!isITStaff)) && ( */}
-                    {!isITStaff && (requestData?.status_id === 15 || (uatScore === true && requestData?.status_id === 16)) && (
+                    {!isITStaff && (requestData?.status_id === 9 || (uatScore === true && requestData?.status_id === 10)) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
                                 color="success"
@@ -1248,34 +1357,35 @@ export default function RequestForm() {
                                 Complete Job
                             </Button>
                             {requestData?.type_id !== 3 && (
-                            <Button
-                                sx={{ mr: 3 }}
-                                color="danger"
-                                startDecorator={<SaveIcon />}
-                                onClick={() => {
-                                    Swal.fire({
-                                        title: 'ยืนยันการส่งแก้ไขงาน',
-                                        text: 'คุณต้องการส่งแก้ไขงานนี้ใช่หรือไม่?',
-                                        icon: 'question',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'ใช่',
-                                        cancelButtonText: 'ไม่',
-                                        confirmButtonColor: '#3085d6',
-                                        cancelButtonColor: '#d33'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            handleReturn();
-                                        }
-                                    });
-                                }}
-                            >
-                                Edit Job
+                                <Button
+                                    sx={{ mr: 3 }}
+                                    color="danger"
+                                    startDecorator={<SaveIcon />}
+                                    onClick={() => {
+                                        Swal.fire({
+                                            title: 'ยืนยันการส่งแก้ไขงาน',
+                                            text: 'คุณต้องการส่งแก้ไขงานนี้ใช่หรือไม่?',
+                                            icon: 'question',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'ใช่',
+                                            cancelButtonText: 'ไม่',
+                                            confirmButtonColor: '#3085d6',
+                                            cancelButtonColor: '#d33'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                handleReturn();
+                                            }
+                                        });
+                                    }}
+                                >
+                                    Edit Job
                                 </Button>
                             )}
                         </Box>
                     )}
 
-                    {userData && (isITStaff) && (
+                    {/* ---------------------it employee must recieve task----------------------------- */}
+                    {userData && (isITStaff) && requestData?.it_user_recieve && (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
@@ -1310,7 +1420,7 @@ export default function RequestForm() {
                         </Box>
                     )
                     }
-                    {requestData?.type_id === 3 && ([16, 7].includes(requestData?.status_id ?? 0) || isITStaff) ? (
+                    {requestData?.type_id === 3 && ([10, 11].includes(requestData?.status_id ?? 0) || isITStaff) ? (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
@@ -1361,13 +1471,13 @@ export default function RequestForm() {
                                         (status_id === 3 && userData?.position === 'd' && selectedTypeId !== 2) ||
 
                                         // Condition 3: status_id = 4 and position is m or d and not type 2 and is IT staff
-                                        (status_id === 4 && ['m', 'd'].includes(userData?.position || '') && selectedTypeId !== 2 && isITStaff) ||
+                                        (status_id === 5 && ['m', 'd'].includes(userData?.position || '') && selectedTypeId !== 2 && isITStaff) ||
 
                                         // Condition 4: status_id = 5 and position is d and not type 2 and is IT staff
-                                        (status_id === 5 && userData?.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
+                                        (status_id === 6 && userData?.position === 'd' && selectedTypeId !== 2 && isITStaff) ||
 
                                         // Condition 6: status_id = 1 or not in edit mode
-                                        (status_id === 1 || !isEditMode)
+                                        ((status_id === 1 || status_id === 13) || !isEditMode)
                                     ) && (
                                         <Button
                                             color="primary"

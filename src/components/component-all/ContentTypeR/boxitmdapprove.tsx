@@ -1,14 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Grid, FormGroup } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
-import {
-    FormLabel,
-    Input,
-    Select,
-    Option,
-    SelectStaticProps,
-    Button,
-} from "@mui/joy";
+import { FormLabel, Input, Select, Option, SelectStaticProps, Button } from "@mui/joy";
 import { ApproveAlert } from "../Alert/alert";
 import { useNavigate } from "react-router-dom";
 import URLAPI from "../../../URLAPI";
@@ -53,12 +46,16 @@ export const BoxITManagerApprove = ({
     itmanagerApprove,
     id_division_competency,
     it_m_note,
-    onLevelJobChange
+    onLevelJobChange,
+    check_it_m,
+    check_it_d
 }: {
     itmanagerApprove: ApproveProps;
     id_division_competency: number | null;
     it_m_note: string | null;
-    onLevelJobChange?: (levelJob: number | null) => void
+    onLevelJobChange?: (levelJob: number | null) => void,
+    check_it_m: number | null,
+    check_it_d: number | null
 }) => {
     const [value1, setValue1] = React.useState<number | null>(null);
     const approveOptions = useApproveOptions();
@@ -68,6 +65,8 @@ export const BoxITManagerApprove = ({
     const [levelJob, setLevelJob] = useState<number | null>(
         itmanagerApprove?.level_job ?? null
     );
+    const [check_Itmanager, setCheckItManager] = useState<number | null>(check_it_m);
+    const [check_Itdirector, setCheckItDirector] = useState<number | null>(check_it_d);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [showSubmitButton, setShowSubmitButton] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
@@ -87,13 +86,17 @@ export const BoxITManagerApprove = ({
             name: itmanagerApprove?.name,
             req_id: itmanagerApprove?.req_id,
             status: itmanagerApprove?.status,
-            level_job: itmanagerApprove?.level_job
+            level_job: itmanagerApprove?.level_job,
+            check_it_m: check_it_m,
+            check_it_d: check_it_d
         };
     }, [
         itmanagerApprove?.name,
         itmanagerApprove?.req_id,
         itmanagerApprove?.status,
-        itmanagerApprove?.level_job
+        itmanagerApprove?.level_job,
+        check_it_m,
+        check_it_d
     ]);
 
     useEffect(() => {
@@ -107,6 +110,8 @@ export const BoxITManagerApprove = ({
                 !memoizedITManagerApprove.name
             ) {
                 setITManagerName(userData.name_employee);
+                setCheckItManager(memoizedITManagerApprove.check_it_m);
+                setCheckItDirector(memoizedITManagerApprove.check_it_d);
             } else if (memoizedITManagerApprove.name) {
                 setITManagerName(memoizedITManagerApprove.name);
                 setValue1(
@@ -115,6 +120,8 @@ export const BoxITManagerApprove = ({
                         : null
                 );
                 setLevelJob(memoizedITManagerApprove.level_job);
+                setCheckItManager(memoizedITManagerApprove.check_it_m);
+                setCheckItDirector(memoizedITManagerApprove.check_it_d);
             }
 
             const shouldShowSubmitButton =
@@ -123,7 +130,7 @@ export const BoxITManagerApprove = ({
                 userData.position === "m";
             setShowSubmitButton(shouldShowSubmitButton);
         }
-    }, [memoizedITManagerApprove]);
+    }, [memoizedITManagerApprove, check_it_m, check_it_d]);
 
     const handleChangeCheck =
         () => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,48 +156,96 @@ export const BoxITManagerApprove = ({
             return;
         }
 
-        try {
-            const response = await fetch(
-                `${URLAPI}/it_m_approve/${itmanagerApprove.req_id}?name=${encodeURIComponent(itmanagerName)}&status=${encodeURIComponent(value1)}&note=${encodeURIComponent(it_m_note ?? "")}&level_job=${Number(levelJob)}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+        if (value1 !== 3) {
+            try {
+                const response = await fetch(
+                    `${URLAPI}/it_m_approve/${itmanagerApprove.req_id}?name=${encodeURIComponent(itmanagerName)}&status=${encodeURIComponent(value1)}&note=${encodeURIComponent(it_m_note ?? "")}&level_job=${Number(levelJob)}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
 
-            if (!response.ok) {
-                const errorMessage = await response.text();
-                console.error("Error:", errorMessage);
-                alert(`Error: ${errorMessage}`);
-                throw new Error("Network response was not ok");
+                if (!response.ok) {
+                    const errorMessage = await response.text();
+                    console.error("Error:", errorMessage);
+                    alert(`Error: ${errorMessage}`);
+                    throw new Error("Network response was not ok");
+                }
+
+                if (response.ok && check_Itmanager === 1 && check_Itdirector === 0) {
+                    const response_m = await fetch(`${URLAPI}/change_status/${itmanagerApprove.req_id}?change=todo`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    if (!response_m.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const result_m = await response_m.json();
+                    console.log('Manager approval updated successfully:', result_m);
+                } else if (response.ok && check_Itmanager === 1 && check_Itdirector === 1) {
+                    const response_m = await fetch(`${URLAPI}/change_status/${itmanagerApprove.req_id}?change=director`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    if (!response_m.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const result_m = await response_m.json();
+                    console.log('Manager approval updated successfully:', result_m);
+                }
+
+
+                const result = await response.json();
+                console.log("IT-Manager approval updated successfully:", result);
+                setShowAlert(true);
+
+                setTimeout(() => {
+                    setShowAlert(false);
+                    if (id_division_competency === 86) {
+                        navigate("/request-list-it");
+                    } else {
+                        navigate("/request-list");
+                    }
+                }, 2000);
+            } catch (error) {
+                console.error("Error updating manager approval:", error);
             }
-
-            const result = await response.json();
-            console.log("IT-Manager approval updated successfully:", result);
-            setShowAlert(true);
-
-            setTimeout(() => {
-                setShowAlert(false);
-                if (id_division_competency === 86) {
-                    navigate("/request-list-it");
-                } else {
-                    navigate("/request-list");
+        } else {
+            try {
+                const response = await fetch(`${URLAPI}/change_status/${itmanagerApprove.req_id}?change=rewrite`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            }, 2000);
-        } catch (error) {
-            console.error("Error updating manager approval:", error);
+                const result = await response.json();
+                console.log('Manager approval updated successfully:', result);
+                const responseclear = await fetch(`${URLAPI}/clearall_approve/${itmanagerApprove.req_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (!responseclear.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const resultclear = await responseclear.json();
+                console.log('Manager approval updated successfully:', resultclear);
+            } catch (error) {
+                console.error('Error updating manager approval:', error);
+            }
         }
-    }, [
-        value1,
-        itmanagerApprove,
-        itmanagerName,
-        it_m_note,
-        id_division_competency,
-        navigate,
-        levelJob
-    ]);
+    }, [value1, itmanagerApprove, itmanagerName, it_m_note, id_division_competency, navigate, levelJob, check_Itmanager,check_Itdirector]);
 
     return (
         <Grid container spacing={1}>
@@ -230,7 +285,7 @@ export const BoxITManagerApprove = ({
                 </Select>
             </Grid>
             <Grid item xs={3} component="div">
-                {showSubmitButton && (
+                {showSubmitButton && check_Itmanager === 1 && (
                     <>
                         <FormLabel>Approve</FormLabel>
                         <Button color="success" variant="soft" onClick={handleSubmit}>
@@ -267,14 +322,16 @@ export const BoxITDirectorApprove = ({
     id_section_competency,
     it_d_note,
     levelJob: initialLevelJob,
-
+    check_it_m,
+    check_it_d
 }: {
     itdirectorApprove: ApproveProps;
     it_m_name: string | null;
     id_section_competency: number;
     it_d_note: string | null;
     levelJob: number | null,
-    onLevelJobChange?: (levelJob: number | null) => void
+    check_it_m: number | null,
+    check_it_d: number | null
 }) => {
     const [value2, setValue2] = React.useState<number | null>(null);
     const approveOptions = useApproveOptions();
@@ -282,6 +339,8 @@ export const BoxITDirectorApprove = ({
     const [showSubmitButton, setShowSubmitButton] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const [levelJob, setLevelJob] = useState<number | null>(initialLevelJob);
+    const [check_Itmanager, setCheckItManager] = useState<number | null>(check_it_m);
+    const [check_Itdirector, setCheckItDirector] = useState<number | null>(check_it_d);
     const action: SelectStaticProps['action'] = React.useRef(null);
     const navigate = useNavigate();
 
@@ -291,18 +350,22 @@ export const BoxITDirectorApprove = ({
         return {
             name: itdirectorApprove?.name,
             req_id: itdirectorApprove?.req_id,
-            status: itdirectorApprove?.status
+            status: itdirectorApprove?.status,
+            check_it_m: check_it_m,
+            check_it_d: check_it_d
         };
     }, [
         itdirectorApprove?.name,
         itdirectorApprove?.req_id,
-        itdirectorApprove?.status
+        itdirectorApprove?.status,
+        check_it_m,
+        check_it_d
     ]);
 
     useEffect(() => {
         // Update levelJob when initialLevelJob changes
         setLevelJob(initialLevelJob);
-    }, [initialLevelJob]);
+    }, [initialLevelJob, check_it_m, check_it_d]);
 
 
 
@@ -312,9 +375,13 @@ export const BoxITDirectorApprove = ({
             const userData: UserData = JSON.parse(storedUserData);
             if (userData.position === 'd' && !memoizedITDirectorApprove.name) {
                 setITDirectorName(userData.name_employee);
+                setCheckItManager(memoizedITDirectorApprove.check_it_m);
+                setCheckItDirector(memoizedITDirectorApprove.check_it_d);
             } else if (memoizedITDirectorApprove.name) {
                 setITDirectorName(memoizedITDirectorApprove.name);
                 setValue2(memoizedITDirectorApprove.status ? parseInt(memoizedITDirectorApprove.status) : null);
+                setCheckItManager(memoizedITDirectorApprove.check_it_m);
+                setCheckItDirector(memoizedITDirectorApprove.check_it_d);
             }
 
             const shouldShowSubmitButton = Boolean(memoizedITDirectorApprove.req_id) &&
@@ -322,7 +389,7 @@ export const BoxITDirectorApprove = ({
                 userData.position === 'd';
             setShowSubmitButton(shouldShowSubmitButton);
         }
-    }, [memoizedITDirectorApprove]);
+    }, [memoizedITDirectorApprove, check_it_m, check_it_d]);
 
     const handleSubmit = useCallback(async () => {
         if (!value2) {
@@ -340,8 +407,9 @@ export const BoxITDirectorApprove = ({
             return;
         }
 
+        if (value2 !== 3) {
         try {
-            if (!it_m_name) {
+            if (!it_m_name && check_Itmanager === 1) {
                 const response = await fetch(
                     `${URLAPI}/it_m_approve/${itdirectorApprove.req_id}?name=${encodeURIComponent(itdirectorName)}&status=${encodeURIComponent(value2)}&note=${encodeURIComponent(it_d_note ?? "")}&level_job=${encodeURIComponent(levelJob ?? "")}`,
                     {
@@ -372,6 +440,20 @@ export const BoxITDirectorApprove = ({
             if (!response.ok) {
                 throw new Error("Network response was not ok");
             }
+
+            if (response.ok && check_Itdirector === 1) {
+                const response_d = await fetch(`${URLAPI}/change_status/${itdirectorApprove.req_id}?change=todo`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (!response_d.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const result_d = await response_d.json();
+                console.log('Director approval updated successfully:', result_d);
+            }
             const result = await response.json();
             console.log("IT Director approval updated successfully:", result);
             setShowAlert(true);
@@ -384,18 +466,37 @@ export const BoxITDirectorApprove = ({
                 }
             }, 2000);
         } catch (error) {
-            console.error("Error updating director approval:", error);
+                console.error("Error updating director approval:", error);
+            }
+        } else {
+            try {
+                const response = await fetch(`${URLAPI}/change_status/${itdirectorApprove.req_id}?change=rewrite`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const result = await response.json();
+                console.log('Director approval updated successfully:', result);
+                const responseclear = await fetch(`${URLAPI}/clearall_approve/${itdirectorApprove.req_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                if (!responseclear.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const resultclear = await responseclear.json();
+                console.log('Director approval updated successfully:', resultclear);
+            } catch (error) {
+                console.error('Error updating director approval:', error);
+            }
         }
-    }, [
-        value2,
-        itdirectorApprove,
-        itdirectorName,
-        it_d_note,
-        id_section_competency,
-        navigate,
-        it_m_name,
-        levelJob,
-    ]);
+    }, [value2,itdirectorApprove,itdirectorName,it_d_note,id_section_competency,navigate,it_m_name,levelJob,check_Itmanager,check_Itdirector]);
 
     return (
         <Grid container spacing={1}>
@@ -452,9 +553,6 @@ export const BoxITDirectorApprove = ({
                     />
                 )}
             </Grid>
-
-
-
         </Grid>
     );
 };

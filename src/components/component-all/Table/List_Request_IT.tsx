@@ -687,21 +687,27 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
             try {
                 const response = await fetch(`${URLAPI}/it-requests?tab=${tab}`);
                 const { data } = await response.json();
-                // console.log('API Response:', data);
-
                 const mappedData = data.map((item: any) => ({
                     ...item,
                     datecreated: item.created_at,
                 }));
-                // console.log('Mapped Data:', mappedData);
-
                 setRows(mappedData);
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
         };
 
-        fetchData();
+        if (tab !== undefined) {
+            fetchData();
+            
+            // ตั้งเวลา fetch ทุก 5 นาที
+            const interval = setInterval(() => {
+                fetchData();
+            }, 5 * 60 * 1000);
+
+            // Cleanup interval เมื่อ unmount
+            return () => clearInterval(interval);
+        }
     }, [tab]);
 
     // Filter function

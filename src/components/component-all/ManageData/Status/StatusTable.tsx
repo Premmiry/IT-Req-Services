@@ -14,7 +14,7 @@ export default function StatusTable({ statusList, onUpdateStatus }: StatusTableP
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editValue, setEditValue] = useState<string>('');
     const [page, setPage] = useState(0);
-    const [rowsPerPage] = useState(5);
+    const [rowsPerPage] = useState(20);
 
     const handleStartEdit = (status: StatusData) => {
         setEditingId(status.status_id);
