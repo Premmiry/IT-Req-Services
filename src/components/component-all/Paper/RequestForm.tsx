@@ -32,10 +32,11 @@ import BasicRating from '../ContentTypeR/boxrating';
 import Rating from '@mui/material/Rating';
 
 interface ApproveProps {
-    name: string;
-    status: string;
-    req_id: string;
-    level_job?: number | null;
+    name: string | null;
+    status: string | null;
+    req_id: string | null;
+    it_m_name?: string | null;
+    level_job: number | null;
 }
 
 interface UserApproveProps {
@@ -101,6 +102,7 @@ interface RequestData {
     check_d?: number;
     check_it_m?: number;
     check_it_d?: number;
+    knowledge?: string;
 }
 
 interface SubtopicOption {
@@ -112,6 +114,7 @@ interface SubtopicOption {
     check_d: number;
     check_it_m: number;
     check_it_d: number;
+    knowledge: string;
 }
 
 // เพิ่ม interface สำหรับ rating
@@ -162,7 +165,7 @@ export default function RequestForm() {
     const [selectedSubtopic, setSelectedSubtopic] = useState<SubtopicOption | null>(null);
     const [uatScore, setUatScore] = React.useState<boolean>(false);
     // console.log('subtopicOption', selectedSubtopic);
-    console.log('date_estimate', requestData?.date_estimate);
+    // console.log('date_estimate', requestData?.date_estimate);
     const [showRating, setShowRating] = useState(false);
     const [ratingScores, setRatingScores] = useState<RatingScore[]>([]);
     const [ratingOptions, setRatingOptions] = useState<RatingOption[]>([]);
@@ -303,14 +306,14 @@ export default function RequestForm() {
                     name: reqData.it_m_name || '',
                     status: reqData.it_m_status || '',
                     req_id: numericId.toString(),
-                    level_job: reqData.level_job || null
+                    level_job: reqData.level_job
                 });
                 setITManagerNote(reqData.it_m_note || '');
                 setITDirectorApprove({
                     name: reqData.it_d_name || '',
                     status: reqData.it_d_status || '',
                     req_id: numericId.toString(),
-                    level_job: reqData.level_job || null
+                    level_job: reqData.level_job
                 });
                 setITDirectorNote(reqData.it_d_note || '');
                 setLevelJob(reqData.level_job || null);
@@ -337,7 +340,8 @@ export default function RequestForm() {
                         check_m: reqData.check_m || 0,
                         check_d: reqData.check_d || 0,
                         check_it_m: reqData.check_it_m || 0,
-                        check_it_d: reqData.check_it_d || 0
+                        check_it_d: reqData.check_it_d || 0,
+                        knowledge: reqData.knowledge || ''
                     });
                 }
             }
@@ -541,12 +545,16 @@ export default function RequestForm() {
             }
 
             if (!isEditMode) {
-                if (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?. check_it_d === 0 || selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 1) {
-                    formData.append('status_id', '2');
-                } else if (selectedSubtopic?.check_it_m === 0 && selectedSubtopic?.check_it_d === 1) {
-                    formData.append('status_id', '3');
+                if (selectedTypeId !== 3) {
+                    if (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 0 || selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 1) {
+                        formData.append('status_id', '2');
+                    } else if (selectedSubtopic?.check_it_m === 0 && selectedSubtopic?.check_it_d === 1) {
+                        formData.append('status_id', '3');
+                    } else {
+                        formData.append('status_id', '1');
+                    }
                 } else {
-                    formData.append('status_id', '1');
+                    formData.append('status_id', '2');
                 }
             }
 
@@ -666,11 +674,19 @@ export default function RequestForm() {
         if (!numericId) return;
 
         try {
-            let changeStatus = 'todo';
-            if (requestData?.type_id !== 2) {
-                changeStatus = requestData?.check_m === 1 ? 'it_manager' :
-                    (requestData?.check_m === 0 && requestData?.check_d === 1) ? 'it_director' : 'todo';
+            let changeStatus;
+            if (requestData?.type_id === 1 && requestData?.status_id === 4) {
+                if (requestData?.check_it_m === 1) {
+                    changeStatus = 'it_manager';
+                } else if (requestData?.check_it_m === 0 && requestData?.check_it_d === 1) {
+                    changeStatus = 'it_director';
+                }
+            } else if (requestData?.type_id === 2 && requestData?.status_id === 1) {
+                changeStatus = 'todo';
+            } else if (requestData?.type_id === 3 && requestData?.status_id === 4) {
+                changeStatus = 'it_manager';
             }
+            console.log(requestData?.type_id, requestData?.status_id, changeStatus);
 
             const response = await fetch(
                 `${URLAPI}/change_status/${numericId}?change=${changeStatus}&username=${userData?.username}`,
@@ -698,7 +714,7 @@ export default function RequestForm() {
                 confirmButtonText: 'OK'
             });
         }
-    }, [numericId, userData?.username, fetchRequestData]);
+    }, [numericId, userData?.username, requestData, fetchRequestData]);
 
     const handleITRecieve = useCallback(async () => {
         if (!numericId || !requestData?.date_estimate) {
@@ -721,12 +737,12 @@ export default function RequestForm() {
                 // บันทึกวันที่เริ่มงาน
                 fetch(`${URLAPI}/datework/${numericId}?${dateParams.toString()}`, {
                     method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                 }),
                 // เปลี่ยนสถานะงาน 
                 fetch(`${URLAPI}/change_status/${numericId}?change=inprogress&username=${userData?.username}`, {
                     method: "PUT",
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                 })
             ]);
 
@@ -746,8 +762,8 @@ export default function RequestForm() {
         } catch (error) {
             console.error('Error fetching requests:', error);
             Swal.fire({
-                title: 'Error!', 
-                html: 'เกิดข้อผิดพลาดในการรับงาน', 
+                title: 'Error!',
+                html: 'เกิดข้อผิดพลาดในการรับงาน',
                 icon: 'error',
                 confirmButtonText: 'OK',
                 customClass: {
@@ -759,6 +775,12 @@ export default function RequestForm() {
         }
     }, [numericId, userData?.username, fetchRequestData, requestData]);
 
+    const handleAddKnowledge = useCallback(() => {
+        if (selectedSubtopic) {
+            setSelectedSubtopic({ ...selectedSubtopic, knowledge: '' });
+        }
+    }, [selectedSubtopic]);
+
     const handleITConfirm = useCallback(async () => {
         if (!numericId) return;
 
@@ -767,7 +789,7 @@ export default function RequestForm() {
                 `${URLAPI}/change_status/${numericId}?change=confirm&username=${userData?.username}`,
                 {
                     method: "PUT",
-                    headers: {"Content-Type": "application/json"}
+                    headers: { "Content-Type": "application/json" }
                 }
             );
 
@@ -791,7 +813,7 @@ export default function RequestForm() {
         } catch (error) {
             console.error('Error fetching requests:', error);
             Swal.fire({
-                title: 'Error!', 
+                title: 'Error!',
                 html: 'เกิดข้อผิดพลาดในการรับงาน',
                 icon: 'error',
                 confirmButtonText: 'OK',
@@ -842,7 +864,7 @@ export default function RequestForm() {
                 `${URLAPI}/change_status/${numericId}?change=complete&username=${userData?.username}`,
                 {
                     method: "PUT",
-                    headers: {"Content-Type": "application/json"},
+                    headers: { "Content-Type": "application/json" },
                 }
             );
 
@@ -909,7 +931,7 @@ export default function RequestForm() {
                 `${URLAPI}/change_status/${numericId}?change=complete&username=${userData?.username}`,
                 {
                     method: "PUT",
-                    headers: {"Content-Type": "application/json"},
+                    headers: { "Content-Type": "application/json" },
                 }
             );
 
@@ -988,7 +1010,7 @@ export default function RequestForm() {
                 fetch(`${URLAPI}/rating_score/${numericId}`),
                 fetch(`${URLAPI}/rating?type_id=${requestData.type_id}`)
             ]);
-            
+
             if (scoresRes.ok && optionsRes.ok) {
                 const scores = await scoresRes.json();
                 const options = await optionsRes.json();
@@ -1098,20 +1120,22 @@ export default function RequestForm() {
                             <Box sx={{ mt: 2 }}>
                                 {(admin === 'ADMIN' || (userData?.position && (userData.position === 'm' || userData.position === 'd'))) && selectedTypeId !== 2 && (
                                     <>
-                                            <BoxManagerApprove
-                                                managerApprove={managerApprove || { name: '', status: '', req_id: '', m_name: '' }}
-                                                id_division_competency={userData?.id_division_competency || 0}
-                                                check_m={selectedSubtopic?.check_m || 0}
-                                                check_d={selectedSubtopic?.check_d || 0}
-                                            />
-                                        
-                                            <BoxDirectorApprove
-                                                directorApprove={directorApprove || { name: '', status: '', req_id: '', m_name: '' }}
-                                                m_name={managerApprove?.name ?? null}
-                                                id_section_competency={userData?.id_section_competency || 0}
-                                                check_m={selectedSubtopic?.check_m || 0}
-                                                check_d={selectedSubtopic?.check_d || 0}
-                                            />
+                                        <BoxManagerApprove
+                                            managerApprove={managerApprove || { name: '', status: '', req_id: '', m_name: '' }}
+                                            id_division_competency={userData?.id_division_competency || 0}
+                                            check_m={selectedSubtopic?.check_m || 0}
+                                            check_d={selectedSubtopic?.check_d || 0}
+                                            type_id={selectedTypeId}
+                                        />
+
+                                        <BoxDirectorApprove
+                                            directorApprove={directorApprove || { name: '', status: '', req_id: '', m_name: '' }}
+                                            m_name={managerApprove?.name ?? null}
+                                            id_section_competency={userData?.id_section_competency || 0}
+                                            check_m={selectedSubtopic?.check_m || 0}
+                                            check_d={selectedSubtopic?.check_d || 0}
+                                            type_id={selectedTypeId}
+                                        />
                                     </>
                                 )}
                             </Box>
@@ -1170,115 +1194,85 @@ export default function RequestForm() {
                                 (userData.position === 'm' || userData.position === 'd') &&
                                 isITStaff && selectedTypeId !== 2
                             )) && (
-                                <>
-                                    <Box sx={{
-                                        backgroundColor: '#fff',
-                                        padding: 2,
-                                        borderRadius: 2,
-                                        marginTop: 4,
-                                        border: '1px dashed',
-                                        borderColor: 'lightblue',
-                                    }}>
-                                        <Typography
-                                            sx={{
-                                                mb: 2,
-                                                fontWeight: 'bold',
-                                                fontSize: 20,
-                                                color: '#1976d2',
-                                                textAlign: 'left',
-                                                textDecoration: 'underline',
-                                                textDecorationThickness: 2,
-                                                textUnderlineOffset: 6,
-                                                textDecorationColor: '#1976d2',
-                                                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                                            }}
-                                        >
-                                            IT Approve
-                                        </Typography>
+                                    <>
+                                        <Box sx={{
+                                            backgroundColor: '#fff',
+                                            padding: 2,
+                                            borderRadius: 2,
+                                            marginTop: 4,
+                                            border: '1px dashed',
+                                            borderColor: 'lightblue',
+                                        }}>
+                                            <Typography
+                                                sx={{
+                                                    mb: 2,
+                                                    fontWeight: 'bold',
+                                                    fontSize: 20,
+                                                    color: '#1976d2',
+                                                    textAlign: 'left',
+                                                    textDecoration: 'underline',
+                                                    textDecorationThickness: 2,
+                                                    textUnderlineOffset: 6,
+                                                    textDecorationColor: '#1976d2',
+                                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                IT Approve
+                                            </Typography>
 
-                                        <Grid container spacing={4}>
-                                            <Grid item xs={12} sm={6}>
-                                                {itmanagerApprove !== null ? (
+                                            <Grid container spacing={4}>
+                                                <Grid item xs={12} sm={6}>
                                                     <BoxITManagerApprove
                                                         itmanagerApprove={{
-                                                            name: itmanagerApprove.name,
-                                                            status: itmanagerApprove.status,
-                                                            req_id: itmanagerApprove.req_id,
-                                                            level_job: itmanagerApprove.level_job ?? null
+                                                            name: itmanagerApprove?.name || null,
+                                                            status: itmanagerApprove?.status || null,
+                                                            req_id: itmanagerApprove?.req_id || null,
+                                                            level_job: itmanagerApprove?.level_job || null
                                                         }}
-                                                        id_division_competency={userData.id_division_competency}
-                                                        it_m_note={itmanagerNote}
+                                                        id_division_competency={userData?.id_division_competency || 0}
+                                                        it_m_note={itmanagerNote || null}
                                                         check_it_m={selectedSubtopic?.check_it_m || 0}
                                                         check_it_d={selectedSubtopic?.check_it_d || 0}
-                                                        onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
+                                                        onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)}
+                                                        type_id={selectedTypeId}
                                                     />
-                                                ) : (
-                                                    <BoxITManagerApprove
-                                                        itmanagerApprove={{
-                                                            name: '',
-                                                            status: '',
-                                                            req_id: '',
-                                                            level_job: null
-                                                        }}
-                                                        id_division_competency={userData.id_division_competency}
-                                                        it_m_note={null}
-                                                        check_it_m={selectedSubtopic?.check_it_m || 0}
-                                                        check_it_d={selectedSubtopic?.check_it_d || 0}
-                                                        onLevelJobChange={(newLevelJob) => setLevelJob(newLevelJob)} // Pass callback to update levelJob
+                                                    <ITManagerTextarea
+                                                        value={itmanagerNote}
+                                                        onChange={(e) => setITManagerNote(e.target.value)}
+                                                        readOnly={!(isITStaff && userData?.position === 'm')}
                                                     />
-                                                )}
-                                                <ITManagerTextarea
-                                                    value={itmanagerNote}
-                                                    onChange={(e) => setITManagerNote(e.target.value)}
-                                                    readOnly={!(isITStaff && userData?.position === 'm')}
-                                                />
-                                            </Grid>
-                                            <Grid item xs={12} sm={6}>
-                                                {itdirectorApprove !== null ? (
+                                                </Grid>
+                                                <Grid item xs={12} sm={6}>
                                                     <BoxITDirectorApprove
                                                         itdirectorApprove={{
-                                                            name: itdirectorApprove.name,
-                                                            status: itdirectorApprove.status,
-                                                            req_id: itdirectorApprove.req_id,
-                                                            level_job: itdirectorApprove.level_job ?? null
+                                                            name: itdirectorApprove?.name || null,
+                                                            status: itdirectorApprove?.status || null,
+                                                            req_id: itdirectorApprove?.req_id || null,
+                                                            level_job: itdirectorApprove?.level_job ?? null
                                                         }}
                                                         it_m_name={itmanagerApprove?.name ?? null}
-                                                        id_section_competency={userData.id_section_competency}
-                                                        it_d_note={itdirectorNote}
+                                                        id_section_competency={userData.id_section_competency || 0}
+                                                        it_d_note={itdirectorNote || null}
+                                                        levelJob={levelJob}
                                                         check_it_m={selectedSubtopic?.check_it_m || 0}
                                                         check_it_d={selectedSubtopic?.check_it_d || 0}
-                                                        levelJob={levelJob} // Pass levelJob as prop
+                                                        type_id={selectedTypeId}
                                                     />
-                                                ) : (
-                                                    <BoxITDirectorApprove
-                                                        itdirectorApprove={{
-                                                            name: '',
-                                                            status: '',
-                                                            req_id: '',
-                                                            level_job: null
-                                                        }}
-                                                        it_m_name={null}
-                                                        id_section_competency={userData.id_section_competency}
-                                                        it_d_note={null}
-                                                        levelJob={levelJob} // Pass levelJob as prop
-                                                        check_it_m={selectedSubtopic?.check_it_m || 0}
-                                                        check_it_d={selectedSubtopic?.check_it_d || 0}
-                                                    />
-                                                )}
-                                                <Box sx={{ mb: 8 }}>
+                                                    <Box sx={{ mb: 8 }}>
 
-                                                </Box>
-                                                <ITDirectorTextarea
-                                                    value={itdirectorNote}
-                                                    onChange={(e) => setITDirectorNote(e.target.value)}
-                                                    readOnly={!(isITStaff && userData?.position === 'd')}
-                                                />
+                                                    </Box>
+
+                                                    <ITDirectorTextarea
+                                                        value={itdirectorNote}
+                                                        onChange={(e) => setITDirectorNote(e.target.value)}
+                                                        readOnly={!(isITStaff && userData?.position === 'd')}
+                                                    />
+                                                </Grid>
+
                                             </Grid>
-
-                                        </Grid>
-                                    </Box>
-                                </>
-                            )}
+                                        </Box>
+                                    </>
+                                )}
                             {(requestData?.status_id && ![1, 2, 3].includes(requestData.status_id)) && (
                                 <Box
                                     sx={{
@@ -1371,11 +1365,13 @@ export default function RequestForm() {
                         </>
                     )}
                     {admin === "ADMIN" &&
-                        (([1, 3].includes(requestData?.type_id ?? 0) &&
-                        (status_id == 2 && (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 0 ) 
-                        || (status_id == 3 && (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 1) 
-                        || (selectedSubtopic?.check_it_m === 0 && selectedSubtopic?.check_it_d === 1)))) 
-                        || (requestData?.type_id === 2 && status_id == 1)) && (
+                        // (([1, 3].includes(requestData?.type_id ?? 0) &&
+                        // (status_id == 2 && (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 0 ) 
+                        // || (status_id == 3 && (selectedSubtopic?.check_it_m === 1 && selectedSubtopic?.check_it_d === 1) 
+                        // || (selectedSubtopic?.check_it_m === 0 && selectedSubtopic?.check_it_d === 1)))) 
+                        // || (requestData?.type_id === 2 && status_id == 1)) && (
+                        (([1, 3].includes(requestData?.type_id ?? 0) && status_id == 4)
+                            || (requestData?.type_id === 2 && status_id == 1)) && (
                             <Box sx={{ mt: 4 }}>
                                 <Button
                                     color="primary"
@@ -1433,31 +1429,31 @@ export default function RequestForm() {
                         )}
                     {(status_id === 8 && (requestData?.type_id === 1 || requestData?.type_id === 2)) && (isITStaff) &&
                         requestData?.date_end && (
-                        <Box sx={{ mt: 4 }}>
-                            <Button
-                                color="success"
-                                startDecorator={<SaveIcon />}
-                                onClick={() => {
-                                    Swal.fire({
-                                        title: 'ยืนยันการคอนเฟิร์มงาน',
-                                        text: 'คุณต้องการคอนเฟิร์มงานนี้ใช่หรือไม่?',
-                                        icon: 'question',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'ใช่',
-                                        cancelButtonText: 'ไม่',
-                                        confirmButtonColor: '#3085d6',
-                                        cancelButtonColor: '#d33'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            handleITConfirm();
-                                        }
-                                    });
-                                }}
-                            >
-                                เจ้าหน้าที่ Confirm งาน
-                            </Button>
-                        </Box>
-                    )}
+                            <Box sx={{ mt: 4 }}>
+                                <Button
+                                    color="success"
+                                    startDecorator={<SaveIcon />}
+                                    onClick={() => {
+                                        Swal.fire({
+                                            title: 'ยืนยันการคอนเฟิร์มงาน',
+                                            text: 'คุณต้องการคอนเฟิร์มงานนี้ใช่หรือไม่?',
+                                            icon: 'question',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'ใช่',
+                                            cancelButtonText: 'ไม่',
+                                            confirmButtonColor: '#3085d6',
+                                            cancelButtonColor: '#d33'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                handleITConfirm();
+                                            }
+                                        });
+                                    }}
+                                >
+                                    เจ้าหน้าที่ Confirm งาน
+                                </Button>
+                            </Box>
+                        )}
                     {!isITStaff && (requestData?.status_id === 9 || (uatScore === true && requestData?.status_id === 10)) && (
                         <Box sx={{ mt: 4 }}>
                             <Button
@@ -1513,41 +1509,105 @@ export default function RequestForm() {
 
                     {/* ---------------------it employee must recieve task----------------------------- */}
                     {userData && (isITStaff) && requestData?.it_user_recieve && (
-                        <Box
-                            sx={{
-                                backgroundColor: '#fff',
-                                padding: 2,
-                                borderRadius: 2,
-                                marginTop: 4,
-                                border: '1px dashed',
-                                borderColor: 'lightblue',
-                            }}
-                        >
-                            <Typography
+                        <>
+                            {selectedSubtopic?.label !== 'Other' && selectedTypeId === 2 && (
+                                <Box
+                                    sx={{
+                                        backgroundColor: '#fff',
+                                        padding: 2,
+                                        borderRadius: 2,
+                                        marginTop: 4,
+                                        border: '1px dashed',
+                                        borderColor: 'lightblue',
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            fontSize: 20,
+                                            color: '#1976d2',
+                                            textAlign: 'left',
+                                            textDecoration: 'underline',
+                                            textDecorationThickness: 2,
+                                            textUnderlineOffset: 6,
+                                            textDecorationColor: '#1976d2',
+                                            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                        }}
+                                    >
+                                        How To Solve This Problem
+                                    </Typography>
+                                    <DetailsTextarea
+                                        value={selectedSubtopic?.knowledge || ''}
+                                        onChange={(e) => {
+                                            if (selectedSubtopic) {
+                                                setSelectedSubtopic({
+                                                    ...selectedSubtopic,
+                                                    key: selectedSubtopic.key,
+                                                    label: selectedSubtopic.label,
+                                                    pattern: selectedSubtopic.pattern,
+                                                    topic_id: selectedSubtopic.topic_id,
+                                                    check_m: selectedSubtopic.check_m,
+                                                    check_d: selectedSubtopic.check_d,
+                                                    check_it_m: selectedSubtopic.check_it_m,
+                                                    check_it_d: selectedSubtopic.check_it_d,
+                                                    knowledge: e.target.value
+                                                });
+                                            }
+                                        }}
+                                        label=""
+                                        placeholder="Enter knowledge details"
+                                        readOnly={selectedSubtopic?.knowledge ? true : false}
+                                    />
+                                    {!selectedSubtopic?.knowledge && (
+                                        <Button
+                                            sx={{ mt: 2 }}
+                                            color="primary"
+                                            startDecorator={<SaveIcon />}
+                                            onClick={() => {
+                                                handleAddKnowledge();
+                                            }}
+                                        >
+                                            Add Knowledge
+                                        </Button>
+                                    )}
+                                </Box>
+                            )}
+                            <Box
                                 sx={{
-
-
-                                    fontWeight: 'bold',
-                                    fontSize: 20,
-                                    color: '#1976d2',
-                                    textAlign: 'left',
-                                    textDecoration: 'underline',
-                                    textDecorationThickness: 2,
-                                    textUnderlineOffset: 6,
-                                    textDecorationColor: '#1976d2',
-                                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                    backgroundColor: '#fff',
+                                    padding: 2,
+                                    borderRadius: 2,
+                                    marginTop: 4,
+                                    border: '1px dashed',
+                                    borderColor: 'lightblue',
                                 }}
                             >
-                                Subtask
-                            </Typography>
+                                <Typography
+                                    sx={{
 
-                            <Box sx={{ p: 1 }}>
-                                <SUBTASK req_id={requestData?.id ?? 0} />
+
+                                        fontWeight: 'bold',
+                                        fontSize: 20,
+                                        color: '#1976d2',
+                                        textAlign: 'left',
+                                        textDecoration: 'underline',
+                                        textDecorationThickness: 2,
+                                        textUnderlineOffset: 6,
+                                        textDecorationColor: '#1976d2',
+                                        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+                                    }}
+                                >
+                                    Subtask
+                                </Typography>
+
+                                <Box sx={{ p: 1 }}>
+                                    <SUBTASK req_id={requestData?.id ?? 0} />
+                                </Box>
                             </Box>
-                        </Box>
+                        </>
                     )
                     }
-                    {requestData?.type_id === 3 && ([10, 11].includes(requestData?.status_id ?? 0) || isITStaff) ? (
+                    {requestData?.type_id === 3 && requestData?.it_user_recieve ? (
                         <Box
                             sx={{
                                 backgroundColor: '#fff',
@@ -1590,8 +1650,8 @@ export default function RequestForm() {
                         <Box sx={{ mt: 4 }}>
                             <Card variant="outlined" sx={{ maxWidth: 1200 }}>
                                 <Box sx={{ p: 2 }}>
-                                    <Typography 
-                                        level="h4" 
+                                    <Typography
+                                        level="h4"
                                         gutterBottom
                                         sx={{
                                             borderBottom: '2px solid #1976d2',
@@ -1603,11 +1663,11 @@ export default function RequestForm() {
                                     >
                                         ผลการประเมินการให้บริการ
                                     </Typography>
-                                    
-                                    <Box 
-                                        sx={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
+
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
                                             gap: 2,
                                             p: 2,
                                             backgroundColor: '#f5f5f5',
@@ -1616,8 +1676,8 @@ export default function RequestForm() {
                                             mb: 2
                                         }}
                                     >
-                                        <Typography 
-                                            sx={{ 
+                                        <Typography
+                                            sx={{
                                                 width: '80%',
                                                 fontWeight: 600,
                                                 color: '#1976d2'
@@ -1625,15 +1685,15 @@ export default function RequestForm() {
                                         >
                                             หัวข้อการประเมิน
                                         </Typography>
-                                        <Box 
-                                            sx={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
                                                 width: '20%',
                                                 justifyContent: 'flex-end'
                                             }}
                                         >
-                                            <Typography 
+                                            <Typography
                                                 sx={{
                                                     fontWeight: 600,
                                                     color: '#1976d2'
@@ -1649,10 +1709,10 @@ export default function RequestForm() {
                                             const score = ratingScores.find(s => s.id_rating === option.id_rating);
                                             return (
                                                 <Grid item xs={12} key={option.id_rating}>
-                                                    <Box 
-                                                        sx={{ 
-                                                            display: 'flex', 
-                                                            alignItems: 'center', 
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
                                                             gap: 2,
                                                             p: 2,
                                                             backgroundColor: index % 2 === 0 ? '#f5f5f5' : 'white',
@@ -1664,8 +1724,8 @@ export default function RequestForm() {
                                                             mb: 1
                                                         }}
                                                     >
-                                                        <Typography 
-                                                            sx={{ 
+                                                        <Typography
+                                                            sx={{
                                                                 width: '80%',
                                                                 fontWeight: 500,
                                                                 color: '#424242'
@@ -1673,10 +1733,10 @@ export default function RequestForm() {
                                                         >
                                                             {option.rating_name}
                                                         </Typography>
-                                                        <Box 
-                                                            sx={{ 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
                                                                 gap: 1,
                                                                 width: '20%',
                                                                 justifyContent: 'flex-end'
@@ -1693,8 +1753,8 @@ export default function RequestForm() {
                                                                     }
                                                                 }}
                                                             />
-                                                            <Typography 
-                                                                level="body-sm" 
+                                                            <Typography
+                                                                level="body-sm"
                                                                 sx={{
                                                                     color: '#757575',
                                                                     fontWeight: 500,
@@ -1751,7 +1811,7 @@ export default function RequestForm() {
                     </Grid>
                 </Paper>
             </Container>
-            <BasicRating 
+            <BasicRating
                 req_id={numericId}
                 type_id={requestData?.type_id || null}
                 open={showRating}

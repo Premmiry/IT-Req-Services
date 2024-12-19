@@ -64,7 +64,7 @@ const usePriorityOptions = () => {
 };
 
 const DateWork: React.FC<DateWorkProps> = ({ req_id, date_start, date_end, date_estimate, onUpdateComplete }) => {
-    console.log('DateWork props:', { req_id, date_start, date_end, date_estimate });
+    // console.log('DateWork props:', { req_id, date_start, date_end, date_estimate });
 
     const { isITStaff, admin } = usePriorityOptions();
     const [dateStart, setDateStart] = useState<Dayjs | null>(null);

@@ -600,9 +600,9 @@ const RequestDetail: React.FC<RequestDetailProps> = ({
                         </Stack>
                     </Box>
                     <Divider />
-                    <Box sx={{ p: 1 }}>
-                        <Typography gutterBottom variant="body2">
-                            Attached Files
+                        <Box sx={{ p: 1 }}>
+                            <Typography gutterBottom variant="body2">
+                                Attached Files
                         </Typography>
                         <Stack direction="column">
                             {uploadedFiles.length > 0 ? (

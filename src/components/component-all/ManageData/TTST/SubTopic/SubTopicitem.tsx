@@ -152,7 +152,7 @@ const SubTopicItem: React.FC<SubTopicItemProps> = React.memo(({
                 maxWidth="md"
                 fullWidth
             >
-                <DialogTitle>Knowledge Details</DialogTitle>
+                <DialogTitle>How To Solve This Problem</DialogTitle>
                 <DialogContent sx={{ p: 2 }}>
                     <DetailsTextarea
                         value={subtopic.knowledge}

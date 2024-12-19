@@ -38,7 +38,7 @@ const useApproveOptions = () => {
     return approveOptions;
 };
 
-export const BoxManagerApprove = ({ managerApprove, id_division_competency, check_m, check_d }: { managerApprove: ApproveProps, id_division_competency: number | null, check_m: number | null, check_d: number | null }) => {
+export const BoxManagerApprove = ({ managerApprove, id_division_competency, check_m, check_d, type_id }: { managerApprove: ApproveProps, id_division_competency: number | null, check_m: number | null, check_d: number | null, type_id: number | null }) => {
     const [value1, setValue1] = useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [managerName, setManagerName] = useState<string>(managerApprove?.name || '');
@@ -54,8 +54,9 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
         req_id: managerApprove?.req_id,
         status: managerApprove?.status,
         check_m: check_m,
-        check_d: check_d
-    }), [managerApprove, check_m, check_d]);
+        check_d: check_d,
+        type_id: type_id
+    }), [managerApprove, check_m, check_d, type_id]);
     console.log(memoizedManagerApprove);
 
     useEffect(() => {
@@ -78,7 +79,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
                 userData.position === 'm';
             setShowSubmitButton(shouldShowSubmitButton);
         }
-    }, [memoizedManagerApprove]);
+    }, [memoizedManagerApprove, check_m, check_d, type_id]);
 
     const handleSubmit = useCallback(async () => {
         if (!value1) {
@@ -135,7 +136,20 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
                     }
                     const result_m = await response_m.json();
                     console.log('Manager approval updated successfully:', result_m);
+                } else if (type_id === 3) {
+                    const response_m = await fetch(`${URLAPI}/change_status/${managerApprove.req_id}?change=director`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    if (!response_m.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const result_m = await response_m.json();
+                    console.log('Manager approval updated successfully:', result_m);
                 }
+
 
                 setShowAlert(true);
 
@@ -143,6 +157,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
                     setShowAlert(false);
                     navigate(id_division_competency === 86 ? '/request-list-it' : '/request-list');
                 }, 2000);
+
 
             } catch (error) {
                 console.error('Error updating manager approval:', error);
@@ -175,7 +190,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
                 console.error('Error updating manager approval:', error);
             }
         }
-    }, [value1, managerApprove, managerName, id_division_competency, navigate, check_manager, check_director]);
+    }, [value1, managerApprove, managerName, id_division_competency, navigate, check_manager, check_director, type_id]);
 
     return (
         <Grid container spacing={1}>
@@ -205,7 +220,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
                 </Select>
             </Grid>
             <Grid xs={1}>
-                {showSubmitButton && check_manager === 1 && (
+                {showSubmitButton && ((check_manager === 1 && type_id !== 3) || type_id === 3) && (
                     <>
                         <FormLabel>Approve</FormLabel>
                         <Button
@@ -223,7 +238,7 @@ export const BoxManagerApprove = ({ managerApprove, id_division_competency, chec
     );
 };
 
-export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_competency, check_m, check_d }: { directorApprove: ApproveProps, m_name: string | null, id_section_competency: number, check_m: number | null, check_d: number | null }) => {
+export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_competency, check_m, check_d, type_id }: { directorApprove: ApproveProps, m_name: string | null, id_section_competency: number, check_m: number | null, check_d: number | null, type_id: number | null }) => {
     const [value2, setValue2] = useState<number | null>(null);
     const approveOptions = useApproveOptions();
     const [directorName, setDirectorName] = useState<string>(directorApprove?.name || '');
@@ -239,8 +254,9 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
         req_id: directorApprove?.req_id,
         status: directorApprove?.status,
         check_m: check_m,
-        check_d: check_d
-    }), [directorApprove, check_m, check_d]);
+        check_d: check_d,
+        type_id: type_id
+    }), [directorApprove, check_m, check_d, type_id]);
 
     useEffect(() => {
         const storedUserData = sessionStorage.getItem('userData');
@@ -262,7 +278,7 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                 userData.position === 'd';
             setShowSubmitButton(shouldShowSubmitButton);
         }
-    }, [memoizedDirectorApprove, check_director]);
+    }, [memoizedDirectorApprove, check_m, check_d, type_id]);
 
     const handleSubmit = useCallback(async () => {
         if (!value2) {
@@ -277,7 +293,7 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
 
         if (value2 !== 3) {
             try {
-                if (!m_name && check_manager === 1) {
+                if ((!m_name && check_manager === 1 && type_id !== 3) || (!m_name && type_id === 3)) {
                     const response = await fetch(`${URLAPI}/m_approve/${directorApprove.req_id}?name=${encodeURIComponent(directorName)}&status=${encodeURIComponent(value2)}`, {
                         method: 'PUT',
                         headers: {
@@ -318,12 +334,25 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                     }
                     const result_d = await response_d.json();
                     console.log('Director approval updated successfully:', result_d);
+                } else if (type_id === 3) {
+                    const response_d = await fetch(`${URLAPI}/change_status/${directorApprove.req_id}?change=admin`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    if (!response_d.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    const result_d = await response_d.json();
+                    console.log('Director approval updated successfully:', result_d);
                 }
                 setShowAlert(true);
                 setTimeout(() => {
                     setShowAlert(false);
                     navigate(id_section_competency === 28 ? '/request-list-it' : '/request-list');
                 }, 2000);
+                
             } catch (error) {
                 console.error('Error updating director approval:', error);
             }
@@ -385,7 +414,7 @@ export const BoxDirectorApprove = ({ directorApprove, m_name, id_section_compete
                 </Select>
             </Grid>
             <Grid xs={1}>
-                {showSubmitButton && check_director === 1 && (
+                {showSubmitButton && ((check_director === 1 && type_id !== 3) || type_id === 3) && (
                     <>
                         <FormLabel>Approve</FormLabel>
                         <Button

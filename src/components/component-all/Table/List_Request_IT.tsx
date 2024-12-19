@@ -38,6 +38,8 @@ interface RequestData {
     assignee: string;
     datecreated: string;
     topic: string;
+    check_it_m: number;
+    check_it_d: number;
 }
 
 interface ListRequestITProps {
@@ -120,6 +122,8 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 detail_req: item.detail_req || '',
                 datecreated: formatDate(item.created_at),
                 topic: item.topic || '',
+                check_it_m: item.check_it_m || 0,
+                check_it_d: item.check_it_d || 0,
             }));
             setRows(mappedData);
         } catch (error) {
@@ -138,29 +142,29 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
                 throw new Error("ไม่พบข้อมูลที่เลือก");
             }
 
+            
             let response;
             
-            if ([1, 3].includes(selectedRow.type_id)) {
-                response = await fetch(
-                    `${URLAPI}/change_status/${selectedId}?change=admin&username=${userData?.username}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-            } else if (selectedRow.type_id === 2) {
-                response = await fetch(
-                    `${URLAPI}/change_status/${selectedId}?change=todo&username=${userData?.username}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-            }
+            const { type_id, status_id, check_it_m, check_it_d } = selectedRow;
+
+            const getEndpoint = () => {
+                if (type_id === 1 && status_id === 4) {
+                    if (check_it_m === 1) return 'it_manager';
+                    if (check_it_m === 0 && check_it_d === 1) return 'it_director';
+                }
+                if (type_id === 2 && status_id === 1) return 'todo';
+                if (type_id === 3 && status_id === 4) return 'it_manager';
+            };
+
+            response = await fetch(
+                `${URLAPI}/change_status/${selectedId}?change=${getEndpoint()}&username=${userData?.username}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
             if (!response || !response.ok) {
                 throw new Error("Network response was not ok");
@@ -427,7 +431,7 @@ export default function ListRequestIT({ tab }: ListRequestITProps) {
 
                         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                             {admin === "ADMIN" &&
-                                (([1, 3].includes(params.row.type_id) && params.row.status_id == 3) ||
+                                (([1, 3].includes(params.row.type_id) && params.row.status_id == 4) ||
                                     (params.row.type_id == 2 && params.row.status_id == 1)) && (
                                     <Tooltip title="Receive Task" arrow>
                                         <IconButton

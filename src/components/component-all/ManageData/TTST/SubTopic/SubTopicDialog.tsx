@@ -154,6 +154,13 @@ const SubTopicDialog: React.FC<SubTopicDialogProps> = ({
         } : null);
     }, []);
 
+    const handleInputChange2 = useCallback((field: keyof SubTopic, value: string | number): void => {
+        setEditedSubTopic(prev => prev ? {
+            ...prev,
+            [field]: value
+        } : null);
+    }, []);
+
     useEffect(() => {
         if (open && topic_id && subtopicId && isEditMode) {
             fetchSubTopics();
@@ -229,11 +236,6 @@ const SubTopicDialog: React.FC<SubTopicDialogProps> = ({
                             onChange={(e) => handleInputChange('pattern', e.target.value)}
                             label=""
                             placeholder="Enter pattern details"
-                            ref={(textarea) => {
-                                if (textarea && isEditMode) {
-                                    textarea.focus();
-                                }
-                            }}
                         />
                     </Box>
                     <Box sx={{ 
@@ -261,7 +263,7 @@ const SubTopicDialog: React.FC<SubTopicDialogProps> = ({
                         </Typography>
                         <DetailsTextarea
                             value={editedSubTopic.knowledge}
-                            onChange={(e) => handleInputChange('knowledge', e.target.value)}
+                            onChange={(e) => handleInputChange2('knowledge', e.target.value)}
                             label=""
                             placeholder="Enter knowledge details"
                         />

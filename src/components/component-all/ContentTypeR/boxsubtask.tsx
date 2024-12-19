@@ -112,7 +112,7 @@ const SUBTASK: React.FC<SubtaskProps> = ({ req_id }) => {
             const response = await fetch(`${URLAPI}/priorities`);
             const data = await response.json();
             setPriorityOptions(data);
-            console.log(data);
+            // console.log(data);
         } catch (error) {
             console.error("Error fetching priority options:", error);
         }

@@ -11,6 +11,7 @@ interface Subtopic {
     check_d: number;
     check_it_m: number;
     check_it_d: number;
+    knowledge: string;
 }
 
 interface SubtopicOption {
@@ -22,6 +23,7 @@ interface SubtopicOption {
     check_d: number;
     check_it_m: number;
     check_it_d: number;
+    knowledge: string;
 }
 
 interface SelectSubtopicProps {
@@ -57,7 +59,8 @@ export default function SelectSubtopic({ onSubtopicChange, initialValue, selecte
                     check_m: sub.check_m,
                     check_d: sub.check_d,
                     check_it_m: sub.check_it_m,
-                    check_it_d: sub.check_it_d
+                    check_it_d: sub.check_it_d,
+                    knowledge: sub.knowledge
                 }));
                 setSubtopics(subtopicOptions);
                 // console.log('subtopicOptions', subtopicOptions);
